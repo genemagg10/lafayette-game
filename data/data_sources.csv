@@ -1,0 +1,17 @@
+dataset,layer,license,url_or_endpoint,notes
+OpenStreetMap,buildings/roads/trails/POIs,ODbL 1.0 (attribution + share-alike),https://api.openstreetmap.org/api/0.6/map?bbox=W,S,E,N (<=0.25 sq deg) ; https://download.geofabrik.de/north-america/us/california/norcal.html,Overpass mirrors timed out from the box on 2026-10-19; the 0.6 map API worked
+Microsoft Global/US Building Footprints,building footprints (+some heights),ODbL,https://github.com/microsoft/GlobalMLBuildingFootprints,Heights are ML estimates
+Overture Maps buildings,footprints + height where known,ODbL (OSM-derived) / CDLA-Permissive-2.0 per source,https://docs.overturemaps.org/getting-data/ ; s3://overturemaps-us-west-2/release/,Each feature has a sources field; filter by bbox
+USGS 3DEP 1 m DEM,terrain,Public domain,https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x57y420_CA_NoCAL_Wildfires_B5b_2018.tif,TNM API returned tiles x57y420 + x58y420 (CA_NoCAL_Wildfires_B5b_2018) and x57y420 (CA_AlamedaCounty_2021_B21) for bbox -122.16,37.86,-122.07,37.92
+USGS 3DEP 1 m DEM,terrain,Public domain,https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x58y420_CA_NoCAL_Wildfires_B5b_2018.tif,
+USGS 3DEP 1 m DEM,terrain,Public domain,https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x57y420_CA_AlamedaCounty_2021_B21.tif,Newer 2021 tile for the western edge
+USGS TNM API,discovery,Public domain,https://tnmaccess.nationalmap.gov/api/v1/products?datasets=Digital%20Elevation%20Model%20(DEM)%201%20meter&bbox=-122.166,37.849,-122.078,37.940,Use for LiDAR point clouds too (dataset=Lidar Point Cloud (LPC))
+NLCD Tree Canopy Cover (USFS),canopy %,Public domain,https://data.fs.usda.gov/geodata/rastergateway/treecanopycover/,30 m
+Meta/WRI Global Canopy Height 1 m,canopy height,CC BY 4.0,https://registry.opendata.aws/dataforgood-fb-forests/,s3://dataforgood-fb-data/forests/v1/
+CAL FIRE Urban Canopy (EarthDefine 2018),urban canopy,see portal terms (not verified),https://www.fire.ca.gov/what-we-do/natural-resource-management/urban-and-community-forestry,License not verified
+NAIP (USDA),aerial color reference,Public domain,https://naip-usdaonline.hub.arcgis.com/ ; https://planetarycomputer.microsoft.com/dataset/naip,0.6 m
+USGS orthoimagery (NationalMap),aerial reference,Public domain,https://apps.nationalmap.gov/downloader/,
+Mapillary,street-level photos,CC BY-SA 4.0,https://www.mapillary.com/developer/api-documentation,Attribution + share-alike on derivatives
+Google Maps/Earth/Street View,DO NOT USE,Google ToS forbids extraction,https://www.google.com/help/terms_maps/,Not usable for textures or tracing
+EBRPD trail maps,trails,see site,https://www.ebparks.org/trails/interpark/lafayette-moraga,PDF maps for reference; geometry from OSM
+NOAA NCEI 1991-2020 normals,climate,Public domain,https://www.ncei.noaa.gov/access/services/data/v1?dataset=normals-monthly-1991-2020&stations=USC00041967&format=csv,Concord WWTP
