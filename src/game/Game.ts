@@ -360,6 +360,7 @@ export class Game {
     this.juniper.group.visible = false
     this.castLight.visible = false
     this.hud.beginPlay()
+    this.input.setTouchVisible(true)
     this.cam.snap(this.walker.heading)
   }
 
@@ -1146,6 +1147,7 @@ export class Game {
     this.input.allowLock = false
     if (document.pointerLockElement) document.exitPointerLock()
     this.walker.group.visible = false
+    this.input.setTouchVisible(false)
     this.hud.showCast('pause')
   }
 
@@ -1157,6 +1159,7 @@ export class Game {
     this.juniper.group.visible = false
     this.castLight.visible = false
     this.hud.hideCast()
+    this.input.setTouchVisible(true)
   }
 
   private stageCast(dt: number): void {

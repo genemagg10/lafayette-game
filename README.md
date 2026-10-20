@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:4731/lafayette-game/](http://127.0.0.1:4731/lafayette-game/). The baked map is already in `public/data`, so the game runs offline after install. The public site is [https://genemagg10.github.io/lafayette-game/](https://genemagg10.github.io/lafayette-game/) once GitHub Pages has deployed `main`.
+Open [http://127.0.0.1:4731/](http://127.0.0.1:4731/). The baked map is already in `public/data`, so the game runs offline after install. Asset paths are relative, so the same `dist/` folder works at a domain root and at [https://genemagg10.github.io/lafayette-game/](https://genemagg10.github.io/lafayette-game/).
 
 ### Keyboard and mouse
 
