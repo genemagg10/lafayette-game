@@ -1,0 +1,476 @@
+[
+  {
+    "name": "Park Theater",
+    "lat": 37.891799,
+    "lon": -122.120802,
+    "history": "Streamline Moderne single-screen cinema opened Aug 21, 1941 (designed by William B. David); closed 2005; bought by the Park Theater Trust in Dec 2021; under renovation as a two-screen cinema, target reopening early 2027. Interior palette originally blues, ivory and maroon; 1941 neon marquee in storage at NeonWorks.",
+    "people": [
+      {
+        "name": "Elwood P. Laws",
+        "role": "builder/owner 1941",
+        "contribution": "Walnut Creek theater operator who built the Park in 1941; also built Walnut Creek's El Rey Theater (1937).",
+        "source": "https://parktheatertrust.org/history/"
+      },
+      {
+        "name": "William B. David",
+        "role": "architect",
+        "contribution": "Cinema architect who designed 25+ theaters in California and Oregon in the Streamlined Moderne style, including the Park.",
+        "source": "https://lamorindaweekly.com/articles/2026/park-theater-renovation-plans-and-timeline-presented-to-city-council/"
+      },
+      {
+        "name": "The Park Theater Trust",
+        "role": "savior/owner",
+        "contribution": "All-volunteer nonprofit, first convened as a City task force; raised $3M and bought the theater for the community in Dec 2021.",
+        "source": "https://parktheatertrust.org/"
+      },
+      {
+        "name": "CinemaSF (Adam Bergeron, Jaimi Holker)",
+        "role": "future operator",
+        "contribution": "SF historic-cinema operators chosen to run the reopened Park; their first East Bay venue.",
+        "source": "https://www.cinemasf.com/park"
+      },
+      {
+        "name": "Lafayette-Orinda Presbyterian Church",
+        "role": "early tenant",
+        "contribution": "The newly founded congregation held Sunday services in the theater starting in 1954.",
+        "source": "https://parktheatertrust.org/history/"
+      }
+    ],
+    "approximate": true,
+    "confidence": "medium",
+    "category": "landmark:cinema",
+    "source": "https://parktheatertrust.org/history/ ; https://lamorindaweekly.com/articles/2026/park-theater-renovation-plans-and-timeline-presented-to-city-council/",
+    "coord_source": "US Census geocoder (address interpolation)"
+  },
+  {
+    "name": "Lafayette Library and Learning Center",
+    "lat": 37.891942,
+    "lon": -122.115752,
+    "history": "Library opened Nov 14, 2009, designed by Killefer Flammang Architects as a 'contemporary Craftsman' stone-and-wood building stepping down from Mt Diablo Blvd to First St. Its atrium honors Nobel laureate Glenn Seaborg. Built on the site of the 1938-39 WPA Veterans Memorial Building.",
+    "people": [
+      {
+        "name": "Lafayette Community Foundation",
+        "role": "fundraiser",
+        "contribution": "Formed by citizens (via Lafayette Library Vision 2000, 1998) to fund the library; nearly 25% of residents gave $12.7M toward construction.",
+        "source": "https://www.sfgate.com/opinion/article/Library-success-story-in-Lafayette-3211232.php"
+      },
+      {
+        "name": "Rick & Janet Cronk",
+        "role": "first major donors",
+        "contribution": "Rick spent 30 years building Dreyer's; the couple were approached as the project's first major donors and agreed, saying nothing matters more than educating children.",
+        "source": "https://lafayettehistory.org/oral-history-rick-janet-cronk-march-27th-2009/"
+      },
+      {
+        "name": "Glenn Seaborg",
+        "role": "namesake",
+        "contribution": "Nobel laureate and 40-year Lafayette resident, honored by the atrium and the Glenn Seaborg Learning Consortium of 12 Bay Area institutions.",
+        "source": "https://www.lovelafayette.org/home/showpublisheddocument/234/635561390008430000"
+      },
+      {
+        "name": "Killefer Flammang Architects",
+        "role": "architect",
+        "contribution": "Won the City's design competition, drawing on ideas from 1,000+ residents.",
+        "source": "https://www.lovelafayette.org/home/showpublisheddocument/197/635561390008430000"
+      },
+      {
+        "name": "Don Tatzin",
+        "role": "mayor",
+        "contribution": "Mayor who signed the City's 2009 support for the Seaborg Consortium; the Don Tatzin Community Hall in the library bears his name.",
+        "source": "https://lafayette.granicus.com/MetaViewer.php?clip_id=598&meta_id=4349&view_id=3"
+      }
+    ],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:civic",
+    "source": "https://www.sfgate.com/opinion/article/Library-success-story-in-Lafayette-3211232.php ; https://www.lovelafayette.org/home/showpublisheddocument/197/635561390008430000",
+    "coord_source": "OSM way/326482972 centroid"
+  },
+  {
+    "name": "Lafayette Historical Society",
+    "lat": 37.8919,
+    "lon": -122.1158,
+    "history": "Began 1967 as a committee of the Lafayette Library Association; incorporated as a nonprofit March 19, 1973. Located in the Library and Learning Center (location approximate).",
+    "people": [
+      {
+        "name": "Lafayette Historical Society",
+        "role": "keeper of town memory",
+        "contribution": "Runs the town's oral-history archive and the downtown history tour.",
+        "source": "https://lafayettehistory.org/local-sites/tour/"
+      }
+    ],
+    "approximate": true,
+    "confidence": "low",
+    "category": "landmark:history",
+    "source": "https://lafayettehistory.org/wp-content/uploads/2017/04/Newsletter-March-April-2017-2.pdf",
+    "coord_source": "approximate: library building centroid"
+  },
+  {
+    "name": "Lafayette Hillside Memorial (The Crosses of Lafayette)",
+    "lat": 37.895013,
+    "lon": -122.123311,
+    "history": "Hillside of thousands of crosses and other symbols on Deer Hill Rd, visible from BART and Hwy 24, begun 2003 and in earnest Nov 11, 2006. The count sign was replaced with 'Remember' in 2022.",
+    "people": [
+      {
+        "name": "Jeff Heaton",
+        "role": "creator",
+        "contribution": "Local contractor who planted the first 19 crosses in spring 2003 and relaunched the memorial on Armistice Day 2006.",
+        "source": "https://www.lafayettehillsidememorial.org/history.html"
+      },
+      {
+        "name": "John & Louise Clark",
+        "role": "property owners",
+        "contribution": "Longtime residents who allowed the memorial on their hillside.",
+        "source": "https://lafayettehistory.org/oral-history-louise-clark-october-14th-2010/"
+      },
+      {
+        "name": "Mt. Diablo Peace and Justice Center / Lamorinda Peace Group",
+        "role": "volunteers",
+        "contribution": "Groups that helped build and plant thousands of crosses.",
+        "source": "https://www.lafayettehillsidememorial.org/history.html"
+      }
+    ],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:memorial",
+    "source": "https://www.lafayettehillsidememorial.org/history.html",
+    "coord_source": "OSM way/459217544 centroid"
+  },
+  {
+    "name": "Lafayette Reservoir",
+    "lat": 37.880813,
+    "lon": -122.142307,
+    "history": "EBMUD reservoir. Dam built 1927-1933 after a 1928 slide forced a lower, wider redesign. Opened for recreation June 13, 1966, with a 2.7-mile paved loop.",
+    "people": [
+      {
+        "name": "EBMUD",
+        "role": "owner/builder",
+        "contribution": "East Bay Municipal Utility District (organized 1923) built the reservoir and opened it to the public in 1966.",
+        "source": "https://www.ebmud.com/about-us/who-we-are/mission-and-history"
+      },
+      {
+        "name": "George Pollock Company",
+        "role": "dam contractor",
+        "contribution": "Low bidder awarded the dam contract in July 1927 for $1,370,685.",
+        "source": "https://lafayettehistory.org/wp-content/uploads/2024/01/Newsletter-April-2023.pdf"
+      },
+      {
+        "name": "Leo J. Coleman",
+        "role": "EBMUD engineer",
+        "contribution": "Tumbled down the dam face while walking it in the dark on the night of the first cracks, in Sept 1928.",
+        "source": "https://lafayettehistory.org/wp-content/uploads/2024/01/Newsletter-April-2023.pdf"
+      },
+      {
+        "name": "Lafayette Improvement Club (Rodebaugh, Garrett, Stanley, Meredith)",
+        "role": "water advocates",
+        "contribution": "Formed the Lafayette County Water District to bring Mokelumne water, which led Lafayette into EBMUD.",
+        "source": "https://lafayettehistory.org/wp-content/uploads/2024/01/Newsletter-April-2023.pdf"
+      }
+    ],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:park",
+    "source": "https://lafayettehistory.org/wp-content/uploads/2024/01/Newsletter-April-2023.pdf ; https://www.ebmud.com/customers/pipeline/2016/05/50-years-reservoir-fun",
+    "coord_source": "OSM way/27877916 centroid"
+  },
+  {
+    "name": "Lafayette Reservoir Outlet Tower",
+    "lat": 37.884012,
+    "lon": -122.140672,
+    "history": "Dam outlet tower with valves and pipes to the filter plant. The original plan for a dam 33 ft taller was abandoned, so the tower stands well above the water.",
+    "people": [],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:structure",
+    "source": "https://www.ebmud.com/about-us/construction-and-maintenance/construction-my-neighborhood/lafayettetower",
+    "coord_source": "OSM node/2084054143"
+  },
+  {
+    "name": "Lafayette Reservoir Visitor Center / boat rental",
+    "lat": 37.8839,
+    "lon": -122.142789,
+    "history": "Visitor center and boat rental on the north shore.",
+    "people": [],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:structure",
+    "source": "https://www.openstreetmap.org/way/348816503",
+    "coord_source": "OSM way/348816503 centroid"
+  },
+  {
+    "name": "Lafayette Reservoir Rim Trail",
+    "lat": 37.876197,
+    "lon": -122.143842,
+    "history": "Rim trail circling the reservoir ridge. The centroid here is from a single OSM segment.",
+    "people": [],
+    "approximate": true,
+    "confidence": "medium",
+    "category": "trail",
+    "source": "https://www.openstreetmap.org/way/444096454",
+    "coord_source": "OSM way centroid (segment)"
+  },
+  {
+    "name": "Lafayette BART station",
+    "lat": 37.893186,
+    "lon": -122.124637,
+    "history": "Opened May 21, 1973. One island platform in the Hwy 24 median.",
+    "people": [],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:transit",
+    "source": "https://en.wikipedia.org/wiki/Lafayette_station_(BART)",
+    "coord_source": "Nominatim OSM node/257088282"
+  },
+  {
+    "name": "Veterans Memorial Center",
+    "lat": 37.888489,
+    "lon": -122.134284,
+    "history": "New Veterans Memorial Center, dedicated May 30, 2005. It replaced the 1938-39 WPA building, whose site became the library.",
+    "people": [
+      {
+        "name": "Works Progress Administration",
+        "role": "builder of original",
+        "contribution": "New Deal program that built the original 1938-39 Veterans Memorial Building at Mt Diablo Blvd and First St.",
+        "source": "https://livingnewdeal.org/sites/old-veterans-memorial-building-lafayette-ca/"
+      },
+      {
+        "name": "Lafayette, Walnut Creek & Contra Costa County",
+        "role": "partners",
+        "contribution": "Jointly built the 2005 replacement.",
+        "source": "https://www.westerncity.com/article/lafayette-walnut-creek-and-contra-costa-county-join-forces-construct-veterans-memorial"
+      }
+    ],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:civic",
+    "source": "https://livingnewdeal.org/sites/old-veterans-memorial-building-lafayette-ca/ ; https://www.westerncity.com/article/lafayette-walnut-creek-and-contra-costa-county-join-forces-construct-veterans-memorial",
+    "coord_source": "Nominatim OSM node/5889459287"
+  },
+  {
+    "name": "Lafayette Plaza",
+    "lat": 37.89172,
+    "lon": -122.11832,
+    "history": "Historic triangular town square at Mt Diablo Blvd and Moraga Rd. Elam Brown deeded the land in 1864; redesigned 1998-2001. Pony Express riders changed horses at this intersection in the early 1860s.",
+    "people": [
+      {
+        "name": "Elam Brown",
+        "role": "donor of land",
+        "contribution": "Deeded the plaza triangle to the town in 1864.",
+        "source": "https://lafayette.granicus.com/MetaViewer.php?clip_id=764&meta_id=5405&view_id=16"
+      }
+    ],
+    "approximate": true,
+    "confidence": "low",
+    "category": "landmark:park",
+    "source": "https://lafayette.granicus.com/MetaViewer.php?clip_id=764&meta_id=5405&view_id=16 ; https://www.lovelafayette.org/why-lafayette/about-lafayette/history-of-lafayette",
+    "coord_source": "approximate: Nominatim Plaza Drive"
+  },
+  {
+    "name": "Pioneer Store (Benjamin Shreve's store)",
+    "lat": 37.891637,
+    "lon": -122.11813,
+    "history": "Shreve's store, post office and insurance agency, opened in the early 1860s; much remodeled with a false front. Named the Pioneer Store by Robert Elam McNeil in 1902.",
+    "people": [
+      {
+        "name": "Benjamin Shreve",
+        "role": "schoolteacher/postmaster",
+        "contribution": "Stayed after the Gold Rush, ran the first school, named the town 'La Fayette' when Centerville was taken, and was postmaster for 30 years.",
+        "source": "https://lafayettehistory.org/town-history/pictorial-history/village-life/"
+      }
+    ],
+    "approximate": true,
+    "confidence": "low",
+    "category": "landmark:history",
+    "source": "https://lafayettehistory.org/local-sites/tour/",
+    "coord_source": "US Census geocoder (matched Plaza Dr; verify)"
+  },
+  {
+    "name": "Town Hall Theatre",
+    "lat": 37.887815,
+    "lon": -122.117918,
+    "history": "Built 1914 at School St and Moraga Rd by volunteers and the Lafayette Improvement Association. Theater use began with the Lafayette Playshop in 1941.",
+    "people": [
+      {
+        "name": "Lafayette Improvement Association",
+        "role": "builder",
+        "contribution": "Civic group that built the hall in 1914 with community volunteers.",
+        "source": "https://www.townhalltheatre.com/mission-and-history"
+      }
+    ],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:history",
+    "source": "https://www.townhalltheatre.com/mission-and-history",
+    "coord_source": "OSM node/368171449"
+  },
+  {
+    "name": "Lafayette United Methodist Church",
+    "lat": 37.890026,
+    "lon": -122.118501,
+    "history": "The congregation moved in 1927 into the former 1893 third school building on Moraga Rd.",
+    "people": [],
+    "approximate": true,
+    "confidence": "medium",
+    "category": "landmark:church",
+    "source": "https://thelumc.org/our-history",
+    "coord_source": "US Census geocoder (address interpolation)"
+  },
+  {
+    "name": "Stanley Middle School",
+    "lat": 37.886539,
+    "lon": -122.113735,
+    "history": "Middle school named for M.H. Stanley.",
+    "people": [
+      {
+        "name": "Matthew Howard 'M.H.' Stanley",
+        "role": "namesake",
+        "contribution": "Lafayette businessman and school-board member who helped expand local schools.",
+        "source": "https://lafayettehistory.org/wp-content/uploads/2024/06/Newsletter-January-2024.pdf"
+      }
+    ],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:school",
+    "source": "https://lafayettehistory.org/wp-content/uploads/2024/06/Newsletter-January-2024.pdf",
+    "coord_source": "OSM way/31426940 centroid"
+  },
+  {
+    "name": "Acalanes High School",
+    "lat": 37.90455,
+    "lon": -122.097379,
+    "history": "Opened Sept 10, 1940 with a flag-raising and 406 students.",
+    "people": [],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:school",
+    "source": "https://lafayettehistory.org/wp-content/uploads/2024/06/Newsletter-January-2024.pdf",
+    "coord_source": "Nominatim OSM way/31320691"
+  },
+  {
+    "name": "Lafayette Community Center",
+    "lat": 37.865222,
+    "lon": -122.099274,
+    "history": "City community center in Burton Valley.",
+    "people": [],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:civic",
+    "source": "https://www.openstreetmap.org/way/508537765",
+    "coord_source": "Nominatim OSM way/508537765"
+  },
+  {
+    "name": "Lafayette Chamber of Commerce",
+    "lat": 37.890135,
+    "lon": -122.121139,
+    "history": "Launched in 1947 by local businesspeople.",
+    "people": [
+      {
+        "name": "Lafayette Chamber of Commerce",
+        "role": "civic org",
+        "contribution": "Founded 1947; a supporter of the Park Theater rescue.",
+        "source": "https://parktheatertrust.org/"
+      }
+    ],
+    "approximate": false,
+    "confidence": "medium",
+    "category": "organization",
+    "source": "https://lafayettechamber.org/eras/",
+    "coord_source": "OSM node/2952933815"
+  },
+  {
+    "name": "Lafayette-Moraga Regional Trail (Lafayette segment)",
+    "lat": 37.89032,
+    "lon": -122.10573,
+    "history": "Rail-trail on the former Sacramento Northern right-of-way (passenger service ended 1941, freight 1957). Dedicated July 4, 1976.",
+    "people": [
+      {
+        "name": "Avon Wilson & Lynn Hiden ('the Bike Ladies')",
+        "role": "advocates",
+        "contribution": "Started the early-1970s bike-safety push that produced the trail.",
+        "source": "https://www.ebparks.org/about-us/whats-new/news/45-years-lafayette-moraga-regional-trail"
+      },
+      {
+        "name": "East Bay Regional Park District",
+        "role": "operator",
+        "contribution": "Partnered with Lafayette and Moraga in the Trails Advisory Committee and manages the trail.",
+        "source": "https://www.ebparks.org/trails/interpark/lafayette-moraga"
+      }
+    ],
+    "approximate": false,
+    "confidence": "medium",
+    "category": "trail",
+    "source": "https://www.ebparks.org/about-us/whats-new/news/45-years-lafayette-moraga-regional-trail",
+    "coord_source": "Nominatim OSM way/464374988"
+  },
+  {
+    "name": "Briones Regional Park",
+    "lat": 37.933667,
+    "lon": -122.143449,
+    "history": "EBRPD regional park north of Lafayette.",
+    "people": [],
+    "approximate": false,
+    "confidence": "medium",
+    "category": "park",
+    "source": "https://www.openstreetmap.org/relation/10895202",
+    "coord_source": "Nominatim relation centroid"
+  },
+  {
+    "name": "Acalanes Ridge Open Space",
+    "lat": 37.913715,
+    "lon": -122.092938,
+    "history": "Open-space ridge on the Lafayette/Walnut Creek border.",
+    "people": [],
+    "approximate": false,
+    "confidence": "medium",
+    "category": "park",
+    "source": "https://www.openstreetmap.org/relation/6518527",
+    "coord_source": "Nominatim relation centroid"
+  },
+  {
+    "name": "The Gardens at Heather Farm (Walnut Creek, nearby)",
+    "lat": 37.918534,
+    "lon": -122.044587,
+    "history": "Public garden; the garden association was incorporated in 1971, groundbreaking 1979.",
+    "people": [],
+    "approximate": false,
+    "confidence": "high",
+    "category": "park",
+    "source": "https://en.wikipedia.org/wiki/Gardens_at_Heather_Farm",
+    "coord_source": "Nominatim OSM way/112113127"
+  },
+  {
+    "name": "Caldecott Tunnel (west, toward Oakland)",
+    "lat": 37.857325,
+    "lon": -122.212648,
+    "history": "Hwy 24 tunnel west of Orinda. Hwy 24 and BART run through Lafayette toward it.",
+    "people": [],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:road",
+    "source": "https://www.openstreetmap.org/way/9898614",
+    "coord_source": "Nominatim OSM way"
+  },
+  {
+    "name": "Lafayette Water Treatment Plant",
+    "lat": 37.889228,
+    "lon": -122.139452,
+    "history": "EBMUD treatment plant below the dam.",
+    "people": [],
+    "approximate": false,
+    "confidence": "high",
+    "category": "landmark:structure",
+    "source": "https://www.openstreetmap.org/way/775417954",
+    "coord_source": "OSM way centroid"
+  },
+  {
+    "name": "Old Buckeye Tree",
+    "lat": 37.857728,
+    "lon": -122.15142,
+    "history": "Named tree in OSM, just south of Lafayette (Orinda Oaks area).",
+    "people": [],
+    "approximate": false,
+    "confidence": "high",
+    "category": "nature",
+    "source": "https://www.openstreetmap.org/node/13924510062",
+    "coord_source": "OSM node"
+  }
+]
