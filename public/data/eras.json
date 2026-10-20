@@ -1,0 +1,39 @@
+{
+  "note": "Fallback then-and-now lines. The game prefers public/data/history_pois.geojson, whose dates come from data/HISTORY.md. Anything marked [Placeholder] is an invented look. A feature with no start_year and no end_year is drawn in every era. Years are inclusive. An end_year is a historical fact: the dam’s 1933 is completion, the theater’s 2005 is a closing, and the site remains. The hotel corner, the cornfield, the Van Meter post office, and the Sacramento Northern passenger station do leave the map.",
+  "schema": {
+    "start_year": "First year a POI, building, road, or vegetation set may appear. Omit to include every earlier era.",
+    "end_year": "Last year it may appear. Omit to keep it from that start year onward."
+  },
+  "playable": ["today", "fifties"],
+  "locked": ["settlement", "orchard", "seventies"],
+  "thenNow": {
+    "theater": {
+      "then": "The Park Theater opened August 21, 1941, with a neon marquee on Mt. Diablo Boulevard. In 1955 this street is still the highway. The freeway bypass through town is about two years off. [Placeholder] The brighter marquee is a stand-in for the Streamline Moderne front.",
+      "now": "Today the theater is closed. A reopening is aimed at early 2027. This spot is an approximate geocode."
+    },
+    "plaza": {
+      "then": "Elam Brown deeded this triangle to the town on November 19, 1864. By the 1940s the plaza was ringed by the Park Theater, the Wayside Inn, the Pioneer Store, and a gas station. [Placeholder] The fountain you see is today’s plaza, not a 1955 survey.",
+      "now": "Today it is Elam and Margaret Brown Plaza, where Moraga Road meets the boulevard."
+    },
+    "library": {
+      "then": "The library’s block was the Veterans Memorial Building, a WPA hall from 1938–39 at Mt. Diablo Boulevard and First Street. The library that stands here now came later, on that site. [Placeholder] The present building is still drawn.",
+      "now": "Today the Lafayette Library and Learning Center looks out on the boulevard."
+    },
+    "bart": {
+      "then": "Lafayette Station is not here yet. BART opened in the Highway 24 median on May 21, 1973. In 1955 the freeway through town is still a plan. [Placeholder] The cleared ground is the modern footprint turned off, not a surveyed 1955 lot.",
+      "now": "Today the platform sits under the freeway, a quiet stretch between the hills."
+    },
+    "reservoir": {
+      "then": "The dam was finished in 1933, so the water is already here. EBMUD opened the recreation area to the public on June 13, 1966. In 1955 you can see the reservoir, and the public shore is still ahead. [Placeholder] The rim path under your feet is today’s trail.",
+      "now": "Today the Res is the long loop: shore, rim, and the oaks on the far bank."
+    },
+    "cross": {
+      "then": "The hillside still looks down on a boulevard of theaters, stores, and new houses where orchards had been. [Placeholder] The cross itself is drawn as it stands now.",
+      "now": "Today you can pick the memorial out from the boulevard on a clear evening."
+    },
+    "view-hill": {
+      "then": "From up here in 1955 the highway is still Mt. Diablo Boulevard, and the freeway cut is not in the valley yet. [Placeholder] The houses filling the fold are today’s footprints.",
+      "now": "Today downtown sits in the fold, Highway 24 is the cut, and Diablo is the far ridge."
+    }
+  }
+}
