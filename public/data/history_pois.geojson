@@ -1,0 +1,25 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.11802,
+     37.885758
+    ]
+   },
+   "properties": {
+    "name": "Rancho Acalanes (Elam Brown purchase)",
+    "era": "1847-1880s settlement",
+    "start_year": 1847,
+    "end_year": null,
+    "description": "3,329-acre Mexican land grant (granted 1834 to Candelario Valencia) bought by Elam Brown for $900 in 1847. It covers almost all of present-day Lafayette. Point is the city centroid, not a building.",
+    "source": "https://www.lovelafayette.org/why-lafayette/about-lafayette/history-of-lafayette ; https://lafayettehistory.org/local-sites/tour/",
+    "coord_source": "area symbol at Nominatim city centroid",
+    "confidence": "low"
+   }
+  }
+ ]
+}
