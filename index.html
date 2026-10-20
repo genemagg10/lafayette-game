@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4efe4" />
+    <title>Lafayette Days</title>
+    <script type="module" crossorigin src="./assets/index-DJ-KJZWD.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CT0hYm9Q.css">
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="vignette"></div>
+    <div id="era-grade"></div>
+    <div id="speedlines"></div>
+    <div id="fringe"></div>
+    <p id="drift"></p>
+    <div id="pops"></div>
+    <div id="portal-veil"></div>
+    <div id="era-veil" aria-hidden="true"><p id="era-year"></p></div>
+
+    <div id="loading">
+      <p class="eyebrow">Lafayette, California</p>
+      <h1>Lafayette Days</h1>
+      <p id="load-msg">Unfolding the map…</p>
+    </div>
+
+    <div id="title" hidden>
+      <div class="card">
+        <p class="eyebrow">A ramble, not a race</p>
+        <h1>Lafayette Days</h1>
+        <p class="lede">Mt. Diablo Boulevard, the reservoir loop, and hills that go gold in summer, green in winter, and flower in spring.</p>
+        <button id="play" type="button">Start downtown</button>
+        <ul class="facts">
+          <li>Pick Milo or Juniper. They remember you next time.</li>
+          <li>Walk, take off on foot, ride a bike, drive, or take the helicopter.</li>
+          <li>WASD to move, F or a double-tap of Space to fly, Esc to swap kids.</li>
+          <li>Landmarks chime when you find them, and the Hall of Builders fills in with the people behind each place.</li>
+          <li>A glowing door at a landmark steps into a scanned memory of the place.</li>
+          <li>Esc pauses. The town clock there can wind the year back to 1955.</li>
+          <li>Gems and Explorer notes are optional. The town is still the point.</li>
+        </ul>
+      </div>
+      <p class="credit">Map data © OpenStreetMap contributors (ODbL). Elevation: USGS 3DEP / SRTM.</p>
+    </div>
+
+    <div id="cast" hidden>
+      <p id="cast-kicker" class="eyebrow">Pick a rambler</p>
+      <div class="cast-picks">
+        <button type="button" class="kid" data-kid="milo" aria-pressed="true">
+          <span class="kid-name">Milo</span>
+          <span class="kid-line">Nine. Bounces when he runs.</span>
+        </button>
+        <button type="button" class="kid" data-kid="juniper" aria-pressed="false">
+          <span class="kid-name">Juniper</span>
+          <span class="kid-line">Eleven. Light on the pedals.</span>
+        </button>
+      </div>
+      <button id="cast-go" type="button" hidden>Back to the boulevard</button>
+      <div id="travel-panel">
+        <p class="eyebrow">Travel</p>
+        <p class="travel-note">Any place you’ve already found. You’re there at once.</p>
+        <ul id="travel-spots"></ul>
+        <button id="open-travel" type="button">Street map</button>
+      </div>
+      <div id="era">
+        <p class="eyebrow">Town clock</p>
+        <p id="era-face">Today</p>
+        <div id="era-list" class="era-row"></div>
+        <p id="era-note">Wind it. The boulevard rebuilds around you. 1955 is the pre-freeway street. The 1860s, the orchard years, and the 1970s are in the record and not a walkable town yet.</p>
+      </div>
+    </div>
+
+    <div id="hud" hidden>
+      <div class="top">
+        <div id="meter">
+          <p id="gems">0 gems</p>
+          <p id="distance">0 m</p>
+          <p id="clock" hidden>5:08 PM</p>
+          <p id="weather" hidden>Clear</p>
+        </div>
+        <p id="activity" hidden></p>
+        <div id="place-card" class="top-right">
+          <p id="place">Downtown Lafayette</p>
+          <p id="who" hidden>Milo</p>
+          <p id="found" hidden>Places 0/6 · Keepsakes 0/10</p>
+        </div>
+      </div>
+      <p id="prompt"></p>
+      <div class="bottom">
+        <p id="hint" hidden>WASD move · mouse look · E to ride</p>
+        <p id="speed" hidden></p>
+      </div>
+      <button id="pause-btn" type="button">Pause</button>
+      <button id="mute" type="button" aria-label="Mute">Sound</button>
+      <button id="map-btn" type="button">Map</button>
+      <button id="tour" type="button">Tour</button>
+      <button id="photo-btn" type="button" hidden>Keep this view</button>
+      <canvas id="mini" width="168" height="168"></canvas>
+      <p class="osm">© OpenStreetMap</p>
+    </div>
+
+    <div id="toast"></div>
+    <article id="card" hidden>
+      <p id="card-kicker" class="eyebrow">Found</p>
+      <h2 id="card-title"></h2>
+      <p id="card-history"></p>
+      <p id="card-approx" class="card-approx" hidden>Approximate location</p>
+      <p id="card-flag" class="card-flag" hidden>Placeholder. A marked line is an invented look, not a surveyed detail.</p>
+      <div id="card-credits" hidden>
+        <p class="card-made">Made possible by</p>
+        <ul id="card-people"></ul>
+      </div>
+      <p id="card-now" hidden></p>
+      <p id="card-line"></p>
+      <p class="card-close">Tap the card to close</p>
+    </article>
+    <div id="letterbox" hidden><span></span><span></span></div>
+
+    <div id="map" hidden>
+      <canvas id="mapc"></canvas>
+      <div class="map-side">
+        <p class="eyebrow">Street map</p>
+        <h2>Lafayette</h2>
+        <p id="map-note">The map fills in as you roam. Tap a street you know, or a place you’ve found, then Travel.</p>
+        <div class="journal-tabs" role="tablist">
+          <button id="tab-places" type="button" role="tab" aria-selected="true" class="on">Places</button>
+          <button id="tab-hall" type="button" role="tab" aria-selected="false">Hall of Builders</button>
+        </div>
+        <div id="journal-places">
+          <h3>Places you’ve found</h3>
+          <ul id="found-list"></ul>
+        </div>
+        <div id="journal-hall" hidden>
+          <h3>Lafayette Hall of Builders</h3>
+          <p id="hall-note">The hall is quiet. Visit a landmark and the people who helped build it are entered here.</p>
+          <div id="hall-list"></div>
+        </div>
+        <button id="travel" type="button" disabled>Travel</button>
+        <button id="map-close" type="button">Back to town</button>
+        <p class="credit">© OpenStreetMap contributors, ODbL</p>
+      </div>
+    </div>
+
+    <aside id="debug" hidden>
+      <h2>Daybook</h2>
+      <label>Hour <input id="time" type="range" min="0" max="24" step="0.01" value="18.8" /></label>
+      <label>Time speed <input id="tscale" type="range" min="0" max="8" step="0.05" value="0.55" /></label>
+      <div class="row">
+        <button type="button" data-quality="high">Vivid</button>
+        <button type="button" data-quality="medium">Balanced</button>
+        <button type="button" data-quality="low">Soft</button>
+      </div>
+      <div class="row">
+        <button type="button" data-weather="clear">Clear</button>
+        <button type="button" data-weather="fog">Fog</button>
+        <button type="button" data-weather="overcast">Clouds</button>
+        <button type="button" data-weather="rain">Rain</button>
+        <button type="button" data-weather="auto">Auto</button>
+      </div>
+      <button id="season" type="button">Winter hills</button>
+      <div class="row">
+        <button type="button" data-tp="downtown">Downtown</button>
+        <button type="button" data-tp="plaza">Plaza</button>
+        <button type="button" data-tp="reservoir">Reservoir</button>
+        <button type="button" data-tp="bart">Station</button>
+        <button type="button" data-tp="overlook">Overlook</button>
+        <button type="button" data-tp="rim">Rim trail</button>
+      </div>
+      <label class="check"><input id="bloom" type="checkbox" checked /> Bloom</label>
+      <p id="fps"></p>
+      <p class="credit">F3 closes this. Weather drifts back on its own unless you pin it.</p>
+    </aside>
+
+    <div id="touch" hidden>
+      <div id="stick" aria-hidden="true"><div id="knob"></div></div>
+      <div id="lookpad"></div>
+      <div id="touch-buttons">
+        <button type="button" data-act="use">Ride</button>
+        <button type="button" data-act="jump">Jump</button>
+        <button type="button" data-act="fly">Fly</button>
+        <button type="button" data-act="down">Down</button>
+        <button type="button" data-act="horn">Horn</button>
+        <button type="button" data-act="run">Run</button>
+        <button type="button" data-act="cam">View</button>
+        <button type="button" data-act="map">Map</button>
+        <button type="button" data-act="photo">Photo</button>
+      </div>
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "note": "Drop Scaniverse or Polycam exports (.ply, .splat, .spz, .ksplat) in this folder and add a record. position is meters from the anchor: x east, y up, z south. rotation is degrees. The game keeps one capture resident and stride-samples it under the quality budget.",
+  "captures": [
+    {
+      "id": "plaza-lion",
+      "file": "lion.spz",
+      "format": "spz",
+      "anchor": "plaza",
+      "placeholder": true,
+      "title": "A borrowed lion",
+      "blurb": "[Placeholder] A scanned lion is standing in for the plaza until a real Lafayette capture is dropped in. It is not the fountain, and not a local statue.",
+      "credit": "Lion by Renaud, CC BY 4.0. superspl.at/scene/56155c3f",
+      "position": [2.5, 0.04, -0.6],
+      "rotation": [0, 28, 0],
+      "yaw": 18,
+      "scale": 1,
+      "fitHeight": 2.35,
+      "memoryFitHeight": 4.4,
+      "blendIn": 9,
+      "blendOut": 22,
+      "stream": 80,
+      "budget": 48000
+    }
+  ]
+}

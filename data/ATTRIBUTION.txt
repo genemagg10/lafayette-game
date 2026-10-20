@@ -1,0 +1,22 @@
+Lafayette Days map data
+© OpenStreetMap contributors. https://www.openstreetmap.org/copyright
+This extract is made available under the Open Database License (ODbL) 1.0.
+https://opendatacommons.org/licenses/odbl/
+
+Elevation: USGS 3DEP 1 m DEM, public domain.
+Tiles CA_NoCAL_Wildfires_B5b_2018 x57y420 and x58y420, resampled to the playable grid.
+Where it has data, CA_AlamedaCounty_2021_B21 x57y420 is preferred.
+https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/
+
+Landmark histories and credits: data/LAFAYETTE_RESEARCH.md, compiled from the sources in data/data_sources.csv.
+Building footprints and trees in this slice: OpenStreetMap (ODbL).
+Microsoft building footprints (ODbL) and Overture Maps are listed for a later extract.
+Canopy reference, not sampled here: NLCD/USFS (public domain), Meta/WRI canopy height (CC BY 4.0), CAL FIRE urban canopy (license not verified).
+Google Maps, Earth, and Street View are not used.
+
+Placeholder splat, not a Lafayette capture: "Lion" by Renaud (https://superspl.at/user?id=rohls),
+source https://superspl.at/scene/56155c3f, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+File: public/splats/lion.spz. Replace it when a real landmark scan is dropped in.
+
+BBox: 37.868,-122.158,37.908,-122.092
+Baked: 2026-10-20T06:10:18.552Z

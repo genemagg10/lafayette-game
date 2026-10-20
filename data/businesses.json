@@ -1,0 +1,1093 @@
+{
+  "note": "Storefront color, material, and signage are unknown in the Lafayette research. style.wall and style.awning are pale stand-ins. Change them on a business to override that facade. approximate marks a low-confidence, interpolated, or partial-segment geocode.",
+  "businesses": [
+    {
+      "name": "Roundup Saloon",
+      "lat": 37.891624,
+      "lon": -122.120471,
+      "category": "business:bar",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/2667819035",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#3f6b4e",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Starbucks",
+      "lat": 37.891691,
+      "lon": -122.120046,
+      "category": "business:cafe",
+      "address": "3547 A Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/2952933377",
+      "style": {
+        "wall": "#e7efe4",
+        "awning": "#6e8f72",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Roam Artisan Burgers",
+      "lat": 37.891493,
+      "lon": -122.12,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/2952933378",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Luxe Home by Douglah Designs",
+      "lat": 37.891849,
+      "lon": -122.121993,
+      "category": "business:shop",
+      "address": "3535 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4655014142",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Supercuts",
+      "lat": 37.891794,
+      "lon": -122.122109,
+      "category": "business:shop",
+      "address": "3586 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4655014143",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "AT&T",
+      "lat": 37.891838,
+      "lon": -122.122523,
+      "category": "business:shop",
+      "address": "3592 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4655014150",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "BevMo!",
+      "lat": 37.891729,
+      "lon": -122.122443,
+      "category": "business:shop",
+      "address": "3590 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4655014151",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Social Bird",
+      "lat": 37.891244,
+      "lon": -122.123047,
+      "category": "business:restaurant",
+      "address": "3593 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4655014307",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Misto Lino",
+      "lat": 37.891159,
+      "lon": -122.122711,
+      "category": "business:shop",
+      "address": "3585 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4655014308",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Women's Health Center: Sutter Alta Bates Summit Medical Center",
+      "lat": 37.891155,
+      "lon": -122.122902,
+      "category": "business:health",
+      "address": "3595 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4655014309",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6e9a86",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Caveman Food LLC",
+      "lat": 37.891289,
+      "lon": -122.122687,
+      "category": "business:yes",
+      "address": "3595 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4655014310",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#a89480",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "American Kitchen",
+      "lat": 37.890288,
+      "lon": -122.120339,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4812924611",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Tutu's",
+      "lat": 37.890719,
+      "lon": -122.119939,
+      "category": "business:restaurant",
+      "address": "53 Lafayette Circle",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4812924612",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Lafayette Public House",
+      "lat": 37.890723,
+      "lon": -122.120318,
+      "category": "business:cafe",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4812924613",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6e8f72",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "The cooperage",
+      "lat": 37.891061,
+      "lon": -122.120202,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/4812925462",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Local Food Adventures",
+      "lat": 37.891712,
+      "lon": -122.119136,
+      "category": "business:restaurant",
+      "address": "6114 La Salle Avenue",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/6165266922",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Solano Jewelers",
+      "lat": 37.89016,
+      "lon": -122.119731,
+      "category": "business:shop",
+      "address": "61 Lafayette Circle",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/6257089275",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Headlands Brewing Company",
+      "lat": 37.89354,
+      "lon": -122.110764,
+      "category": "business:bar",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/8883613216",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#3f6b4e",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Sideboard",
+      "lat": 37.891553,
+      "lon": -122.118238,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/9163549062",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "76",
+      "lat": 37.891945,
+      "lon": -122.117833,
+      "category": "business:fuel",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/9163567607",
+      "style": {
+        "wall": "#f3e4d4",
+        "awning": "#c47a45",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Metro",
+      "lat": 37.892494,
+      "lon": -122.117671,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/9275177463",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Peet's Coffee",
+      "lat": 37.893124,
+      "lon": -122.118012,
+      "category": "business:cafe",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/9275203680",
+      "style": {
+        "wall": "#e7efe4",
+        "awning": "#6e8f72",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Jackson's",
+      "lat": 37.892455,
+      "lon": -122.117392,
+      "category": "business:shop",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/9275213200",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Kiku Sushi and Vegetarian",
+      "lat": 37.890809,
+      "lon": -122.122588,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460144",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Ensor Jeremy E OD",
+      "lat": 37.890873,
+      "lon": -122.122305,
+      "category": "business:shop",
+      "address": "284 Lafayette Circle",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460145",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "BMO",
+      "lat": 37.891383,
+      "lon": -122.122192,
+      "category": "business:bank",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460146",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#8d8680",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Philz Coffee",
+      "lat": 37.891234,
+      "lon": -122.123392,
+      "category": "business:cafe",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460147",
+      "style": {
+        "wall": "#e7efe4",
+        "awning": "#6e8f72",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Panda Express",
+      "lat": 37.891589,
+      "lon": -122.123618,
+      "category": "business:fast_food",
+      "address": "3608 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460148",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#d08948",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Batch and Brine",
+      "lat": 37.891612,
+      "lon": -122.123437,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460149",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "SusieCakes",
+      "lat": 37.89164,
+      "lon": -122.123063,
+      "category": "business:shop",
+      "address": "3598 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460150",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Barranco Cocina Peruana",
+      "lat": 37.891701,
+      "lon": -122.122921,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460151",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "The Breakfast Club at Midtown",
+      "lat": 37.891453,
+      "lon": -122.121834,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460152",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "El Jarro Mexican Cafe",
+      "lat": 37.891553,
+      "lon": -122.121102,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460153",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Postino",
+      "lat": 37.891354,
+      "lon": -122.121224,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460154",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Amarin",
+      "lat": 37.891615,
+      "lon": -122.120673,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460155",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Poke Go",
+      "lat": 37.891628,
+      "lon": -122.120607,
+      "category": "business:fast_food",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460156",
+      "style": {
+        "wall": "#f6e7d2",
+        "awning": "#d08948",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Chase",
+      "lat": 37.891137,
+      "lon": -122.124008,
+      "category": "business:bank",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460157",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#8d8680",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Diablo Foods",
+      "lat": 37.890762,
+      "lon": -122.124601,
+      "category": "business:shop",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460158",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "CVS Pharmacy",
+      "lat": 37.890764,
+      "lon": -122.125083,
+      "category": "business:shop",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460159",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Round Table Pizza",
+      "lat": 37.890676,
+      "lon": -122.125879,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460160",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Kabab Burger Mediterranean Grill",
+      "lat": 37.89039,
+      "lon": -122.126746,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460162",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Pho Benny",
+      "lat": 37.890479,
+      "lon": -122.127551,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460163",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Oyama Sushi",
+      "lat": 37.890664,
+      "lon": -122.127568,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460164",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Chevron",
+      "lat": 37.89128,
+      "lon": -122.126095,
+      "category": "business:fuel",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460165",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#c47a45",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Wells Fargo",
+      "lat": 37.891468,
+      "lon": -122.125366,
+      "category": "business:bank",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460167",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#8d8680",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Johnny's Donut Shop",
+      "lat": 37.89076,
+      "lon": -122.125342,
+      "category": "business:fast_food",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460168",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#d08948",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Reasonable Books",
+      "lat": 37.890402,
+      "lon": -122.126592,
+      "category": "business:shop",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460169",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "The Rising Loafer",
+      "lat": 37.890438,
+      "lon": -122.126378,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/12878460170",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Horn Barbeque",
+      "lat": 37.893524,
+      "lon": -122.110952,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/13367876205",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Learning Express Toys",
+      "lat": 37.891961,
+      "lon": -122.120937,
+      "category": "business:shop",
+      "address": "3568 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/13461328224",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "First Mile Cycle Works",
+      "lat": 37.89197,
+      "lon": -122.120851,
+      "category": "business:shop",
+      "address": "3566 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/13461328225",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "The Final Stretch",
+      "lat": 37.891146,
+      "lon": -122.127668,
+      "category": "business:therapist",
+      "address": "3658 Mount Diablo Boulevard",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/13598734701",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#7d86a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Douglah Designs",
+      "lat": 37.891683,
+      "lon": -122.119512,
+      "category": "business:shop",
+      "address": "985 Moraga Road",
+      "confidence": "medium",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/node/14276190352",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Safeway",
+      "lat": 37.892808,
+      "lon": -122.119416,
+      "category": "business:shop",
+      "address": "3540 Mount Diablo Boulevard",
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/154644945",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Bank of America",
+      "lat": 37.892507,
+      "lon": -122.118477,
+      "category": "business:bank",
+      "address": null,
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/252728823",
+      "style": {
+        "wall": "#e7e4df",
+        "awning": "#8d8680",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Whole Foods Market",
+      "lat": 37.893591,
+      "lon": -122.117249,
+      "category": "business:shop",
+      "address": "3502 Mount Diablo Boulevard",
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/252728826",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Kane Sushi",
+      "lat": 37.892776,
+      "lon": -122.115288,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/272696196",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Uncle Yu's",
+      "lat": 37.892358,
+      "lon": -122.120767,
+      "category": "business:restaurant",
+      "address": "999 Oak Hill Road",
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/471338247",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Rustic Tavern",
+      "lat": 37.892013,
+      "lon": -122.121277,
+      "category": "business:restaurant",
+      "address": "3576 Mount Diablo Boulevard",
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/471338249",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "One Hour Cleaners",
+      "lat": 37.891904,
+      "lon": -122.121751,
+      "category": "business:shop",
+      "address": "3580 Mount Diablo Boulevard",
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/471338250",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Floral Arts Florist",
+      "lat": 37.891924,
+      "lon": -122.121842,
+      "category": "business:shop",
+      "address": "3584 Mount Diablo Boulevard",
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/471338251",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Pizza Antica",
+      "lat": 37.891745,
+      "lon": -122.123219,
+      "category": "business:restaurant",
+      "address": "3600 Mount Diablo Boulevard",
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/471338256",
+      "style": {
+        "wall": "#f0d2c4",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Trader Joe's",
+      "lat": 37.890245,
+      "lon": -122.126948,
+      "category": "business:shop",
+      "address": "3649 Mount Diablo Boulevard",
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/508544694",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "McDonald's",
+      "lat": 37.892432,
+      "lon": -122.113981,
+      "category": "business:fast_food",
+      "address": "3459 Mount Diablo Boulevard",
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/597105276",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#d08948",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Millie's",
+      "lat": 37.893172,
+      "lon": -122.120228,
+      "category": "business:restaurant",
+      "address": null,
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/888519444",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#c46a4a",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Max Auto Center LLC",
+      "lat": 37.892703,
+      "lon": -122.116799,
+      "category": "business:shop",
+      "address": null,
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/888519445",
+      "style": {
+        "wall": "#e4eaf3",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Citibank",
+      "lat": 37.892421,
+      "lon": -122.117935,
+      "category": "business:bank",
+      "address": null,
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/888519448",
+      "style": {
+        "wall": "#e7e4df",
+        "awning": "#8d8680",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    },
+    {
+      "name": "Pet Food Express",
+      "lat": 37.891616,
+      "lon": -122.124023,
+      "category": "business:shop",
+      "address": null,
+      "confidence": "high",
+      "approximate": false,
+      "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+      "source": "https://www.openstreetmap.org/way/992609533",
+      "style": {
+        "wall": "#f3efe6",
+        "awning": "#6d88a8",
+        "note": "Storefront color and signage are unknown. Edit wall and awning to override this shop."
+      }
+    }
+  ]
+}
