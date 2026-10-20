@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { float, fog, exponentialHeightFogFactor, rangeFogFactor } from 'three/tsl'
+import { cameraPosition, float, fog, length, positionWorld, smoothstep } from 'three/tsl'
 import type { Season, WeatherId } from './types.ts'
 import type { World } from './world.ts'
 import { createSky, syncSky } from './sky.ts'
@@ -7,10 +7,10 @@ import { sunForClock } from './sun.ts'
 import { damp } from './math.ts'
 import { gradeGolden, gradeNight, shared } from './materials.ts'
 import { fogDensity, fogHeight, fogTint } from './grade.ts'
-import { bounceTint, overcastShade, shaftColor, shaftGain, valleyFog, windDir, windStrength, windTime } from './wind.ts'
+import { bounceTint, farHaze, overcastShade, shaftColor, shaftGain, valleyFog, windDir, windStrength, windTime } from './wind.ts'
 
 export class Atmosphere {
-  minutes = 18 * 60 + 52
+  minutes = 14 * 60 + 40
   rate = 0.55
   season: Season = 'summer'
   weather: WeatherId = 'clear'
@@ -37,6 +37,7 @@ export class Atmosphere {
   private clock = 0
   private readonly fogColor = new THREE.Color()
   private readonly fill: THREE.DirectionalLight
+  private readonly rim: THREE.DirectionalLight
   private readonly dusk = new THREE.Color(0xf0c39a)
   private readonly dayFog = new THREE.Color(0xc5d7ea)
   private readonly nightFog = new THREE.Color(0x1b2433)
@@ -67,9 +68,14 @@ export class Atmosphere {
     this.fill = new THREE.DirectionalLight(0xc6e2a4, 0.28)
     this.fill.position.set(-40, 80, 30)
     scene.add(this.fill, this.fill.target)
-    const heightFog = exponentialHeightFogFactor(fogDensity, fogHeight) as any
-    const farFog = rangeFogFactor(float(640), float(6800)) as any
-    const factor = heightFog.mul(valleyFog).add(farFog.mul(0.42)).clamp(0, 0.78)
+    this.rim = new THREE.DirectionalLight(0xffd7a4, 0.22)
+    this.rim.position.set(30, 40, -80)
+    scene.add(this.rim, this.rim.target)
+    // Haze belongs on the far hills, not on the asphalt underfoot.
+    const dist = length(positionWorld.sub(cameraPosition))
+    const far = smoothstep(float(2600), float(6400), dist).mul(farHaze)
+    const bank = smoothstep(fogHeight, fogHeight.sub(36), positionWorld.y).mul(valleyFog).mul(0.45)
+    const factor = far.add(bank).clamp(0, 0.55)
     const fogScene = scene as THREE.Scene & { fogNode: unknown }
     fogScene.fog = null
     fogScene.fogNode = fog(fogTint, factor)
@@ -152,25 +158,31 @@ export class Atmosphere {
     const day = THREE.MathUtils.smoothstep(this.sunAlt, -0.08, 0.18)
     this.night = 1 - day
     const golden = (1 - THREE.MathUtils.smoothstep(this.sunAlt, 0.02, 0.35)) * THREE.MathUtils.smoothstep(this.sunAlt, -0.08, 0.16)
+    const blue = THREE.MathUtils.smoothstep(this.sunAlt, 0.05, -0.02) * THREE.MathUtils.smoothstep(this.sunAlt, -0.22, -0.04)
     const hour = this.minutes / 60
     this.morning = THREE.MathUtils.smoothstep(hour, 5.4, 7.1) * (1 - THREE.MathUtils.smoothstep(hour, 9.2, 11.4))
     this.sun.position.copy(focus).addScaledVector(this.sunDir, 180)
     this.sun.target.position.copy(focus)
-    this.sun.intensity = (0.15 + day * 2.5) * (1 - this.overcast * 0.55) * (1 - this.fog * 0.35)
-    this.sun.color.set(golden > 0.2 ? 0xffb56a : 0xfff4e4)
+    this.sun.intensity = (0.85 + day * 1.9) * (1 - this.overcast * 0.45) * (1 - this.fog * 0.3)
+    this.sun.color.set(golden > 0.2 ? 0xffc48a : 0xfff6e8)
     this.moon.position.copy(focus).addScaledVector(this.sunDir, -140)
     this.moon.target.position.copy(focus)
     this.moon.intensity = this.night * 0.35
-    this.hemi.intensity = 0.28 + day * 0.62
-    this.hemi.color.set(golden > 0.25 ? 0xffc89a : 0x9ec8ea)
-    const bounce = this.season === 'summer' ? 0xd4b36a : this.season === 'spring' ? 0x7dba62 : 0x3f8a48
+    this.hemi.intensity = 0.85 + day * 0.55
+    this.hemi.color.set(golden > 0.25 ? 0xffd7b0 : 0x9ed4fb)
+    const bounce = this.season === 'summer' ? 0xe4c99a : this.season === 'spring' ? 0x9ed48a : 0x6aaa78
     this.hemi.groundColor.set(bounce)
     bounceTint.value.set(bounce)
-    this.fill.color.copy(this.hemi.groundColor)
-    this.fill.intensity = (0.16 + day * 0.22) * (1 - this.night * 0.4)
+    this.fill.color.set(golden > 0.25 ? 0xffe0c0 : 0xb9dcff)
+    this.fill.intensity = (0.42 + day * 0.38) * (1 - this.night * 0.35)
     this.fill.position.copy(focus).addScaledVector(this.sunDir, -90)
     this.fill.position.y += 50
     this.fill.target.position.copy(focus)
+    const rimSide = new THREE.Vector3(-this.sunDir.z, 0.45, this.sunDir.x).normalize()
+    this.rim.position.copy(focus).addScaledVector(rimSide, 140)
+    this.rim.target.position.copy(focus)
+    this.rim.intensity = 0.12 + golden * 0.55 + blue * 0.42
+    this.rim.color.set(blue > 0.35 ? 0x9ec4ff : golden > 0.2 ? 0xffb06a : 0xfff3dd)
     this.sun.castShadow = this.shadows
     const span = THREE.MathUtils.clamp(78 + (0.45 - Math.max(0.08, this.sunAlt)) * 180, 80, 210)
     const shadowCam = this.sun.shadow.camera as THREE.OrthographicCamera
@@ -181,7 +193,7 @@ export class Atmosphere {
     shadowCam.far = 420
     shadowCam.updateProjectionMatrix()
     this.sun.shadow.bias = -0.00022
-    this.sun.shadow.normalBias = 0.035
+    this.sun.shadow.normalBias = 0.02
 
     this.sky.mesh.position.copy(focus)
     this.sky.uSun.value.copy(this.sunDir)
@@ -189,7 +201,7 @@ export class Atmosphere {
     this.sky.uOvercast.value = this.overcast
     this.sky.uStar.value = 1
     world.setSun(this.sunDir)
-    this.scene.environmentIntensity = 0.22 + day * 0.62
+    this.scene.environmentIntensity = 0.16 + day * 0.38
     gradeGolden.value = golden
     gradeNight.value = this.night
     windTime.value = this.clock
@@ -198,10 +210,11 @@ export class Atmosphere {
     const turbidity = 2.15 + golden * 1.35 + this.fog * 2.4 + this.overcast * 3.2
     syncSky(this.sky, this.sunAlt, turbidity)
     overcastShade.value = this.overcast
-    valleyFog.value = Math.min(1, this.morning * 0.95 + this.fog * 0.85 + this.rain * 0.25)
-    fogHeight.value = 96 + this.morning * 16 + this.fog * 10
-    fogDensity.value = 0.00085 + this.fog * 0.0011 + this.morning * 0.00045
-    shaftGain.value = (0.05 + golden * 0.62 + this.morning * 0.18) * (1 - this.overcast * 0.8) * (1 - this.night * 0.65)
+    valleyFog.value = this.weather === 'fog' || this.weather === 'rain' ? Math.min(1, this.fog * 0.85 + this.rain * 0.2) : 0
+    fogHeight.value = 18 + this.fog * 28
+    fogDensity.value = 0.00015 + this.fog * 0.0004
+    shaftGain.value = this.night * 0.02
+    farHaze.value = this.weather === 'fog' ? 0.5 : this.weather === 'rain' ? 0.16 : 0
     shaftColor.value.set(golden > 0.2 ? 1 : 0.9, golden > 0.2 ? 0.68 : 0.9, golden > 0.2 ? 0.34 : 0.78)
 
     this.fogColor.copy(golden > 0.3 ? this.dusk : day > 0.4 ? this.dayFog : this.nightFog)
@@ -209,15 +222,17 @@ export class Atmosphere {
     if (this.fog > 0.2) this.fogColor.lerp(this.bankFog, this.fog * 0.7)
     if (this.morning > 0.2) this.fogColor.lerp(this.morningFog, this.morning * 0.45)
     fogTint.value.copy(this.fogColor)
-    renderer.toneMappingExposure = 0.86 + golden * 0.1 - this.night * 0.28 - this.overcast * 0.08
+    renderer.toneMappingExposure = 1.18 + golden * 0.1 - this.night * 0.22 - this.overcast * 0.1
 
     shared.time.value = this.clock
     shared.wind.value = 0.12 + this.wind * 0.55
     shared.night.value = this.night
     shared.wet.value = this.wet
-    world.windowMat.emissiveIntensity = this.night * 1.55
-    world.storeMat.emissiveIntensity = this.night * 1.85
-    world.lampMat.emissiveIntensity = this.night * 2.4
+    const windows = Math.max(this.night * 1.7, golden * 0.95 + blue * 1.25)
+    world.windowMat.emissiveIntensity = windows
+    world.townGlassMat.emissiveIntensity = windows * 0.85
+    world.storeMat.emissiveIntensity = windows * 1.15
+    world.lampMat.emissiveIntensity = Math.max(this.night, golden * 0.7 + blue) * 2.4
     world.roadMat.roughness = 0.94 - this.wet * 0.55
     world.roadMat.metalness = 0.02 + this.wet * 0.22
     world.roadMat.color.setRGB(1, 1, 1).lerp(this.wetRoad, this.wet * 0.45)

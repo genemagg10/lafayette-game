@@ -92,6 +92,10 @@ export interface Road {
   s: number
   d: number
   b: number
+  /** OSM lanes tag, or a class default when the tag is absent. */
+  l?: number
+  /** 1 when OSM oneway=yes. */
+  o?: number
   p: number[]
 }
 

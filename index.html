@@ -30,15 +30,7 @@
         <h1>Lafayette Days</h1>
         <p class="lede">Mt. Diablo Boulevard, the reservoir loop, and hills that go gold in summer, green in winter, and flower in spring.</p>
         <button id="play" type="button">Start downtown</button>
-        <ul class="facts">
-          <li>Pick Milo or Juniper. They remember you next time.</li>
-          <li>Walk, take off on foot, ride a bike, drive, or take the helicopter.</li>
-          <li>WASD to move, F or a double-tap of Space to fly, Esc to swap kids.</li>
-          <li>Landmarks chime when you find them, and the Hall of Builders fills in with the people behind each place.</li>
-          <li>A glowing door at a landmark steps into a scanned memory of the place.</li>
-          <li>Esc pauses. The town clock there can wind the year back to 1955.</li>
-          <li>Gems and Explorer notes are optional. The town is still the point.</li>
-        </ul>
+        <p class="facts">Pick Milo or Juniper on the boulevard. Landmarks keep their stories.</p>
       </div>
       <p class="credit">Map data © OpenStreetMap contributors (ODbL). Elevation: USGS 3DEP / SRTM.</p>
     </div>
@@ -72,30 +64,35 @@
 
     <div id="hud" hidden>
       <div class="top">
-        <div id="meter">
+        <div id="place-card">
+          <p id="place">Downtown Lafayette</p>
+          <p id="era-pill">Today</p>
+        </div>
+        <button id="menu-btn" type="button">Menu</button>
+      </div>
+      <div id="menu-sheet" hidden>
+        <button id="mute" type="button">Sound</button>
+        <button id="map-btn" type="button">Map</button>
+        <button id="tour" type="button">Tour</button>
+        <button id="daybook-btn" type="button">Daybook</button>
+        <button id="photo-btn" type="button" hidden>Photo</button>
+        <button id="pause-btn" type="button">Pause</button>
+      </div>
+      <p id="activity" hidden></p>
+      <p id="who" hidden>Milo</p>
+      <p id="found" hidden></p>
+      <p id="clock" hidden>2:40 PM</p>
+      <p id="weather" hidden>Clear</p>
+      <p id="prompt"></p>
+      <p id="hint" hidden></p>
+      <div class="bottom">
+        <div id="gem-stack">
+          <canvas id="mini" width="168" height="168"></canvas>
           <p id="gems">0 gems</p>
           <p id="distance">0 m</p>
-          <p id="clock" hidden>5:08 PM</p>
-          <p id="weather" hidden>Clear</p>
         </div>
-        <p id="activity" hidden></p>
-        <div id="place-card" class="top-right">
-          <p id="place">Downtown Lafayette</p>
-          <p id="who" hidden>Milo</p>
-          <p id="found" hidden>Places 0/6 · Keepsakes 0/10</p>
-        </div>
-      </div>
-      <p id="prompt"></p>
-      <div class="bottom">
-        <p id="hint" hidden>WASD move · mouse look · E to ride</p>
         <p id="speed" hidden></p>
       </div>
-      <button id="pause-btn" type="button">Pause</button>
-      <button id="mute" type="button" aria-label="Mute">Sound</button>
-      <button id="map-btn" type="button">Map</button>
-      <button id="tour" type="button">Tour</button>
-      <button id="photo-btn" type="button" hidden>Keep this view</button>
-      <canvas id="mini" width="168" height="168"></canvas>
       <p class="osm">© OpenStreetMap</p>
     </div>
 
@@ -151,6 +148,11 @@
         <button type="button" data-quality="low">Soft</button>
       </div>
       <div class="row">
+        <button type="button" data-hour="14.67">Afternoon</button>
+        <button type="button" data-hour="18.7">Golden hour</button>
+        <button type="button" data-hour="20.15">Blue hour</button>
+      </div>
+      <div class="row">
         <button type="button" data-weather="clear">Clear</button>
         <button type="button" data-weather="fog">Fog</button>
         <button type="button" data-weather="overcast">Clouds</button>
@@ -171,19 +173,21 @@
       <p class="credit">F3 closes this. Weather drifts back on its own unless you pin it.</p>
     </aside>
 
+    <div id="wheel" hidden>
+      <button type="button" data-travel="drone">Drone</button>
+      <button type="button" data-travel="fly">Fly</button>
+      <button type="button" data-travel="heli">Heli</button>
+      <button type="button" data-travel="car">Car</button>
+      <button type="button" data-travel="bike">Bike</button>
+      <button type="button" data-travel="walk">Walk</button>
+    </div>
     <div id="touch" hidden>
       <div id="stick" aria-hidden="true"><div id="knob"></div></div>
       <div id="lookpad"></div>
-      <div id="touch-buttons">
-        <button type="button" data-act="use">Ride</button>
-        <button type="button" data-act="jump">Jump</button>
-        <button type="button" data-act="fly">Fly</button>
-        <button type="button" data-act="down">Down</button>
-        <button type="button" data-act="horn">Horn</button>
-        <button type="button" data-act="run">Run</button>
-        <button type="button" data-act="cam">View</button>
-        <button type="button" data-act="map">Map</button>
-        <button type="button" data-act="photo">Photo</button>
+      <div id="touch-actions">
+        <button id="wheel-btn" type="button">Travel</button>
+        <button id="context-pill" type="button" data-act="use" hidden>Hop on</button>
+        <button id="context-btn" type="button" data-act="jump">Jump</button>
       </div>
     </div>
 

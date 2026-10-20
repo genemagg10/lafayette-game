@@ -51,7 +51,7 @@ export function createSky() {
     const b = X.mul(0.0557).sub(Y.mul(0.204)).add(Z.mul(1.057))
     const lum = max(r.mul(0.2126).add(g.mul(0.7152)).add(b.mul(0.0722)), float(0.0008))
     const chroma = vec3(max(r, float(0)), max(g, float(0)), max(b, float(0))).div(lum)
-    const bright = float(0.42).add(smoothstep(float(0), float(0.7), h).mul(0.38)).add(pow(sunDot, float(6)).mul(0.22))
+    const bright = float(0.92).add(smoothstep(float(0), float(0.55), h).mul(0.28)).add(pow(sunDot, float(6)).mul(0.16))
     let col = chroma.mul(bright)
 
     const setHorizon = vec3(0.99, 0.46, 0.2)
@@ -61,7 +61,10 @@ export function createSky() {
     const nightHorizon = vec3(0.09, 0.1, 0.16)
     const night = mix(nightHorizon, nightZenith, smoothstep(float(-0.05), float(0.4), h))
 
-    col = mix(col, sunset, golden.mul(0.62))
+    col = mix(col, sunset, golden.mul(0.72))
+    const blueHour = smoothstep(float(0.06), float(-0.04), uAlt).mul(smoothstep(float(-0.28), float(-0.05), uAlt))
+    const blueSky = mix(vec3(0.98, 0.46, 0.32), vec3(0.07, 0.16, 0.48), smoothstep(float(0.0), float(0.42), h))
+    col = mix(col, blueSky, blueHour.mul(0.82))
     col = mix(night, col, day)
 
     const mie = pow(sunDot, float(8)).mul(vec3(1.0, 0.52, 0.2)).mul(golden.mul(0.9).add(day.mul(0.1)))

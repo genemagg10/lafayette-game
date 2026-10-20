@@ -34,7 +34,6 @@ import { pass } from 'three/tsl'
 import { bloom } from 'three/addons/tsl/display/BloomNode.js'
 import { createLut, fogHeight } from './grade.ts'
 import { camPos, camWorld, dofGain, invProj, overcastShade, shaftColor, shaftGain, sunClip, sunDirShade, sunOn, valleyFog } from './wind.ts'
-import { godrays } from 'three/addons/tsl/display/GodraysNode.js'
 import GTAONode from 'three/addons/tsl/display/GTAONode.js'
 import { CSMShadowNode } from 'three/addons/csm/CSMShadowNode.js'
 import { blurAmount, eraFilm, gradeGolden, gradeNight } from './materials.ts'
@@ -51,6 +50,8 @@ export class Picture {
   private env: { texture: Texture; dispose: () => void } | null = null
   private pmrem: PMREMGenerator | null = null
   private failed = false
+  private pendingFallback = false
+  private swapping = false
   private bloomNode: { strength: { value: number }; radius: { value: number } } | null = null
   private readonly lut = createLut()
 
@@ -92,27 +93,91 @@ export class Picture {
     }
     const backend = this.renderer.backend as { isWebGPUBackend?: boolean }
     this.webgpu = backend.isWebGPUBackend === true
-    if (this.quality !== 'low' && this.webgpu) {
+    this.armDeviceWatch()
+    const mobile = this.mobile()
+    if (this.quality !== 'low' && this.webgpu && !mobile) {
       try {
         this.cascades()
       } catch (err) {
         console.warn(err)
       }
     }
+    this.applyShadowBudget()
     this.pmrem = new PMREMGenerator(this.renderer)
     try {
       this.refreshEnvironment(sky)
     } catch (err) {
       console.warn(err)
     }
-    dofGain.value = this.quality === 'high' ? 0.4 : this.quality === 'medium' ? 0.22 : 0
+    dofGain.value = this.quality === 'high' ? 0.16 : this.quality === 'medium' ? 0.08 : 0
     this.compose()
   }
 
   private csm: CSMShadowNode | null = null
 
+  /** Phone and a short window. Large shadow and splat buffers are what blow the device. */
+  private mobile(): boolean {
+    return matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 820
+  }
+
+  private applyShadowBudget(): void {
+    const size = this.mobile() ? 512 : this.webgpu ? 1024 : 1536
+    this.sun.shadow.mapSize.set(size, size)
+    this.renderer.shadowMap.enabled = this.quality !== 'low'
+    this.renderer.shadowMap.type = PCFShadowMap
+  }
+
+  private armDeviceWatch(): void {
+    const backend = this.renderer.backend as { device?: { lost: Promise<{ message?: string }>; addEventListener?: (type: string, cb: (event: Event) => void) => void } }
+    const device = backend.device
+    if (!this.webgpu || !device) return
+    device.lost.then((info) => {
+      console.warn('WebGPU device lost', info?.message ?? '')
+      this.pendingFallback = true
+    }).catch((err) => {
+      console.warn(err)
+      this.pendingFallback = true
+    })
+    device.addEventListener?.('uncapturederror', (event: Event) => {
+      const message = String((event as { error?: { message?: string } }).error?.message ?? '')
+      if (/createBuffer|too large|out of memory|device lost|popErrorScope/i.test(message)) {
+        console.warn(message)
+        this.pendingFallback = true
+      }
+    })
+  }
+
+  private async fallbackWebGL(): Promise<void> {
+    if (this.swapping || !this.webgpu) return
+    this.swapping = true
+    this.webgpu = false
+    this.pendingFallback = false
+    const shadow = this.sun.shadow as { shadowNode?: CSMShadowNode | null }
+    shadow.shadowNode = null
+    this.csm = null
+    try {
+      this.renderer.dispose()
+    } catch (err) {
+      console.warn(err)
+    }
+    this.renderer = this.mountRenderer(true)
+    this.pipeline = new RenderPipeline(this.renderer)
+    try {
+      await this.renderer.init()
+    } catch (err) {
+      console.warn(err)
+    }
+    const backend = this.renderer.backend as { isWebGPUBackend?: boolean }
+    this.webgpu = backend.isWebGPUBackend === true
+    if (this.webgpu) this.webgpu = false
+    this.applyShadowBudget()
+    dofGain.value = this.quality === 'high' ? 0.28 : this.quality === 'medium' ? 0.12 : 0
+    this.compose()
+    this.swapping = false
+  }
+
   private cascades(): void {
-    const csm = new CSMShadowNode(this.sun, { cascades: this.quality === 'high' ? 3 : 2, maxFar: 280, mode: 'practical', lightMargin: 64 })
+    const csm = new CSMShadowNode(this.sun, { cascades: this.quality === 'high' ? 2 : 2, maxFar: 220, mode: 'practical', lightMargin: 48 })
     this.csm = csm
     csm.fade = true
     const shadow = this.sun.shadow as { shadowNode?: CSMShadowNode; mapSize: { set: (w: number, h: number) => void } }
@@ -136,15 +201,15 @@ export class Picture {
   setQuality(quality: Quality): void {
     this.quality = quality
     this.renderer.shadowMap.enabled = quality !== 'low'
-    dofGain.value = quality === 'high' ? 0.4 : quality === 'medium' ? 0.22 : 0
+    dofGain.value = quality === 'high' ? 0.16 : quality === 'medium' ? 0.08 : 0
     this.compose()
   }
 
   syncBloom(golden: number): void {
     if (!this.bloomNode) return
-    const base = this.quality === 'high' ? 0.58 : 0.36
-    this.bloomNode.strength.value = base + golden * 0.3
-    this.bloomNode.radius.value = 0.55 + golden * 0.12
+    const base = this.quality === 'high' ? 0.04 : 0.025
+    this.bloomNode.strength.value = base + golden * 0.03
+    this.bloomNode.radius.value = 0.2 + golden * 0.04
   }
 
   setBloom(on: boolean): void {
@@ -169,16 +234,8 @@ export class Picture {
       aoNode.radius.value = 0.4
       const occlusion = aoNode.getTextureNode() as unknown as { r: { mul: (v: unknown) => { add: (v: unknown) => unknown } } }
       picture = mul(asNode(picture), asNode(occlusion.r.mul(0.62).add(0.38)))
-      if (this.webgpu && !this.csm) {
-        // godrays() samples sun.shadow.map, which CSM never allocates.
-
-        const rays = godrays(depth, this.camera, this.sun)
-        rays.resolutionScale = 0.25
-        rays.raymarchSteps.value = 16
-        rays.density.value = 0.22
-        rays.maxDensity.value = 0.34
-        picture = add(asNode(picture), asNode(mul(asNode(rays.rgb), asNode(float(0.4)))))
-      }
+      // Daytime stays a dry valley. God rays stay off: the node needs a
+      // shadow map, and cascades never allocate one.
     }
 
     if (depth && this.quality !== 'low') {
@@ -194,8 +251,8 @@ export class Picture {
           const t = float(i).add(0.5).div(8)
           const p = camPos.add(dir.mul(reach.mul(t)))
           const drop = fogHeight.sub(p.y).max(0)
-          const dens = drop.mul(0.018).add(0.012).mul(valleyFog.add(0.08))
-          const phase = pow(max(dir.dot(sunDirShade), float(0)), float(7)).mul(shaftGain).add(0.1)
+          const dens = drop.mul(0.018).add(0.012).mul(valleyFog)
+          const phase = pow(max(dir.dot(sunDirShade), float(0)), float(7)).mul(shaftGain)
           acc.addAssign(shaftColor.mul(dens).mul(phase).mul(0.11))
         })
         const beam = float(0).toVar()
@@ -213,7 +270,7 @@ export class Picture {
 
     this.bloomNode = null
     if (this.quality !== 'low' && this.bloomOn) {
-      const glow = bloom(color, this.quality === 'high' ? 0.58 : 0.36, 0.58, 0.85)
+      const glow = bloom(color, this.quality === 'high' ? 0.04 : 0.025, 0.18, 0.985)
       glow.setResolutionScale(this.quality === 'high' ? 0.5 : 0.35)
       this.bloomNode = glow
       picture = add(asNode(picture), asNode(glow))
@@ -245,6 +302,8 @@ export class Picture {
   }
 
   render(): void {
+    if (this.pendingFallback && !this.swapping) void this.fallbackWebGL()
+    if (this.swapping) return
     if (this.failed) {
       this.renderer.render(this.scene, this.camera)
       return
@@ -252,7 +311,13 @@ export class Picture {
     try {
       this.pipeline.render()
     } catch (err) {
-      console.error(err)
+      const message = err instanceof Error ? err.message : String(err)
+      if (/createBuffer|too large|out of memory|device lost|depthTexture/i.test(message)) {
+        console.warn(message)
+        this.pendingFallback = true
+        return
+      }
+      console.warn(err)
       if (this.csm) {
         const shadow = this.sun.shadow as { shadowNode?: CSMShadowNode | null }
         shadow.shadowNode = null
@@ -262,7 +327,7 @@ export class Picture {
           this.pipeline.render()
           return
         } catch (again) {
-          console.error(again)
+          console.warn(again)
         }
       }
       if (this.quality !== 'low') {
@@ -272,7 +337,7 @@ export class Picture {
           this.pipeline.render()
           return
         } catch (again) {
-          console.error(again)
+          console.warn(again)
         }
       }
       this.failed = true

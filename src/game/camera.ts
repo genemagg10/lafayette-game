@@ -5,7 +5,7 @@ import { damp, dampAngle } from './math.ts'
 import type { Input } from './input.ts'
 
 const RIG: Record<CamKind, { dist: number; look: number; fov: number }> = {
-  foot: { dist: 6.4, look: 1.35, fov: 58 },
+  foot: { dist: 11.5, look: 2.5, fov: 48 },
   bike: { dist: 5.1, look: 1.15, fov: 64 },
   car: { dist: 8.6, look: 1.15, fov: 58 },
   heli: { dist: 16.5, look: 1.6, fov: 68 },
@@ -14,13 +14,21 @@ const RIG: Record<CamKind, { dist: number; look: number; fov: number }> = {
 
 export class ChaseCamera {
   yaw = 0
-  pitch = 0.38
+  pitch = 0.24
   dist = 7
   mode: CamMode = 'chase'
+  /** Apple Maps oblique. The player stays put; only the rig climbs. */
+  drone = false
   private lastHeading = 0
   private elastic = 0
+  private droneArm = 0
   private readonly pos = new THREE.Vector3()
   private ready = false
+
+  setDrone(on: boolean): void {
+    this.drone = on
+    if (!on) this.droneArm = 0
+  }
 
   snap(heading: number): void {
     this.yaw = heading
@@ -53,7 +61,20 @@ export class ChaseCamera {
     this.pitch = Math.max(pitchMin, Math.min(1.2, this.pitch - input.lookY * sens * 0.75))
     const distMin = kind === 'heli' ? 8 : kind === 'fly' ? 5.5 : 3.2
     const distMax = kind === 'heli' ? 42 : kind === 'fly' ? 30 : 22
+    if (input.travel === 'drone') this.drone = true
+    else if (input.travel) this.drone = false
+    if (!this.drone && input.zoom > 0 && this.dist >= distMax - 0.4) {
+      this.droneArm += input.zoom
+      if (this.droneArm > 70) this.drone = true
+    } else if (input.zoom < 0) {
+      this.droneArm = 0
+      if (this.drone) this.drone = false
+    }
     this.dist = Math.max(distMin, Math.min(distMax, this.dist + input.zoom * 0.008))
+    if (this.drone) {
+      this.frameDrone(dt, camera, world, target)
+      return
+    }
 
     const pace = Math.abs(speed)
     const elasticTarget = kind === 'fly' || kind === 'heli' ? Math.min(1, pace / 28) : Math.min(1, pace / 16)
@@ -85,9 +106,12 @@ export class ChaseCamera {
     let ty = target.y + dy
     let tz = target.z + dz
     if (this.mode !== 'first') {
-      const clip = world.blockers.clipCamera(target.x, target.z, tx, tz, target.y + 1.3, ty)
+      const clip = Math.min(
+        world.blockers.clipCamera(target.x, target.z, tx, tz, target.y + 1.3, ty),
+        world.clipTrees(target.x, target.z, tx, tz),
+      )
       if (clip < 1) {
-        const t = Math.max(0.08, clip - 0.04)
+        const t = Math.max(0.12, clip - 0.04)
         tx = target.x + dx * t
         tz = target.z + dz * t
         ty = target.y + dy * t
@@ -115,5 +139,28 @@ export class ChaseCamera {
     const fov = cine ? 42 : this.mode === 'first' ? 74 : rig.fov + widen
     camera.fov = damp(camera.fov, fov, kind === 'fly' ? 8 : 6, dt)
     camera.updateProjectionMatrix()
+    world.fadeOccluders(camera.position.x, camera.position.y, camera.position.z, target.x, target.z)
+  }
+
+  /** High oblique, about 50° down, the way the Maps overview sits over a block. */
+  private frameDrone(dt: number, camera: THREE.PerspectiveCamera, world: World, target: { x: number; y: number; z: number }): void {
+    const back = 74
+    const rise = 98
+    const tx = target.x - Math.sin(this.yaw) * back
+    const tz = target.z + Math.cos(this.yaw) * back
+    const ty = target.y + rise
+    if (!this.ready) {
+      this.pos.set(tx, ty, tz)
+      this.ready = true
+    }
+    this.pos.x = damp(this.pos.x, tx, 2.4, dt)
+    this.pos.y = damp(this.pos.y, ty, 2.2, dt)
+    this.pos.z = damp(this.pos.z, tz, 2.4, dt)
+    camera.position.copy(this.pos)
+    camera.up.set(0, 1, 0)
+    camera.lookAt(target.x, target.y + 1.2, target.z)
+    camera.fov = damp(camera.fov, 42, 4, dt)
+    camera.updateProjectionMatrix()
+    world.fadeOccluders(camera.position.x, camera.position.y, camera.position.z, target.x, target.z)
   }
 }

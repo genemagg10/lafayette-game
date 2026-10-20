@@ -88,7 +88,8 @@ export class Game {
   private photoCam: CamMode = 'chase'
   private photoView: ViewSpot | null = null
   private photoHudWasHidden = false
-  private jumpGap = 1
+  private travelTakeoff = false
+  private travelSettle = false
   private step = 0
   private bird = 2
   private readonly coarse = matchMedia('(pointer: coarse)').matches
@@ -152,6 +153,7 @@ export class Game {
     this.hud.onBloom = (on) => this.picture?.setBloom(on)
     this.hud.onQuality = (quality) => this.applyQuality(quality)
     this.hud.onPhoto = () => this.togglePhoto()
+    this.hud.onTravelKind = (kind) => this.input.pickTravel(kind)
     this.hud.onEra = (id) => this.beginEra(id)
     this.hud.onTour = () => {
       if (!this.activities) return
@@ -186,7 +188,6 @@ export class Game {
       this.world = new World(this.scene, meta, height, roads, water, tileset, textures, base)
       this.world.setStorefronts(storefronts)
       this.hud.loading('Streaming downtown tiles…')
-      if (document.fonts?.ready) await document.fonts.ready
       const lake = this.lakeCenter(water)
       await this.world.preload(meta.spawn.x, meta.spawn.z, 2)
       await this.world.preload(lake.x, lake.z, 1)
@@ -305,54 +306,22 @@ export class Game {
   }
 
   private sidewalk(): { x: number; z: number; heading: number; bikeX: number; bikeZ: number; clockX: number; clockZ: number } {
-    let best = Infinity
-    let ax = this.meta.spawn.x
-    let az = this.meta.spawn.z
-    let bx = ax + 1
-    let bz = az
-    for (const road of this.world.roads) {
-      if (!/diablo boulevard/i.test(road.n)) continue
-      const n = road.p.length / 3
-      for (let i = 0; i < n - 1; i++) {
-        const x1 = road.p[i * 3]
-        const z1 = road.p[i * 3 + 1]
-        const x2 = road.p[(i + 1) * 3]
-        const z2 = road.p[(i + 1) * 3 + 1]
-        if (Math.hypot(x2 - x1, z2 - z1) < 6) continue
-        const mx = (x1 + x2) / 2
-        const mz = (z1 + z2) / 2
-        const d = (mx - this.meta.spawn.x) ** 2 + (mz - this.meta.spawn.z) ** 2
-        if (d < best) {
-          best = d
-          ax = x1
-          az = z1
-          bx = x2
-          bz = z2
-        }
-      }
-    }
-    const dx = bx - ax
-    const dz = bz - az
-    const len = Math.hypot(dx, dz) || 1
-    const px = -dz / len
-    const pz = dx / len
-    const mx = (ax + bx) / 2
-    const mz = (az + bz) / 2
-    const heading = Math.atan2(dx / len, -(dz / len))
+    // East of the Park Theater, in the boulevard, looking west at the storefronts.
+    const x = 452
+    const z = -426
     return {
-      x: mx + px * 6.4,
-      z: mz + pz * 6.4,
-      heading,
-      bikeX: mx + px * 6.4 + (dx / len) * 4.5,
-      bikeZ: mz + pz * 6.4 + (dz / len) * 4.5,
-      clockX: mx + px * 6.4 - (dx / len) * 8,
-      clockZ: mz + pz * 6.4 - (dz / len) * 8,
+      x,
+      z,
+      heading: -Math.PI / 2,
+      bikeX: x + 5,
+      bikeZ: z + 2,
+      clockX: x - 10,
+      clockZ: z - 8,
     }
   }
 
   private play(): void {
     if (this.mode === 'play') return
-    this.audio.ensure()
     this.mode = 'play'
     this.input.allowLock = true
     this.walker.group.visible = true
@@ -362,6 +331,7 @@ export class Game {
     this.hud.beginPlay()
     this.input.setTouchVisible(true)
     this.cam.snap(this.walker.heading)
+    queueMicrotask(() => this.audio.ensure())
   }
 
   private resize(): void {
@@ -421,11 +391,13 @@ export class Game {
       else if (this.mode === 'pause') this.resume()
     }
     if (this.input.photoEdge) this.togglePhoto()
+    if (this.input.wheelEdge && this.mode === 'play' && !this.photo) this.hud.toggleWheel()
     if (this.input.mapEdge && this.mode === 'play' && !this.photo) this.hud.toggleMap()
     if (this.input.debugEdge && this.mode !== 'pause' && !this.photo) this.hud.toggleDebug()
     if (this.input.hudEdge && !this.photo) this.hud.setHudHidden(this.hudHidden())
     const playing = this.mode === 'play' && !this.hud.mapOpen && !this.photo
     if (this.mode === 'play' || this.mode === 'pause') this.tickEra(Math.min(0.35, raw))
+    if (playing && this.input.travel) this.chooseTravel(this.input.travel)
     if (playing) this.simulate(dt)
     else if (this.mode === 'title') {
       this.titleTime += dt
@@ -441,7 +413,7 @@ export class Game {
     const streamZ = this.mode === 'title' ? this.camera.position.z : memory && portals ? portals.holdZ : pos.z
     const airborne = this.mode === 'title' || this.ride === 'heli' || this.walker.flying
     this.world.update(streamX, streamZ, airborne, this.camera, this.atmo.time)
-    if (this.mode !== 'pause') this.traffic.update(dt, this.atmo.time, pos.x, pos.z, this.world)
+    if (this.mode === 'play') this.traffic.update(dt, this.atmo.time, pos.x, pos.z, this.world)
     if (this.mode === 'title' || this.mode === 'pause') this.stageCast(dt)
     if (playing) {
       const camKind: CamKind = this.walker.flying ? 'fly' : this.ride
@@ -548,19 +520,21 @@ export class Game {
         wx /= mag
         wz /= mag
       }
-      let takeoff = this.input.flyEdge && !this.walker.flying && !this.portals?.inside
-      const settle = this.input.flyEdge && this.walker.flying
-      if (!this.walker.flying && this.input.jumpEdge && !this.portals?.inside) {
-        if (this.jumpGap <= 0.34) takeoff = true
-        this.jumpGap = 0
-      } else this.jumpGap += dt
+      let takeoff = (this.input.flyEdge || this.input.flyHoldEdge || this.travelTakeoff) && !this.walker.flying && !this.portals?.inside
+      const settle = (this.input.flyEdge && this.walker.flying) || this.travelSettle
+      this.travelTakeoff = false
+      this.travelSettle = false
       const wasFlying = this.walker.flying
       const wasGrounded = this.walker.onGround && !wasFlying
       const pace = this.walker.flying || takeoff ? 1 : this.input.sprint ? 6.5 : 2.45
+      let ascend = this.input.ascend
+      if (this.walker.flying && this.input.usingTouch && this.input.moveY < -0.15) {
+        ascend = Math.max(-1, Math.min(1, ascend + this.input.moveY))
+      }
       const flight: FlightInput = {
         takeoff,
         settle,
-        ascend: this.input.ascend,
+        ascend,
         steer: this.input.moveX,
         boost: this.input.sprint,
       }
@@ -568,6 +542,8 @@ export class Game {
       if (!wasFlying && this.walker.flying) {
         this.audio.whoosh(1)
         this.audio.blip('fly', this.walker.kid.bright)
+        navigator.vibrate?.(16)
+        this.hud.noteCoach()
       } else if (this.walker.landFx === 'pound') {
         this.audio.thud()
         this.hud.toast('Ground pound.')
@@ -647,6 +623,39 @@ export class Game {
     if (ride === this.wagon) return 'wagon'
     if (ride === this.vintage) return 'vintage car'
     return 'car'
+  }
+
+  private chooseTravel(kind: string): void {
+    if (kind === 'drone') {
+      this.cam.setDrone(true)
+      this.hud.toast('Drone view.')
+      this.hud.toggleWheel(false)
+      return
+    }
+    this.cam.setDrone(false)
+    this.hud.toggleWheel(false)
+    if (kind === 'walk') {
+      if (this.ride !== 'foot') this.dismount()
+      this.travelSettle = this.walker.flying
+      return
+    }
+    if (kind === 'fly') {
+      if (this.ride !== 'foot') this.dismount()
+      this.travelTakeoff = true
+      return
+    }
+    const ride = kind === 'bike' ? this.bike : kind === 'heli' ? this.heli : this.car
+    if (!ride) return
+    const heading = this.walker.heading
+    const right = rightFromHeading(heading)
+    const x = this.walker.x + Math.sin(heading) * 3.2 + right.x * 1.6
+    const z = this.walker.z - Math.cos(heading) * 3.2 + right.z * 1.6
+    if (this.walker.flying) this.travelSettle = true
+    if (this.ride !== 'foot') this.dismount()
+    ride.place(x, z, heading, this.world)
+    this.hud.poof(kind === 'bike' ? 'Bike' : kind === 'heli' ? 'Helicopter' : 'Car')
+    this.audio.whoosh(0.7)
+    this.mount(ride, true)
   }
 
   private use(): void {
@@ -922,50 +931,24 @@ export class Game {
     const clock = this.ride === 'foot' && !flying && !near && !this.portals?.inside && this.nearClock()
     const touch = this.input.usingTouch
     const portal = this.portals?.hint(this.ride === 'foot' && !flying, touch) ?? { prompt: null, use: null }
-    this.hud.setUseLabel(portal.use ?? (clock ? 'Clock' : swap ? 'Swap' : null))
+    const pill = portal.use ?? (clock ? 'Town clock' : near ? `Hop on ${this.rideName(near)}` : swap ? 'Hop out' : this.ride !== 'foot' ? 'Hop out' : null)
+    this.hud.setUseLabel(pill)
+    this.hud.setContext(flying ? 'Up' : 'Jump')
     const prompt = portal.prompt
       ? portal.prompt
       : near
       ? touch
-        ? 'Tap Ride'
+        ? ''
         : `Press E to ride the ${this.rideName(near)}`
       : clock
         ? touch
-          ? 'Tap Clock to change the year'
+          ? ''
           : 'Press E. The town clock can change the year.'
       : this.ride !== 'foot'
-        ? swap
-          ? touch
-            ? 'Tap Ride to swap'
-            : `Press E to swap to the ${this.rideName(swap)}`
-          : 'Press E to hop out'
-        : flying
-          ? touch
-            ? 'Tap Fly to settle'
-            : 'F settles into a landing'
-          : touch
-            ? 'Double-tap Jump or tap Fly'
-            : 'Double-tap Space or press F to take off'
+        ? ''
+        : ''
     const crossing = this.portals?.inside === true || this.portals?.locked === true
-    const hint = crossing
-      ? touch
-        ? 'Walk to the door · Back steps outside'
-        : 'WASD walk · E at the door steps back'
-      : flying
-      ? touch
-        ? 'Stick steers · Jump climbs · Down dives · Fly settles'
-        : 'W boost · A D bank · Space up · Ctrl dive · Shift faster · F settle'
-      : this.ride === 'foot'
-        ? touch
-          ? 'Left stick moves · right side looks · Fly takes off'
-          : 'WASD move · Shift run · Space jump · F fly · E ride · Esc pause'
-        : this.ride === 'bike'
-          ? 'W pedal · A D steer · H bell · E hop off'
-          : this.active === this.wagon
-            ? 'W walks the team · A D steer · H a step · E hop down'
-            : this.ride === 'car'
-              ? 'W drive · S brake · Space drift · H horn · E hop out'
-              : 'W S pitch · A D yaw · Space up · Ctrl down · E hop out when low'
+    const hint = crossing ? (touch ? 'Walk to the door' : 'E at the door steps back') : this.hud.coachLine(touch)
     const speed = flying
       ? `${Math.round(pos.speed * 3.6)} km/h · ${Math.round(pos.agl)} m up`
       : this.ride === 'heli'

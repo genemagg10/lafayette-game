@@ -53,7 +53,7 @@ interface Arrive {
 /**
  * Landmarks a local would name, plus the views worth keeping.
  * Park Theater and the plaza are placed from street addresses because the
- * bake's POI list did not tag them.
+ * bake's POI list did not tag them. The theater marquee is on the building.
  */
 export class Discover {
   readonly places: Spot[]
@@ -117,8 +117,8 @@ export class Discover {
         id: 'theater',
         name: 'Park Theater',
         line: 'The marquee still faces Golden Gate Way. It opened in 1941.',
-        x: 637.2,
-        z: -396.3,
+        x: 368.8,
+        z: -422.9,
         radius: 28,
       },
       {
@@ -131,8 +131,8 @@ export class Discover {
       },
       {
         id: 'plaza',
-        name: 'Plaza fountain',
-        line: 'Elam and Margaret Brown Plaza, at Moraga Road and the boulevard.',
+        name: 'Lafayette Plaza',
+        line: 'Elam and Margaret Brown Plaza. Lawn, benches, and the pergolas. No fountain is on record.',
         x: 536,
         z: -428,
         radius: 36,
@@ -429,52 +429,27 @@ export class Discover {
       this.propGroups.set('cross', g)
       scene.add(g)
     }
-    const theater = this.places.find((p) => p.id === 'theater')
-    if (theater) {
-      const g = new THREE.Group()
-      const board = new THREE.Mesh(
-        new THREE.BoxGeometry(4.2, 1.15, 0.28),
-        new THREE.MeshStandardMaterial({ color: 0xf7f1e4, roughness: 0.45, emissive: 0xf2c14e, emissiveIntensity: 0.35 }),
-      )
-      board.position.y = 4.4
-      const boardMat = board.material as THREE.MeshStandardMaterial
-      this.marquee.push({ mat: boardMat, base: boardMat.emissiveIntensity })
-      const letters = new THREE.Mesh(
-        new THREE.BoxGeometry(3.4, 0.42, 0.08),
-        new THREE.MeshStandardMaterial({ color: 0xc4343c, emissive: 0xc4343c, emissiveIntensity: 0.4, roughness: 0.4 }),
-      )
-      letters.position.set(0, 4.4, 0.16)
-      const letterMat = letters.material as THREE.MeshStandardMaterial
-      this.marquee.push({ mat: letterMat, base: letterMat.emissiveIntensity })
-      const post = new THREE.Mesh(
-        new THREE.BoxGeometry(0.16, 4.2, 0.16),
-        new THREE.MeshStandardMaterial({ color: 0x2c3338, roughness: 0.6 }),
-      )
-      post.position.y = 2.1
-      g.add(board, letters, post)
-      g.position.set(theater.x, y(theater.x, theater.z), theater.z)
-      this.propGroups.set('theater', g)
-      scene.add(g)
-    }
     const plaza = this.places.find((p) => p.id === 'plaza')
     if (plaza) {
       const g = new THREE.Group()
-      const basin = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.5, 1.65, 0.45, 16),
-        new THREE.MeshStandardMaterial({ color: 0xd5dbe3, roughness: 0.35 }),
+      const lawn = new THREE.Mesh(
+        new THREE.CircleGeometry(9.5, 20),
+        new THREE.MeshStandardMaterial({ color: 0x6ea34a, roughness: 0.95 }),
       )
-      basin.position.y = 0.28
-      const water = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.25, 1.25, 0.12, 16),
-        new THREE.MeshStandardMaterial({ color: 0x7eb8c9, roughness: 0.15, metalness: 0.05 }),
-      )
-      water.position.y = 0.48
-      const jet = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.08, 0.14, 1.3, 8),
-        new THREE.MeshStandardMaterial({ color: 0xd7eef5, transparent: true, opacity: 0.75, roughness: 0.1 }),
-      )
-      jet.position.y = 1.15
-      g.add(basin, water, jet)
+      lawn.rotation.x = -Math.PI / 2
+      lawn.position.y = 0.08
+      const wood = new THREE.MeshStandardMaterial({ color: 0x8d5a3c, roughness: 0.8 })
+      const beam = (px: number, pz: number, rot: number) => {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, 2.8, 0.18), wood)
+        post.position.set(px, 1.4, pz)
+        const top = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 0.18), wood)
+        top.position.set(px, 2.75, pz)
+        top.rotation.y = rot
+        g.add(post, top)
+      }
+      beam(-2.2, -1.4, 0.4)
+      beam(2.4, 1.2, -0.3)
+      g.add(lawn)
       g.position.set(plaza.x, y(plaza.x, plaza.z), plaza.z)
       this.propGroups.set('plaza', g)
       scene.add(g)
@@ -673,7 +648,7 @@ const LANDMARK_IDS = new Set(['reservoir', 'bart', 'cross', 'theater', 'library'
 /** Invented meshes. The sentence is the only [Placeholder] on an otherwise sourced card. */
 const INVENTED_LOOK: Record<string, string> = {
   theater: '[Placeholder] The brighter marquee is a stand-in for the Streamline Moderne front.',
-  plaza: '[Placeholder] The fountain is today’s plaza, not a 1955 survey.',
+  plaza: 'The plaza is the lawn and the pergolas. No fountain is documented.',
   library: '[Placeholder] The present library building is still drawn on the veterans hall site.',
   reservoir: '[Placeholder] The rim path is today’s trail.',
 }

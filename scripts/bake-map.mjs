@@ -388,15 +388,20 @@ function roadStyle(tags) {
   }
   const row = table[hw] || [5, 0, 0, 6]
   let [w, sidewalk, trail, rank] = row
-  const lanes = parseInt(tags.lanes || '', 10)
-  if (lanes && !trail && hw !== 'service') w = Math.max(w, lanes * 3.3)
+  const parsedLanes = parseInt(tags.lanes || '', 10)
+  const fallbackLanes = trail ? 0 : /motorway$/.test(hw) ? 3 : /link|service/.test(hw) ? 1 : 2
+  const lanes = Number.isFinite(parsedLanes) && parsedLanes > 0 ? Math.min(8, parsedLanes) : fallbackLanes
+  const widthTag = parseFloat(String(tags.width || '').replace(/[^0-9.]/g, ''))
+  if (Number.isFinite(widthTag) && widthTag >= 2 && widthTag <= 40 && !trail) w = widthTag
+  else if (lanes && !trail && hw !== 'service') w = Math.max(w, lanes * 3.25)
   if (tags.sidewalk === 'none' || tags.sidewalk === 'no') sidewalk = 0
   if (tags.footway === 'sidewalk' || tags.footway === 'crossing') return null
   if (hw === 'steps') trail = 1
   const layer = parseInt(tags.layer || '0', 10) || 0
   const bridge = tags.bridge === 'yes' || tags.bridge === 'viaduct' || tags.bridge === 'boardwalk'
   const lift = bridge ? 6.2 + Math.max(0, layer) * 2.4 : 0
-  return { w, sidewalk, trail, rank, lift, hw }
+  const oneway = tags.oneway === 'yes' || tags.oneway === '1' ? 1 : 0
+  return { w, sidewalk, trail, rank, lift, hw, lanes, oneway }
 }
 
 function buildingHeight(tags, id) {
@@ -428,6 +433,21 @@ function buildingHeight(tags, id) {
     yes: 6.6,
   }[b] || 6.6
   return base + hash01(id) * 1.5
+}
+
+function roofTag(tags) {
+  const raw = String(tags['roof:shape'] || '').toLowerCase()
+  if (raw === 'gabled_height' || raw === 'half-hipped') return 'gabled'
+  if (['flat', 'gabled', 'hipped', 'pyramidal', 'skillion', 'dome', 'round', 'gambrel', 'mansard'].includes(raw)) return raw
+  return ''
+}
+
+function osmColor(tags, keys) {
+  for (const key of keys) {
+    const value = tags[key]
+    if (value) return String(value).slice(0, 24)
+  }
+  return ''
 }
 
 function buildingKind(tags) {
@@ -754,6 +774,8 @@ async function main() {
         s: style.sidewalk ? 1 : 0,
         d: style.trail ? 1 : 0,
         b: r1(style.lift),
+        l: style.lanes,
+        o: style.oneway,
         rank: style.rank,
         p,
       })
@@ -841,7 +863,10 @@ async function main() {
       if (cx < minX - 10 || cx > maxX + 10 || cz < minZ - 10 || cz > maxZ + 10) continue
       const h = r1(buildingHeight(tags, el.id))
       const kind = buildingKind(tags)
-      const flat = [h, kind, name]
+      const roof = roofTag(tags)
+      const wall = osmColor(tags, ['building:colour', 'building:color'])
+      const roofColor = osmColor(tags, ['roof:colour', 'roof:color'])
+      const flat = [h, kind, name, roof, wall, roofColor]
       for (const [x, z] of poly) flat.push(r1(x), r1(z))
       chunkOf(cx, cz).b.push(flat)
       builtPolys.push(poly)
@@ -902,13 +927,13 @@ async function main() {
   for (const key of Object.keys(chunks)) {
     for (const b of chunks[key].b) {
       if (!b[2]) continue
-      const pts = b.length - 3
+      const pts = b.length - 6
       let cx = 0
       let cz = 0
       const n = pts / 2
       for (let i = 0; i < n; i++) {
-        cx += b[3 + i * 2]
-        cz += b[4 + i * 2]
+        cx += b[6 + i * 2]
+        cz += b[7 + i * 2]
       }
       addPoi(b[2], b[1] === 'c' ? 'shop' : b[1] === 's' ? 'civic' : 'building', cx / n, cz / n)
     }

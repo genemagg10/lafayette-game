@@ -9,8 +9,40 @@ import {
   RepeatWrapping,
   SRGBColorSpace,
 } from 'three/webgpu'
-import { frameGroup, mix, normalWorld, positionWorld, sin, smoothstep, uniform, vec3, vertexColor } from 'three/tsl'
+import { attribute, frameGroup, mix, normalWorld, positionWorld, sin, smoothstep, uniform, vec3, vertexColor } from 'three/tsl'
 import { bounceTint, sunDirShade, swayFromHeight, swayFromTip } from './wind.ts'
+
+/** Leaves stay green in shade. `fade` is per tree so a crown in the lens can disappear. */
+export function townLeafMaterial(): MeshStandardNodeMaterial {
+  const mat = new MeshStandardNodeMaterial({
+    color: 0xffffff,
+    roughness: 0.78,
+    metalness: 0,
+    emissive: 0x1f8a34,
+    emissiveIntensity: 0.72,
+    flatShading: true,
+  })
+  mat.transparent = true
+  mat.opacityNode = attribute('fade', 'float')
+  mat.depthWrite = true
+  return mat
+}
+
+/** Trunks pick up the same fade, and a little bounce so the shaded side stays brown. */
+export function trunkMaterial(): MeshStandardNodeMaterial {
+  const mat = new MeshStandardNodeMaterial({
+    color: 0x8d6242,
+    roughness: 0.9,
+    metalness: 0,
+    emissive: 0x4a3020,
+    emissiveIntensity: 0.35,
+    flatShading: true,
+  })
+  mat.transparent = true
+  mat.opacityNode = attribute('fade', 'float')
+  mat.depthWrite = true
+  return mat
+}
 
 export const shared = {
   time: { value: 0 },
@@ -283,12 +315,109 @@ export function dotTexture(accent: string): CanvasTexture {
 }
 
 export function poiAccent(kind: string): string {
-  if (/cafe|restaurant|fast_food|bar|pub|bakery|food/.test(kind)) return '#e25b45'
-  if (/fuel/.test(kind)) return '#e6a23a'
-  if (/school|civic|townhall|library|worship|community/.test(kind)) return '#7a5af5'
-  if (/park|garden/.test(kind)) return '#2f9e5a'
+  if (/cafe|restaurant|fast_food|bar|pub|bakery|food|ice_cream/.test(kind)) return '#ff8a2a'
+  if (/fuel/.test(kind)) return '#f0a020'
+  if (/school|civic|townhall|library|worship|community|station/.test(kind)) return '#7a5af5'
+  if (/park|garden|playground|pitch/.test(kind)) return '#22b14c'
+  if (/parking/.test(kind)) return '#2f7bff'
   if (/shop|supermarket|store|market/.test(kind)) return '#3b7ddd'
   return '#5c6b7a'
+}
+
+const streetCache = new Map<string, CanvasTexture>()
+const badgeCache = new Map<string, CanvasTexture>()
+
+/** White street name, meant to lie flat on the asphalt. */
+export function streetNameTexture(title: string): CanvasTexture {
+  const text = title.replace(/\b(Street|Avenue|Boulevard|Road|Drive|Lane|Way|Court|Place)\b/gi, (w) => {
+    const short: Record<string, string> = { street: 'St', avenue: 'Ave', boulevard: 'Blvd', road: 'Rd', drive: 'Dr', lane: 'Ln', way: 'Way', court: 'Ct', place: 'Pl' }
+    return short[w.toLowerCase()] ?? w
+  }).toUpperCase()
+  const cached = streetCache.get(text)
+  if (cached) return cached
+  const canvas = document.createElement('canvas')
+  canvas.width = 1024
+  canvas.height = 128
+  const g = canvas.getContext('2d')
+  if (!g) throw new Error('Canvas unavailable')
+  g.clearRect(0, 0, 1024, 128)
+  g.font = '700 78px Outfit, sans-serif'
+  g.textAlign = 'center'
+  g.textBaseline = 'middle'
+  g.lineWidth = 10
+  g.strokeStyle = 'rgba(18, 22, 28, 0.55)'
+  g.strokeText(text, 512, 68)
+  g.fillStyle = '#f7f8f4'
+  g.fillText(text, 512, 68)
+  const tex = new CanvasTexture(canvas)
+  tex.colorSpace = SRGBColorSpace
+  tex.anisotropy = 4
+  streetCache.set(text, tex)
+  return tex
+}
+
+/** Glowing category circle. Landmark kinds get a photo-like disc. */
+export function badgeTexture(accent: string, landmark = false): CanvasTexture {
+  const key = `${landmark ? 'L' : 'b'}|${accent}`
+  const cached = badgeCache.get(key)
+  if (cached) return cached
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const g = canvas.getContext('2d')
+  if (!g) throw new Error('Canvas unavailable')
+  g.clearRect(0, 0, 128, 128)
+  const glow = g.createRadialGradient(64, 64, 10, 64, 64, 60)
+  glow.addColorStop(0, accent)
+  glow.addColorStop(0.45, accent)
+  glow.addColorStop(1, 'rgba(0,0,0,0)')
+  g.fillStyle = glow
+  g.fillRect(0, 0, 128, 128)
+  g.fillStyle = '#fffdf8'
+  g.beginPath()
+  g.arc(64, 64, landmark ? 40 : 28, 0, Math.PI * 2)
+  g.fill()
+  g.fillStyle = accent
+  g.beginPath()
+  g.arc(64, 64, landmark ? 34 : 22, 0, Math.PI * 2)
+  g.fill()
+  if (landmark) {
+    g.save()
+    g.beginPath()
+    g.arc(64, 64, 30, 0, Math.PI * 2)
+    g.clip()
+    const sky = g.createLinearGradient(34, 34, 34, 94)
+    sky.addColorStop(0, '#8ec8f0')
+    sky.addColorStop(0.55, '#d7e7c8')
+    sky.addColorStop(1, '#6d8a4a')
+    g.fillStyle = sky
+    g.fillRect(34, 34, 60, 60)
+    g.fillStyle = '#f4efe6'
+    g.fillRect(48, 58, 32, 28)
+    g.fillStyle = '#c46a3a'
+    g.beginPath()
+    g.moveTo(46, 58)
+    g.lineTo(64, 44)
+    g.lineTo(82, 58)
+    g.fill()
+    g.fillStyle = '#ffe1a8'
+    g.fillRect(58, 68, 8, 10)
+    g.restore()
+    g.strokeStyle = '#fffdf8'
+    g.lineWidth = 4
+    g.beginPath()
+    g.arc(64, 64, 32, 0, Math.PI * 2)
+    g.stroke()
+  } else {
+    g.fillStyle = '#fffdf8'
+    g.beginPath()
+    g.arc(64, 62, 7, 0, Math.PI * 2)
+    g.fill()
+  }
+  const tex = new CanvasTexture(canvas)
+  tex.colorSpace = SRGBColorSpace
+  badgeCache.set(key, tex)
+  return tex
 }
 
 export function makeSignTexture(title: string): CanvasTexture {

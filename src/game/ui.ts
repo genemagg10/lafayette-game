@@ -14,6 +14,8 @@ export class Hud {
   onWeather = (_id: WeatherId | 'auto') => {}
   onSeason = () => {}
   onHour = (_h: number) => {}
+  onTravelKind = (_kind: string) => {}
+  private coached = false
   onRate = (_r: number) => {}
   onTeleport = (_id: string) => {}
   onBloom = (_on: boolean) => {}
@@ -42,8 +44,12 @@ export class Hud {
   private marks: { name: string; x: number; z: number }[] = []
 
   constructor() {
-    document.getElementById('play')?.addEventListener('click', () => this.onPlay())
-    document.getElementById('cast-go')?.addEventListener('click', () => this.onPlay())
+    const armPlay = (event: Event) => {
+      event.preventDefault()
+      this.onPlay()
+    }
+    document.getElementById('play')?.addEventListener('pointerdown', armPlay)
+    document.getElementById('cast-go')?.addEventListener('pointerdown', armPlay)
     document.getElementById('pause-btn')?.addEventListener('click', () => this.onPause())
     document.getElementById('photo-btn')?.addEventListener('click', () => this.onPhoto())
     document.getElementById('card')?.addEventListener('click', () => this.hideCard())
@@ -58,8 +64,23 @@ export class Hud {
       })
       button.addEventListener('pointerleave', () => this.onHoverKid(null))
     })
+    document.getElementById('menu-btn')?.addEventListener('click', () => this.toggleMenu())
+    document.getElementById('daybook-btn')?.addEventListener('click', () => {
+      this.toggleMenu(false)
+      this.toggleDebug()
+    })
+    document.getElementById('wheel-btn')?.addEventListener('click', () => this.toggleWheel())
+    document.querySelectorAll<HTMLButtonElement>('#wheel [data-travel]').forEach((button) => {
+      button.addEventListener('click', () => this.onTravelKind(button.dataset.travel || 'walk'))
+    })
+    document.querySelectorAll<HTMLButtonElement>('[data-hour]').forEach((button) => {
+      button.addEventListener('click', () => this.onHour(Number(button.dataset.hour || '14.67')))
+    })
     document.getElementById('mute')?.addEventListener('click', () => this.onMute())
-    document.getElementById('map-btn')?.addEventListener('click', () => this.toggleMap())
+    document.getElementById('map-btn')?.addEventListener('click', () => {
+      this.toggleMenu(false)
+      this.toggleMap()
+    })
     document.getElementById('map-close')?.addEventListener('click', () => this.toggleMap(false))
     document.getElementById('mini')?.addEventListener('click', () => this.toggleMap(true))
     document.getElementById('travel')?.addEventListener('click', () => {
@@ -304,8 +325,57 @@ export class Hud {
   }
 
   setUseLabel(label: string | null): void {
-    const button = document.querySelector<HTMLButtonElement>('#touch [data-act="use"]')
-    if (button) button.textContent = label ?? 'Ride'
+    const button = document.getElementById('context-pill')
+    if (!button) return
+    button.hidden = !label
+    if (label) button.textContent = label
+  }
+
+  setContext(label: string): void {
+    const button = document.getElementById('context-btn')
+    if (!button || button.textContent === label) return
+    button.textContent = label
+    button.classList.remove('spring')
+    void button.offsetWidth
+    button.classList.add('spring')
+  }
+
+  toggleMenu(force?: boolean): void {
+    const sheet = document.getElementById('menu-sheet')
+    if (!sheet) return
+    sheet.hidden = force == null ? !sheet.hidden : !force
+  }
+
+  toggleWheel(force?: boolean): void {
+    const wheel = document.getElementById('wheel')
+    if (!wheel) return
+    wheel.hidden = force == null ? !wheel.hidden : !force
+  }
+
+  poof(label: string): void {
+    this.toast(`${label} appears beside you.`)
+  }
+
+  coachLine(touch: boolean): string {
+    if (this.coached) return ''
+    try {
+      if (sessionStorage.getItem('ld-coach') === '1') {
+        this.coached = true
+        return ''
+      }
+    } catch {
+      /* private mode */
+    }
+    return touch ? 'Hold to fly' : 'Hold Space to fly'
+  }
+
+  noteCoach(): void {
+    this.coached = true
+    try {
+      sessionStorage.setItem('ld-coach', '1')
+    } catch {
+      /* private mode */
+    }
   }
 
   setPhotoOffer(label: string | null): void {
@@ -469,7 +539,9 @@ export class Hud {
     const hr = h % 12 || 12
     set('clock', `${hr}:${m.toString().padStart(2, '0')} ${ampm}`)
     set('weather', state.weather)
-    set('place', state.place)
+    const parts = state.place.split(' · ')
+    set('place', parts[0] || state.place)
+    set('era-pill', parts[1] || 'Today')
     set('found', state.found)
     set('prompt', state.prompt)
     set('hint', state.hint)

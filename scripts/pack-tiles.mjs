@@ -145,11 +145,11 @@ for (const road of roads) {
   for (let i = 0; i < n; i++) {
     pts.push({ x: road.p[i * 3], z: road.p[i * 3 + 1], y: road.p[i * 3 + 2] })
   }
-  const flags = (road.s ? 1 : 0) | (road.d ? 2 : 0) | (road.b ? 4 : 0)
+  const flags = (road.s ? 1 : 0) | (road.d ? 2 : 0) | (road.b ? 4 : 0) | (road.o ? 8 : 0)
   for (const [tx, tz] of tilesTouched(pts)) {
     const parts = clipPolyline(pts, tileBox(tx, tz))
     for (const part of parts) {
-      const flat = [road.t || 'service', road.n || '', r1(road.w), flags]
+      const flat = [road.t || 'service', road.n || '', r1(road.w), flags, road.l || 0]
       for (const p of part) flat.push(r1(p.x), r1(p.y), r1(p.z))
       push(bucket(tx, tz), 'transportation', flat)
     }
@@ -159,13 +159,13 @@ for (const road of roads) {
 for (const key of Object.keys(chunks)) {
   const data = chunks[key]
   for (const raw of data.b || []) {
-    if (!Array.isArray(raw) || raw.length < 9) continue
+    if (!Array.isArray(raw) || raw.length < 12) continue
     let cx = 0
     let cz = 0
-    const n = (raw.length - 3) / 2
+    const n = (raw.length - 6) / 2
     for (let i = 0; i < n; i++) {
-      cx += Number(raw[3 + i * 2])
-      cz += Number(raw[4 + i * 2])
+      cx += Number(raw[6 + i * 2])
+      cz += Number(raw[7 + i * 2])
     }
     cx /= n
     cz /= n

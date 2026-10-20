@@ -20,6 +20,10 @@ export class Input {
   pauseEdge = false
   confirmEdge = false
   photoEdge = false
+  flyHoldEdge = false
+  wheelEdge = false
+  /** One-shot travel pick: walk, bike, car, heli, fly, drone. */
+  travel = ''
   usingTouch = false
   pointerLocked = false
   /** Title and pause keep the pointer free so the cast can be clicked. */
@@ -40,6 +44,9 @@ export class Input {
   private pauseHeld = false
   private confirmHeld = false
   private photoHeld = false
+  private wheelHeld = false
+  private spaceDownAt = 0
+  private flyHoldSent = false
   private stickId = -1
   private lookId = -1
   private stickX = 0
@@ -54,7 +61,9 @@ export class Input {
     window.addEventListener('keydown', (e) => {
       if (typing(e)) return
       this.keys.add(e.code)
-      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault()
+      const pick = ({ Digit1: 'walk', Digit2: 'bike', Digit3: 'car', Digit4: 'heli', Digit5: 'fly', Digit6: 'drone' } as Record<string, string>)[e.code]
+      if (pick && !e.repeat) this.queuedTravel = pick
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault()
     })
     window.addEventListener('keyup', (e) => this.keys.delete(e.code))
     window.addEventListener('blur', () => this.keys.clear())
@@ -213,7 +222,8 @@ export class Input {
     if (rt > 0.05) this.throttle = Math.max(this.throttle, rt)
     if (lt > 0.05) this.throttle = Math.min(this.throttle, -lt)
 
-    this.sprint = this.down('ShiftLeft') || this.down('ShiftRight') || btn(7) || this.btn.has('run')
+    const deflected = Math.hypot(this.stickX, this.stickY) > 0.86
+    this.sprint = this.down('ShiftLeft') || this.down('ShiftRight') || btn(7) || this.btn.has('run') || deflected
     this.handbrake = this.down('Space') || btn(0) || this.btn.has('jump')
     let ascend = 0
     if (this.down('Space') || btn(0) || this.btn.has('jump')) ascend += 1
@@ -234,6 +244,31 @@ export class Input {
     const pauseNow = this.down('Escape')
     const confirmNow = this.down('Enter')
     const photoNow = this.down('KeyV') || this.btn.has('photo')
+    const wheelNow = this.down('Tab')
+    const nowMs = performance.now()
+    if (jumpNow && !this.jumpHeld) {
+      this.spaceDownAt = nowMs
+      this.flyHoldSent = false
+    }
+    this.flyHoldEdge = jumpNow && !this.flyHoldSent && nowMs - this.spaceDownAt > 280
+    if (this.flyHoldEdge) this.flyHoldSent = true
+    const picks: [string, string][] = [
+      ['Digit1', 'walk'],
+      ['Digit2', 'bike'],
+      ['Digit3', 'car'],
+      ['Digit4', 'heli'],
+      ['Digit5', 'fly'],
+      ['Digit6', 'drone'],
+    ]
+    this.travel = this.queuedTravel
+    this.queuedTravel = ''
+    for (const [code, kind] of picks) {
+      if (this.edge(this.keysTravel.has(code), this.down(code))) this.travel = kind
+    }
+    for (const [code] of picks) {
+      if (this.down(code)) this.keysTravel.add(code)
+      else this.keysTravel.delete(code)
+    }
     this.jumpEdge = this.edge(this.jumpHeld, jumpNow)
     this.flyEdge = this.edge(this.flyHeld, flyNow)
     this.useEdge = this.edge(this.useHeld, useNow)
@@ -245,6 +280,8 @@ export class Input {
     this.pauseEdge = this.edge(this.pauseHeld, pauseNow)
     this.confirmEdge = this.edge(this.confirmHeld, confirmNow)
     this.photoEdge = this.edge(this.photoHeld, photoNow)
+    this.wheelEdge = this.edge(this.wheelHeld, wheelNow)
+    this.wheelHeld = wheelNow
     this.jumpHeld = jumpNow
     this.flyHeld = flyNow
     this.useHeld = useNow
@@ -256,6 +293,14 @@ export class Input {
     this.pauseHeld = pauseNow
     this.confirmHeld = confirmNow
     this.photoHeld = photoNow
+  }
+
+  private keysTravel = new Set<string>()
+  private queuedTravel = ''
+
+  /** Travel-wheel buttons call this. Read on the next update. */
+  pickTravel(kind: string): void {
+    this.queuedTravel = kind
   }
 
   /** Show the stick and buttons only while playing on a touch device. */
@@ -284,5 +329,8 @@ export class Input {
     this.pauseEdge = false
     this.confirmEdge = false
     this.photoEdge = false
+    this.flyHoldEdge = false
+    this.wheelEdge = false
+    this.travel = ''
   }
 }

@@ -21,23 +21,25 @@ function curve(v: number): number {
   return x * x * (3 - 2 * x)
 }
 
-/** Warm, saturated painterly grade. Shadows lean gold-green so they stay colored. */
+/** Warm grade with the blacks lifted, so shade stays a color instead of a hole. */
 function bake(r: number, g: number, b: number): [number, number, number] {
-  let R = curve(r * 1.04)
-  let G = curve(g * 1.02)
-  let B = curve(b * 0.96)
+  const contrast = (v: number) => {
+    const x = Math.min(1, Math.max(0, v))
+    const lifted = 0.16 + x * 0.84
+    return (lifted - 0.5) * 1.02 + 0.52
+  }
+  let R = contrast(curve(r))
+  let G = contrast(curve(g))
+  let B = contrast(curve(b * 0.98))
   const l = 0.2126 * R + 0.7152 * G + 0.0722 * B
-  const sat = 1.34
+  const sat = 1.28
   R = l + (R - l) * sat
   G = l + (G - l) * sat
   B = l + (B - l) * sat
-  R = R * 1.07 + 0.015
-  G = G * 1.02 + 0.012
-  B = B * 0.9 + 0.008
-  const shade = 1 - Math.min(1, l * 2.4)
-  R += 0.045 * shade
-  G += 0.05 * shade
-  B += 0.012 * shade
+  const shade = 1 - Math.min(1, l * 1.8)
+  R += 0.02 * shade
+  G += 0.028 * shade
+  B += 0.008 * shade
   const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v * 255)))
   return [clamp(R), clamp(G), clamp(B)]
 }
