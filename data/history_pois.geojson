@@ -1,0 +1,495 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.11802,
+     37.885758
+    ]
+   },
+   "properties": {
+    "name": "Rancho Acalanes (Elam Brown purchase)",
+    "era": "1847-1880s settlement",
+    "start_year": 1847,
+    "end_year": null,
+    "description": "3,329-acre Mexican land grant (granted 1834 to Candelario Valencia) bought by Elam Brown for $900 in 1847. It covers almost all of present-day Lafayette. Point is the city centroid, not a building.",
+    "source": "https://www.lovelafayette.org/why-lafayette/about-lafayette/history-of-lafayette ; https://lafayettehistory.org/local-sites/tour/",
+    "coord_source": "area symbol at Nominatim city centroid",
+    "confidence": "low"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "name": "Elam Brown's first home (Happy Valley area)",
+    "era": "1847-1880s settlement",
+    "start_year": 1848,
+    "end_year": null,
+    "description": "Brown moved into the Happy Valley area Feb 7, 1848. His first permanent home was a pre-cut redwood frame house about two miles north of Lafayette. Exact site unknown.",
+    "source": "https://lafayettehistory.org/town-history/pictorial-history/yankee-settlers/",
+    "coord_source": "GAP: no coordinates",
+    "confidence": "none"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.116,
+     37.8915
+    ]
+   },
+   "properties": {
+    "name": "Brown's grist mill",
+    "era": "1847-1880s settlement",
+    "start_year": 1853,
+    "end_year": null,
+    "description": "Grist mill on Lafayette Creek at Golden Gate Way near First St. It pulled the village centre toward Mt Diablo Blvd/Moraga Rd in the early 1860s.",
+    "source": "https://lafayettehistory.org/town-history/pictorial-history/early-days/",
+    "coord_source": "estimated: Golden Gate Way near First St from OSM street geometry",
+    "confidence": "low"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "name": "Milo Hough's Hotel",
+    "era": "1847-1880s settlement",
+    "start_year": 1853,
+    "end_year": null,
+    "description": "First of three hotels near the Plaza. Later sold to Benjamin Shreve.",
+    "source": "https://lafayettehistory.org/earlydowntown/",
+    "coord_source": "GAP: no coordinates",
+    "confidence": "none"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.11832,
+     37.89172
+    ]
+   },
+   "properties": {
+    "name": "Plaza (Elam Brown's gift)",
+    "era": "1847-1880s settlement",
+    "start_year": 1864,
+    "end_year": null,
+    "description": "100x150 ft triangle deeded to the town Nov 19, 1864. By the early 1860s it was ringed by the mill, a store, a school, a blacksmith and a hotel.",
+    "source": "https://lafayettehistory.org/earlydowntown/ ; https://lafayettehistory.org/town-history/pictorial-history/the-town/",
+    "coord_source": "approximate (Plaza Dr via Nominatim)",
+    "confidence": "low"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.11813,
+     37.891637
+    ]
+   },
+   "properties": {
+    "name": "Pioneer Store (Shreve's store & post office)",
+    "era": "1847-1880s settlement",
+    "start_year": 1862,
+    "end_year": null,
+    "description": "Benjamin Shreve's store, post office and insurance agency, opened at this site in the early 1860s. Bought by Robert Elam McNeil in 1902. Still standing, remodeled with a false front.",
+    "source": "https://lafayettehistory.org/local-sites/tour/ ; https://lafayettehistory.org/town-history/pictorial-history/village-life/",
+    "coord_source": "US Census geocoder (matched Plaza Dr, verify)",
+    "confidence": "low"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "name": "Lafayette Cemetery",
+    "era": "1847-1880s settlement",
+    "start_year": 1874,
+    "end_year": null,
+    "description": "4.5-acre hillside bought for $100 by the Cemetery Corporation, chaired by Elam Brown, in 1874.",
+    "source": "https://lafayettehistory.org/town-history/pictorial-history/village-life/",
+    "coord_source": "GAP: not located",
+    "confidence": "none"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.1188,
+     37.8918
+    ]
+   },
+   "properties": {
+    "name": "Hotel corner (Hastings / Lamp hotels)",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": null,
+    "end_year": 1925,
+    "description": "Mt Diablo Blvd & Moraga Rd. Norman Hastings' hotel burned in 1892, and Phillip Lamp's hotel, also on this corner, burned in 1925. No hotels were built here after that.",
+    "source": "https://lafayettehistory.org/earlydowntown/",
+    "coord_source": "estimated intersection",
+    "confidence": "low"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.116869,
+     37.891356
+    ]
+   },
+   "properties": {
+    "name": "Wayside Inn",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": 1894,
+    "end_year": null,
+    "description": "Two-story hotel and tavern built by Edward J. Brady in 1894 for cattle drovers. Bought by Pat Medau in 1921 and used as an ice cream parlor from 1925.",
+    "source": "https://lafayettehistory.org/earlydowntown/ ; https://lafayettehistory.org/town-history/pictorial-history/the-town/",
+    "coord_source": "US Census geocoder 3521 Golden Gate Way",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "name": "Post office (Carrie Van Meter)",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": 1904,
+    "end_year": 1927,
+    "description": "Post office on Mt Diablo Blvd. Postmistress Carrie Van Meter (1904-27) also lent its 60 books, making her the first librarian. Exact site unknown.",
+    "source": "https://lafayettehistory.org/earlydowntown/",
+    "coord_source": "GAP",
+    "confidence": "none"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.117918,
+     37.887815
+    ]
+   },
+   "properties": {
+    "name": "Town Hall",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": 1914,
+    "end_year": null,
+    "description": "Built 1914 by volunteers and the Lafayette Improvement Association. Dances here ran late enough that a special 3 AM train took partygoers home.",
+    "source": "https://www.townhalltheatre.com/mission-and-history ; https://lafayettehistory.org/tunnelsandroads/",
+    "coord_source": "OSM node/368171449",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.114,
+     37.8875
+    ]
+   },
+   "properties": {
+    "name": "West Lafayette station (Sacramento Northern)",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": 1913,
+    "end_year": 1941,
+    "description": "Electric interurban station at the end of School St, near Paradise Ct. Service through Lafayette began in 1913, passenger service ended in 1941 and freight in 1957.",
+    "source": "https://lafayettehistory.org/town-history/pictorial-history/the-changing-pace/ ; https://en.wikipedia.org/wiki/Sacramento_Northern_Railway",
+    "coord_source": "estimated: east end of School St (OSM)",
+    "confidence": "low"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "name": "Cornfield (future La Fiesta Shopping Center)",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": null,
+    "end_year": 1915,
+    "description": "Before 1915 a cornfield grew below Mt Diablo Blvd along Moraga Rd.",
+    "source": "https://lafayettehistory.org/town-history/pictorial-history/the-town/",
+    "coord_source": "GAP: La Fiesta Square not geolocated",
+    "confidence": "none"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.118501,
+     37.890026
+    ]
+   },
+   "properties": {
+    "name": "Lafayette United Methodist Church (1893 school building)",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": 1927,
+    "end_year": null,
+    "description": "The congregation moved in 1927 into the former 1893 third school building.",
+    "source": "https://thelumc.org/our-history",
+    "coord_source": "US Census geocoder 955 Moraga Rd",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.140672,
+     37.884012
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Reservoir dam & outlet tower",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": 1927,
+    "end_year": 1933,
+    "description": "George Pollock Co. contract, July 1927. A slide in Sept 1928 forced a lower, wider redesign, and the dam was completed in 1933.",
+    "source": "https://lafayettehistory.org/wp-content/uploads/2024/01/Newsletter-April-2023.pdf",
+    "coord_source": "OSM node/2084054143 (tower)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.1215,
+     37.8913
+    ]
+   },
+   "properties": {
+    "name": "Starks' Lafayette Meat Market",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": 1920,
+    "end_year": null,
+    "description": "Moved in 1920 to the SE corner of Mt Diablo Blvd & Hough Ave. Rebuilt 1935 as a 'uniquely-shaped' store and remodeled in 1949.",
+    "source": "https://lafayettehistory.org/town-history/pictorial-history/the-town/",
+    "coord_source": "estimated intersection",
+    "confidence": "low"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.1206,
+     37.8921
+    ]
+   },
+   "properties": {
+    "name": "Clarence Brown's Hardware",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": null,
+    "end_year": null,
+    "description": "1930s 'Main Street' style store on the NE corner of Mt Diablo Blvd & Oak Hill Rd.",
+    "source": "https://lafayettehistory.org/town-history/pictorial-history/the-town/",
+    "coord_source": "estimated intersection",
+    "confidence": "low"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.12116,
+     37.891636
+    ]
+   },
+   "properties": {
+    "name": "Garrett Building",
+    "era": "1890s-1930s orchards & early town",
+    "start_year": 1937,
+    "end_year": null,
+    "description": "Turreted brick building by realtor Col. N. M. Garrett, 1937.",
+    "source": "https://lafayettehistory.org/town-history/pictorial-history/the-town/",
+    "coord_source": "US Census geocoder 3565 Mt Diablo Blvd",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.097379,
+     37.90455
+    ]
+   },
+   "properties": {
+    "name": "Acalanes High School",
+    "era": "1940s-1950s pre-freeway boulevard",
+    "start_year": 1940,
+    "end_year": null,
+    "description": "Opened Sept 10, 1940 with 406 students.",
+    "source": "https://lafayettehistory.org/wp-content/uploads/2024/06/Newsletter-January-2024.pdf",
+    "coord_source": "Nominatim OSM way",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120802,
+     37.891799
+    ]
+   },
+   "properties": {
+    "name": "Park Theater",
+    "era": "1940s-1950s pre-freeway boulevard",
+    "start_year": 1941,
+    "end_year": 2005,
+    "description": "Opened Aug 21, 1941. Streamline Moderne with a neon marquee. Closed 2005, reopening targeted for early 2027.",
+    "source": "https://parktheatertrust.org/history/",
+    "coord_source": "US Census geocoder",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.115752,
+     37.891942
+    ]
+   },
+   "properties": {
+    "name": "Veterans Memorial Building (WPA, demolished)",
+    "era": "1940s-1950s pre-freeway boulevard",
+    "start_year": 1939,
+    "end_year": null,
+    "description": "WPA building of 1938-39 at Mt Diablo Blvd & First St. Replaced in 2005, and its site became the library.",
+    "source": "https://livingnewdeal.org/sites/old-veterans-memorial-building-lafayette-ca/",
+    "coord_source": "library footprint (OSM way/326482972)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.1246,
+     37.8933
+    ]
+   },
+   "properties": {
+    "name": "Hwy 24 Lafayette bypass",
+    "era": "1940s-1950s pre-freeway boulevard",
+    "start_year": 1957,
+    "end_year": null,
+    "description": "The freeway through Lafayette was originally built c.1957-59 (Wilder Rd to Acalanes Rd c.1959, Acalanes Rd to I-680 c.1957) and rebuilt or reopened 1969-70. Before that, Hwy 24 ran along Mt Diablo Blvd.",
+    "source": "https://www.aaroads.com/guides/ca-024 ; https://en.wikipedia.org/wiki/State_Route_24_(California)",
+    "coord_source": "BART/freeway median point",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.142307,
+     37.880813
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Reservoir Recreation Area opens",
+    "era": "1960s-1970s freeway, reservoir & BART",
+    "start_year": 1966,
+    "end_year": null,
+    "description": "EBMUD opened it to the public June 13, 1966.",
+    "source": "https://www.ebmud.com/customers/pipeline/2016/05/50-years-reservoir-fun",
+    "coord_source": "OSM way centroid",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.124637,
+     37.893186
+    ]
+   },
+   "properties": {
+    "name": "Lafayette BART station",
+    "era": "1960s-1970s freeway, reservoir & BART",
+    "start_year": 1973,
+    "end_year": null,
+    "description": "Opened May 21, 1973 in the Hwy 24 median.",
+    "source": "https://en.wikipedia.org/wiki/Lafayette_station_(BART)",
+    "coord_source": "OSM node/257088282",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.10573,
+     37.89032
+    ]
+   },
+   "properties": {
+    "name": "Lafayette-Moraga Trail",
+    "era": "1960s-1970s freeway, reservoir & BART",
+    "start_year": 1974,
+    "end_year": null,
+    "description": "Rail-trail on the former Sacramento Northern right-of-way. Sources disagree on the date: opened 1974 per the LM History Trail, dedicated July 4, 1976 per EBRPD.",
+    "source": "https://lmhistorytrail.org/ ; https://www.ebparks.org/about-us/whats-new/news/45-years-lafayette-moraga-regional-trail",
+    "coord_source": "Nominatim OSM way",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.212648,
+     37.857325
+    ]
+   },
+   "properties": {
+    "name": "Caldecott third bore",
+    "era": "1960s-1970s freeway, reservoir & BART",
+    "start_year": 1964,
+    "end_year": null,
+    "description": "The third bore opened Oct 1964, after the 1937 twin bores. Outside Lafayette, to the west.",
+    "source": "https://www.aaroads.com/guides/ca-024",
+    "coord_source": "OSM way",
+    "confidence": "high"
+   }
+  }
+ ]
+}
