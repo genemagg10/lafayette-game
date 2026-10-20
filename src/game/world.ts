@@ -1,8 +1,10 @@
 import * as THREE from 'three'
+import { MeshBasicNodeMaterial } from 'three/webgpu'
+import { uniform } from 'three/tsl'
 import { WaterMesh } from 'three/addons/objects/WaterMesh.js'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { Blockers, MeshBuilder, appendRibbon, tint } from './geom.ts'
-import { Heightfield, F_PARK, F_PARKING, F_ROAD, F_URBAN, F_WATER, F_WOOD } from './height.ts'
+import { Heightfield, F_BUILDING, F_PARK, F_ROAD, F_URBAN, F_WATER, F_WOOD } from './height.ts'
 import { badgeTexture, facadeMaterial, foliageMaterial, hillMaterial, impostorMaterial, makeSignTexture, pillTexture, poiAccent, shared, streetNameTexture, townLeafMaterial, trunkMaterial, type Textures } from './materials.ts'
 import { dressTown } from './dress.ts'
 import { spanVisible } from './eras.ts'
@@ -61,6 +63,8 @@ export class World {
   private readonly ready: { key: string; tile: VectorTile }[] = []
   private readonly labels: THREE.Sprite[] = []
   private readonly streetNames: THREE.Mesh[] = []
+  /** Shared by every painted name, including the dark stroke baked into the texture. */
+  private readonly streetFade = uniform(0)
   private baseUrl = ''
   private readonly segGrid = new Map<string, Seg[]>()
   private readonly signs: THREE.Object3D[] = []
@@ -556,7 +560,6 @@ export class World {
     for (const sign of this.signs) {
       sign.rotation.y = Math.atan2(camera.position.x - sign.position.x, camera.position.z - sign.position.z)
     }
-    this.orientStreetNames(camera)
     if (this.signalColor?.instanceColor) {
       for (let i = 0; i < this.signalPos.length; i++) {
         const p = this.signalPos[i]
@@ -701,7 +704,7 @@ export class World {
     const mat = hillMaterial()
     const mesh = new THREE.Mesh(geo, mat)
     mesh.name = 'terrain'
-    mesh.receiveShadow = true
+    mesh.receiveShadow = false
     return mesh
   }
 
@@ -725,8 +728,10 @@ export class World {
         let hex = season === 'winter' ? 0x3f8f45 : season === 'spring' ? 0x67b34a : 0xd4a24a
         let vary = 0.9 + n * 0.18
         if (inDowntown(x, z) && (f & F_WATER) === 0) {
-          // Flat fills. Roads, sidewalks, and lots are their own meshes on top.
-          hex = f & (F_ROAD | F_PARKING) ? 0x3a414c : f & F_PARK ? 0x6fbf4a : f & F_URBAN ? 0xd9d0c2 : 0x6fbf4a
+          // One flat fill. Road and lot meshes carry the asphalt, so a building
+          // cell does not pick up a lawn-green or road-black neighbour.
+          const nearBuilding = this.buildingNear(ii, jj)
+          hex = (f & F_PARK) && (f & F_BUILDING) === 0 && !nearBuilding ? 0x6fbf4a : 0xd9d0c2
           vary = 1
         } else if (f & F_WATER) hex = 0x8a7a58
         else if (f & F_ROAD) hex = 0x454c58
@@ -1072,7 +1077,7 @@ export class World {
     if (!geo) return
     const mesh = new THREE.Mesh(geo, material)
     mesh.castShadow = shadow
-    mesh.receiveShadow = true
+    mesh.receiveShadow = shadow
     mesh.userData.unique = true
     group.add(mesh)
   }
@@ -1325,7 +1330,7 @@ export class World {
     const dz = bz - z
     const h = 8.6
     const geo = new THREE.PlaneGeometry(h * (1024 / 160), h)
-    const mat = new THREE.MeshBasicMaterial({
+    const mat = new MeshBasicNodeMaterial({
       map: streetNameTexture(name),
       transparent: true,
       depthWrite: false,
@@ -1333,11 +1338,16 @@ export class World {
       polygonOffset: true,
       polygonOffsetFactor: -12,
       polygonOffsetUnits: -12,
+      opacity: 0,
     })
+    mat.opacityNode = this.streetFade
+    mat.transparent = true
+    mat.depthWrite = false
     const span = Math.hypot(dx, dz) || 1
     const mesh = new THREE.Mesh(geo, mat)
     mesh.position.set(x, y + 0.58, z)
     mesh.matrixAutoUpdate = false
+    mesh.visible = false
     mesh.userData.unique = true
     mesh.userData.along = { x: dx / span, z: dz / span }
     mesh.renderOrder = 6
@@ -1347,7 +1357,12 @@ export class World {
   }
 
   /** Tops of the letters point up the screen, on the camera-facing side of the road. */
-  private orientStreetNames(camera: THREE.Camera): void {
+  orientStreetNames(camera: THREE.Camera): void {
+    const ground = this.height.sample(camera.position.x, camera.position.z)
+    const agl = camera.position.y - ground
+    const fade = THREE.MathUtils.smoothstep(agl, 25, 60)
+    this.streetFade.value = fade
+    const hidden = fade <= 0.001
     const screenRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion)
     const screenUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion)
     const right = new THREE.Vector3()
@@ -1356,6 +1371,13 @@ export class World {
     const score = (tx: number, tz: number, ux: number, uz: number) =>
       ux * screenUp.x + uz * screenUp.z + 0.45 * (tx * screenRight.x + tz * screenRight.z)
     for (const mesh of this.streetNames) {
+      const mat = mesh.material as THREE.Material
+      mat.opacity = fade
+      mesh.visible = !hidden
+      if (hidden) {
+        mesh.matrix.makeScale(0, 0, 0)
+        continue
+      }
       const along = mesh.userData.along as { x: number; z: number }
       let tx = along.x
       let tz = along.z
@@ -1661,8 +1683,8 @@ export class World {
       const len = Math.hypot(x2 - x1, z2 - z1)
       if (len < 0.15) continue
       const u2 = u + len / 3.2
-      const contact = (facade ? aoColor : wallColor).clone().multiplyScalar(0.78)
-      const contactTop = Math.min(y0 + 1.15, yTop - 0.3)
+      const contact = (facade ? aoColor : wallColor).clone().multiplyScalar(0.9)
+      const contactTop = Math.min(y0 + 0.45, yTop - 0.3)
       const aoTop = facade ? Math.min(Math.max(contactTop, y0 + 3.2), yTop - 0.35) : contactTop
       const vContact = (contactTop - y0) / 3.2
       const vAo = (aoTop - y0) / 3.2
@@ -1914,8 +1936,9 @@ export class World {
     const b = new MeshBuilder()
     const lines = new MeshBuilder()
     const color = new THREE.Color(0x343b46)
-    const paint = new THREE.Color(0xf4f1ea)
+    const paint = new THREE.Color(0xe4e0d6)
     const spots: { x: number; z: number }[] = []
+    const boxes: number[][] = []
     for (const lot of lots) {
       if (lot.length < 6) continue
       let minX = Infinity
@@ -1973,9 +1996,10 @@ export class World {
         if (pts.length < 3) continue
         b.tri(pts[0].x, pts[0].y, pts[0].z, pts[1].x, pts[1].y, pts[1].z, pts[2].x, pts[2].y, pts[2].z, color)
       }
-      this.stallLines(lines, sMinX, sMaxX, sMinZ, sMaxZ, paint)
+      this.stallLines(lines, sMinX, sMaxX, sMinZ, sMaxZ, paint, lot)
       const w = sMaxX - sMinX
       const d = sMaxZ - sMinZ
+      if (Math.max(w, d) >= 14 && Math.min(w, d) >= 8) boxes.push(lot)
       if (w * d > 240 && Math.min(w, d) > 9) {
         const count = Math.min(5, Math.max(2, Math.floor((w * d) / 420)))
         for (let t = 0; t < count; t++) {
@@ -1988,7 +2012,7 @@ export class World {
     const geo = b.geometry()
     if (!geo) return
     const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.94 }))
-    mesh.receiveShadow = true
+    mesh.receiveShadow = false
     mesh.userData.unique = true
     group.add(mesh)
     const stalls = lines.geometry()
@@ -1999,6 +2023,7 @@ export class World {
       group.add(paintMesh)
     }
     if (spots.length) this.addLotTrees(group, spots)
+    if (boxes.length) this.addLotCars(group, boxes)
     let pins = 0
     for (const lot of lots) {
       if (lot.length < 6 || pins >= 4) continue
@@ -2014,37 +2039,51 @@ export class World {
     }
   }
 
-  private stallLines(lines: MeshBuilder, minX: number, maxX: number, minZ: number, maxZ: number, color: THREE.Color): void {
+  private buildingNear(i: number, j: number): boolean {
+    const h = this.height
+    for (let dj = -1; dj <= 1; dj++) {
+      for (let di = -1; di <= 1; di++) {
+        const ii = i + di
+        const jj = j + dj
+        if (ii < 0 || jj < 0 || ii >= h.cols || jj >= h.rows) continue
+        if (h.flags[jj * h.cols + ii] & F_BUILDING) return true
+      }
+    }
+    return false
+  }
+
+  private insideLot(x: number, z: number, lot: number[]): boolean {
+    const n = lot.length / 2
+    let inside = false
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const xi = lot[i * 2]
+      const zi = lot[i * 2 + 1]
+      const xj = lot[j * 2]
+      const zj = lot[j * 2 + 1]
+      if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi || 1e-9) + xi) inside = !inside
+    }
+    return inside
+  }
+
+  private stallLines(lines: MeshBuilder, minX: number, maxX: number, minZ: number, maxZ: number, color: THREE.Color, lot: number[]): void {
     const w = maxX - minX
     const d = maxZ - minZ
-    if (Math.max(w, d) < 12 || Math.min(w, d) < 5.5) return
+    if (Math.max(w, d) < 14 || Math.min(w, d) < 8) return
     const alongX = w >= d
     const span = alongX ? w : d
     const cross = alongX ? d : w
-    const count = Math.max(2, Math.floor(span / 2.65))
-    const insetL = span * 0.08
-    const insetC = cross * 0.14
-    const half = 0.07
-    for (let s = 1; s < count; s++) {
-      const t = insetL + ((span - insetL * 2) * s) / count
-      let x0: number
-      let z0: number
-      let x1: number
-      let z1: number
-      if (alongX) {
-        x0 = minX + t
-        x1 = x0
-        z0 = minZ + insetC
-        z1 = maxZ - insetC
-      } else {
-        z0 = minZ + t
-        z1 = z0
-        x0 = minX + insetC
-        x1 = maxX - insetC
-      }
+    const gap = 8.2
+    const depth = Math.min(7.2, cross * 0.26)
+    const count = Math.floor((span - 4) / gap)
+    if (count < 2) return
+    const mark = (x0: number, z0: number, x1: number, z1: number) => {
+      const mx = (x0 + x1) / 2
+      const mz = (z0 + z1) / 2
+      if (!this.insideLot(mx, mz, lot)) return
       const dx = x1 - x0
       const dz = z1 - z0
       const len = Math.hypot(dx, dz) || 1
+      const half = 0.06
       const px = (-dz / len) * half
       const pz = (dx / len) * half
       const y0 = this.height.sample(x0, z0) + 0.16
@@ -2052,6 +2091,92 @@ export class World {
       lines.tri(x0 - px, y0, z0 - pz, x0 + px, y0, z0 + pz, x1 - px, y1, z1 - pz, color)
       lines.tri(x0 + px, y0, z0 + pz, x1 + px, y1, z1 + pz, x1 - px, y1, z1 - pz, color)
     }
+    for (let s = 0; s < count; s++) {
+      const t = 3 + s * gap
+      if (alongX) {
+        const x = minX + t
+        mark(x, minZ + 1.2, x, minZ + 1.2 + depth)
+        if (cross > 18) mark(x, maxZ - 1.2, x, maxZ - 1.2 - depth)
+      } else {
+        const z = minZ + t
+        mark(minX + 1.2, z, minX + 1.2 + depth, z)
+        if (cross > 18) mark(maxX - 1.2, z, maxX - 1.2 - depth, z)
+      }
+    }
+  }
+
+  /** A few cars in the stalls, so a lot is not only paint. */
+  private addLotCars(group: THREE.Group, lots: number[][]): void {
+    const places: { x: number; z: number; rot: number; hex: number }[] = []
+    const colors = [0xd4564e, 0xf2f4f6, 0x355f8a, 0xe6c15a, 0x2f2f33, 0x7aa0a6]
+    for (const lot of lots) {
+      let minX = Infinity
+      let maxX = -Infinity
+      let minZ = Infinity
+      let maxZ = -Infinity
+      for (let i = 0; i < lot.length; i += 2) {
+        const x = lot[i]
+        const z = lot[i + 1]
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        if (z < minZ) minZ = z
+        if (z > maxZ) maxZ = z
+      }
+      const w = maxX - minX
+      const depth = maxZ - minZ
+      if (w * depth < 280 || Math.min(w, depth) < 9) continue
+      const rot = w >= depth ? Math.PI / 2 : 0
+      let placed = 0
+      const want = Math.min(6, Math.max(3, Math.floor(Math.sqrt(w * depth) / 6)))
+      for (let ix = 1; ix < 8 && placed < want; ix++) {
+        for (let iz = 1; iz < 6 && placed < want; iz++) {
+          const x = minX + (w * ix) / 8
+          const z = minZ + (depth * iz) / 6
+          if (!this.insideLot(x, z, lot)) continue
+          if (Math.hypot(x - 452, z + 426) < 12) continue
+          if (places.some((p) => Math.hypot(p.x - x, p.z - z) < 11)) continue
+          places.push({ x, z, rot, hex: colors[(placed + (minX | 0)) % colors.length] })
+          placed += 1
+        }
+      }
+    }
+    if (!places.length) return
+    const bodyGeo = new THREE.BoxGeometry(1.65, 0.48, 3.7)
+    bodyGeo.translate(0, 0.55, 0)
+    const cabinGeo = new THREE.BoxGeometry(1.45, 0.38, 1.7)
+    cabinGeo.translate(0, 0.95, -0.15)
+    const bodies = new THREE.InstancedMesh(
+      bodyGeo,
+      new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.12 }),
+      places.length,
+    )
+    const cabins = new THREE.InstancedMesh(
+      cabinGeo,
+      new THREE.MeshStandardMaterial({ color: 0x243038, roughness: 0.25, metalness: 0.2 }),
+      places.length,
+    )
+    bodies.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(places.length * 3), 3)
+    const dummy = new THREE.Object3D()
+    const tint = new THREE.Color()
+    for (let i = 0; i < places.length; i++) {
+      const spot = places[i]
+      dummy.position.set(spot.x, this.height.sample(spot.x, spot.z), spot.z)
+      dummy.rotation.set(0, spot.rot, 0)
+      dummy.updateMatrix()
+      bodies.setMatrixAt(i, dummy.matrix)
+      cabins.setMatrixAt(i, dummy.matrix)
+      tint.setHex(spot.hex)
+      bodies.setColorAt(i, tint)
+    }
+    bodies.castShadow = false
+    bodies.receiveShadow = false
+    cabins.castShadow = false
+    cabins.receiveShadow = false
+    bodies.frustumCulled = false
+    cabins.frustumCulled = false
+    bodies.userData.unique = true
+    cabins.userData.unique = true
+    group.add(bodies, cabins)
   }
 
   private addLotTrees(group: THREE.Group, spots: { x: number; z: number }[]): void {

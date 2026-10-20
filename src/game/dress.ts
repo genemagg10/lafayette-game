@@ -29,10 +29,12 @@ export function dressTown(
       while (d < len && spots.length < 48) {
         const x = ax + dx * d
         const z = az + dz * d
-        if ((x - spawn.x) ** 2 + (z - spawn.z) ** 2 < 680 * 680 && hash01((x * 3) | 0) > 0.42) {
+        const along = (x - spawn.x) ** 2 + (z - spawn.z) ** 2
+        if (along < 680 * 680 && along > 16 * 16 && hash01((x * 3) | 0) > 0.42) {
           const side = hash01((z * 5) | 0) > 0.5 ? 1 : -1
-          const px = x - dz * (road.w * 0.5 + 2.1) * side
-          const pz = z + dx * (road.w * 0.5 + 2.1) * side
+          const curb = 7.8
+          const px = x - dz * curb * side
+          const pz = z + dx * curb * side
           if ((height.flag(px, pz) & F_WATER) === 0) {
             spots.push({ x: px, z: pz, h: Math.atan2(dx, -dz), salt: spots.length * 17 + ((x * 10) | 0) })
           }
@@ -67,7 +69,10 @@ export function dressTown(
     color.setHex(paint[s.salt % paint.length])
     bodies.setColorAt(i, color)
   }
-  bodies.castShadow = true
+  bodies.castShadow = false
+  bodies.receiveShadow = false
+  cabins.castShadow = false
+  cabins.receiveShadow = false
   root.add(bodies, cabins)
 
   const potGeo = new THREE.CylinderGeometry(0.42, 0.5, 0.55, 7)

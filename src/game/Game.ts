@@ -494,6 +494,7 @@ export class Game {
       this.portals.update(dt, view.x, view.y, view.z, this.mode === 'play' || this.mode === 'pause', this.picture.renderer, this.camera, this.quality)
     }
     this.picture.syncBloom(gradeGolden.value)
+    this.world.orientStreetNames(this.camera)
     this.picture.render()
     this.input.endFrame()
     requestAnimationFrame(this.frame)

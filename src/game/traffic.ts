@@ -25,6 +25,48 @@ function makeRoute(pts: Pt[]): Route | null {
   return { pts, cum, len: cum[cum.length - 1] }
 }
 
+function nearestAlong(route: Route, x: number, z: number): number {
+  let best = 0
+  let bestD = Infinity
+  for (let d = 0; d < route.len; d += 6) {
+    const p = sample(route, d)
+    const gap = (p.x - x) ** 2 + (p.z - z) ** 2
+    if (gap < bestD) {
+      bestD = gap
+      best = d
+    }
+  }
+  return best
+}
+
+function passesNear(route: Route, x: number, z: number, radius: number): boolean {
+  const r2 = radius * radius
+  for (let d = 0; d < route.len; d += 24) {
+    const p = sample(route, d)
+    if ((p.x - x) ** 2 + (p.z - z) ** 2 < r2) return true
+  }
+  return false
+}
+
+function reversed(route: Route): Route {
+  return makeRoute(route.pts.slice().reverse()) ?? route
+}
+
+/** Divided boulevards chain into several routes. Use the one under the camera. */
+function closestRoute(routes: Route[], x: number, z: number): Route | null {
+  let best: Route | null = null
+  let bestD = Infinity
+  for (const route of routes) {
+    const p = sample(route, nearestAlong(route, x, z))
+    const gap = Math.hypot(p.x - x, p.z - z)
+    if (gap < bestD) {
+      bestD = gap
+      best = route
+    }
+  }
+  return best
+}
+
 function sample(route: Route, d: number): { x: number; y: number; z: number; heading: number } {
   let distAlong = d % route.len
   if (distAlong < 0) distAlong += route.len
@@ -99,6 +141,48 @@ function person(color: number): THREE.Group {
   return g
 }
 
+function makeCar(color: number): {
+  mesh: THREE.Group
+  body: THREE.Group
+  front: THREE.Object3D[]
+  wheels: THREE.Object3D[]
+  paint: THREE.MeshStandardMaterial
+} {
+  const mesh = new THREE.Group()
+  const paint = new THREE.MeshStandardMaterial({ color, roughness: 0.5 })
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1a1d20, roughness: 0.7 })
+  const body = new THREE.Group()
+  const shell = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 3.8), paint)
+  shell.position.y = 0.7
+  shell.castShadow = false
+  const cabin = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 0.45, 1.6),
+    new THREE.MeshStandardMaterial({ color: 0x243038, roughness: 0.3 }),
+  )
+  cabin.position.set(0, 1.15, -0.1)
+  body.add(shell, cabin)
+  const front: THREE.Object3D[] = []
+  const wheels: THREE.Object3D[] = []
+  const addWheel = (x: number, z: number, steered: boolean) => {
+    const steer = new THREE.Group()
+    const spin = new THREE.Group()
+    const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.2, 10), dark)
+    tire.rotation.z = Math.PI / 2
+    spin.add(tire)
+    steer.add(spin)
+    steer.position.set(x, 0.32, z)
+    mesh.add(steer)
+    wheels.push(spin)
+    if (steered) front.push(steer)
+  }
+  addWheel(-0.72, -1.2, true)
+  addWheel(0.72, -1.2, true)
+  addWheel(-0.72, 1.2, false)
+  addWheel(0.72, 1.2, false)
+  mesh.add(body)
+  return { mesh, body, front, wheels, paint }
+}
+
 interface NpcCar {
   mesh: THREE.Group
   body: THREE.Group
@@ -118,7 +202,7 @@ interface NpcCar {
 export class Traffic {
   private cars: NpcCar[] = []
   private pace = 1
-  private people: { mesh: THREE.Group; route: Route; d: number; speed: number; phase: number }[] = []
+  private people: { mesh: THREE.Group; route: Route; d: number; speed: number; phase: number; side: number }[] = []
   private birds: { mesh: THREE.Group; ang: number; rad: number; y: number; cx: number; cz: number; rate: number }[] = []
   private ducks: { mesh: THREE.Group; ang: number; rad: number; scare: number }[] = []
   private duckCenter = new THREE.Vector3()
@@ -127,55 +211,42 @@ export class Traffic {
     const drive = chain(roads.filter((r) => r.d === 0 && r.b === 0 && r.w >= 6 && /primary|secondary|tertiary|residential|unclassified/.test(r.t)))
     const colors = [0xd4564e, 0xf2f4f6, 0x355f8a, 0xe6c15a, 0x2f2f33, 0x7aa0a6]
     for (let i = 0; i < Math.min(8, drive.length); i++) {
-      const mesh = new THREE.Group()
-      const paint = new THREE.MeshStandardMaterial({ color: colors[i % colors.length], roughness: 0.5 })
-      const dark = new THREE.MeshStandardMaterial({ color: 0x1a1d20, roughness: 0.7 })
-      const body = new THREE.Group()
-      const shell = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 3.8), paint)
-      shell.position.y = 0.7
-      shell.castShadow = true
-      const cabin = new THREE.Mesh(
-        new THREE.BoxGeometry(1.5, 0.45, 1.6),
-        new THREE.MeshStandardMaterial({ color: 0x243038, roughness: 0.3 }),
-      )
-      cabin.position.set(0, 1.15, -0.1)
-      body.add(shell, cabin)
-      const front: THREE.Object3D[] = []
-      const wheels: THREE.Object3D[] = []
-      const addWheel = (x: number, z: number, steered: boolean) => {
-        const steer = new THREE.Group()
-        const spin = new THREE.Group()
-        const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.2, 10), dark)
-        tire.rotation.z = Math.PI / 2
-        spin.add(tire)
-        steer.add(spin)
-        steer.position.set(x, 0.32, z)
-        mesh.add(steer)
-        wheels.push(spin)
-        if (steered) front.push(steer)
-      }
-      addWheel(-0.72, -1.2, true)
-      addWheel(0.72, -1.2, true)
-      addWheel(-0.72, 1.2, false)
-      addWheel(0.72, 1.2, false)
-      mesh.add(body)
-      scene.add(mesh)
       const speed = 7 + hash01(i) * 4
-      this.cars.push({
-        mesh,
-        body,
-        front,
-        wheels,
-        paint,
-        route: drive[i],
-        d: hash01(i + 3) * drive[i].len,
-        speed,
-        base: speed,
-        lane: i % 2 === 0 ? 1.4 : -1.4,
-        color: colors[i % colors.length],
-        heading: 0,
-        bob: i,
+      this.spawnCar(scene, drive[i], hash01(i + 3) * drive[i].len, i % 2 === 0 ? 1.4 : -1.4, colors[i % colors.length], speed, i)
+    }
+    const diablo = closestRoute(chain(roads.filter((r) => /diablo boulevard/i.test(r.n))), 452, -426)
+    if (diablo) {
+      const anchor = nearestAlong(diablo, 452, -426)
+      const goesWest = sample(diablo, anchor + 50).x < sample(diablo, anchor).x
+      const westbound = goesWest ? diablo : reversed(diablo)
+      const eastbound = goesWest ? reversed(diablo) : diablo
+      const toward = [72, 128, 186]
+      toward.forEach((dx, i) => {
+        const d = nearestAlong(eastbound, 452 - dx, -426)
+        this.spawnCar(scene, eastbound, d, 3.55, colors[i % colors.length], 5.4 + i * 0.4, i + 8)
       })
+      ;[48, 118].forEach((dx, i) => {
+        const d = nearestAlong(westbound, 452 - dx, -426)
+        this.spawnCar(scene, westbound, d, 3.55, colors[(i + 3) % colors.length], 6.2 + i * 0.5, i + 12)
+      })
+    }
+    for (const car of this.cars) {
+      if (!passesNear(car.route, 452, -426, 36)) continue
+      car.lane = car.lane >= 0 ? 3.55 : -3.55
+      const p = sample(car.route, car.d)
+      if (Math.hypot(p.x - 452, p.z + 426) < 18) car.d += 90
+    }
+    if (diablo) {
+      const anchor = nearestAlong(diablo, 452, -426)
+      const goesWest = sample(diablo, anchor + 40).x < sample(diablo, anchor).x
+      const westbound = goesWest ? diablo : reversed(diablo)
+      const eastbound = goesWest ? reversed(diablo) : diablo
+      const westStart = nearestAlong(westbound, 452, -426)
+      const eastStart = nearestAlong(eastbound, 452, -426)
+      this.spawnCar(scene, eastbound, eastStart - 9, 3.55, 0xd4564e, 0.8, 30)
+      this.spawnCar(scene, eastbound, eastStart - 18, 7.15, 0xe6c15a, 0, 31)
+      this.spawnCar(scene, westbound, westStart + 15, 3.55, 0xf2f4f6, 1.4, 32)
+      this.spawnCar(scene, westbound, westStart + 23, 7.15, 0x355f8a, 0, 33)
     }
 
     const trailRoads = roads.filter((r) => r.d === 1 && r.p.length > 12)
@@ -190,13 +261,39 @@ export class Traffic {
     for (let i = 0; i < Math.min(4, trails.length); i++) {
       const mesh = person(shirts[i % shirts.length])
       scene.add(mesh)
-      this.people.push({ mesh, route: trails[i], d: hash01(i + 9) * trails[i].len, speed: 2.4, phase: i })
+      this.people.push({ mesh, route: trails[i], d: hash01(i + 9) * trails[i].len, speed: 2.4, phase: i, side: 1.5 })
     }
-    const blvd = chain(roads.filter((r) => /diablo boulevard/i.test(r.n)))
-    for (let i = 0; i < Math.min(3, blvd.length); i++) {
-      const mesh = person(0xf4efe4)
-      scene.add(mesh)
-      this.people.push({ mesh, route: blvd[i], d: (i + 1) * 40, speed: 1.2, phase: i + 2 })
+    const blvd = diablo
+    if (blvd) {
+      const heroD = nearestAlong(blvd, 452, -426)
+      const shirts = [0x4aa3c7, 0xe07a4c, 0x6aaa4a, 0xf2f4f6, 0xf4efe4, 0xc4553a, 0x355f8a, 0xe6c15a]
+      const offsets = [-150, -108, -62, -24, 28, 72, 118, 168]
+      for (let i = 0; i < offsets.length; i++) {
+        const d = heroD + offsets[i]
+        const p = sample(blvd, d)
+        if (Math.hypot(p.x - 452, p.z + 426) < 9) continue
+        const mesh = person(shirts[i % shirts.length])
+        scene.add(mesh)
+        this.people.push({ mesh, route: blvd, d, speed: 1.05 + (i % 3) * 0.18, phase: i * 1.7, side: i % 2 === 0 ? 8.6 : -8.6 })
+      }
+      const here = sample(blvd, heroD)
+      const ahead = sample(blvd, heroD + 30).x < here.x ? 1 : -1
+      const closeShirts = [0xe23b3b, 0x2f6fed, 0xf2f4f6, 0xf0c14a]
+      ;[10, 18, 26].forEach((meters, i) => {
+        ;[8.8, -8.8].forEach((side, s) => {
+          const mesh = person(closeShirts[(i + s) % closeShirts.length])
+          mesh.scale.setScalar(1.4)
+          scene.add(mesh)
+          this.people.push({
+            mesh,
+            route: blvd,
+            d: heroD + ahead * (meters + s * 2),
+            speed: 0.35,
+            phase: i * 2.2 + s,
+            side,
+          })
+        })
+      })
     }
 
     for (let i = 0; i < 8; i++) {
@@ -229,6 +326,12 @@ export class Traffic {
       scene.add(mesh)
       this.ducks.push({ mesh, ang: (i / 5) * Math.PI * 2, rad: 6 + i * 1.4, scare: 0 })
     }
+  }
+
+  private spawnCar(scene: THREE.Scene, route: Route, d: number, lane: number, color: number, speed: number, bob: number): void {
+    const built = makeCar(color)
+    scene.add(built.mesh)
+    this.cars.push({ ...built, route, d, speed, base: speed, lane, color, heading: 0, bob })
   }
 
   /** Today keeps the modern paint. 1955 slows the street and dresses it in period colors. */
@@ -286,7 +389,7 @@ export class Traffic {
       person.d += person.speed * dt
       person.phase += dt * 7
       const p = sample(person.route, person.d)
-      const side = 3.2
+      const side = person.side
       let ox = Math.cos(p.heading) * side
       let oz = Math.sin(p.heading) * side
       const gap = Math.hypot(p.x + ox - px, p.z + oz - pz)

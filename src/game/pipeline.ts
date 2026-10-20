@@ -231,9 +231,9 @@ export class Picture {
       const aoNode = new GTAONode(depth, null as never, this.camera)
       aoNode.resolutionScale = 0.5
       aoNode.samples.value = 8
-      aoNode.radius.value = 0.4
+      aoNode.radius.value = 0.18
       const occlusion = aoNode.getTextureNode() as unknown as { r: { mul: (v: unknown) => { add: (v: unknown) => unknown } } }
-      picture = mul(asNode(picture), asNode(occlusion.r.mul(0.62).add(0.38)))
+      picture = mul(asNode(picture), asNode(occlusion.r.mul(0.28).add(0.72)))
       // Daytime stays a dry valley. God rays stay off: the node needs a
       // shadow map, and cascades never allocate one.
     }
