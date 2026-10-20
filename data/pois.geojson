@@ -1,0 +1,2230 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120471,
+     37.891624
+    ]
+   },
+   "properties": {
+    "name": "Roundup Saloon",
+    "category": "business:bar",
+    "osm_tag": "bar",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/2667819035",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120046,
+     37.891691
+    ]
+   },
+   "properties": {
+    "name": "Starbucks",
+    "category": "business:cafe",
+    "osm_tag": "cafe",
+    "description": null,
+    "address": "3547 A Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/2952933377",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.12,
+     37.891493
+    ]
+   },
+   "properties": {
+    "name": "Roam Artisan Burgers",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/2952933378",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.121993,
+     37.891849
+    ]
+   },
+   "properties": {
+    "name": "Luxe Home by Douglah Designs",
+    "category": "business:shop",
+    "osm_tag": "bathroom_furnishing",
+    "description": null,
+    "address": "3535 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4655014142",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.122109,
+     37.891794
+    ]
+   },
+   "properties": {
+    "name": "Supercuts",
+    "category": "business:shop",
+    "osm_tag": "hairdresser",
+    "description": null,
+    "address": "3586 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4655014143",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.122523,
+     37.891838
+    ]
+   },
+   "properties": {
+    "name": "AT&T",
+    "category": "business:shop",
+    "osm_tag": "mobile_phone",
+    "description": null,
+    "address": "3592 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4655014150",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.122443,
+     37.891729
+    ]
+   },
+   "properties": {
+    "name": "BevMo!",
+    "category": "business:shop",
+    "osm_tag": "alcohol",
+    "description": null,
+    "address": "3590 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4655014151",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.123047,
+     37.891244
+    ]
+   },
+   "properties": {
+    "name": "Social Bird",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": "3593 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4655014307",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.122711,
+     37.891159
+    ]
+   },
+   "properties": {
+    "name": "Misto Lino",
+    "category": "business:shop",
+    "osm_tag": "yes",
+    "description": null,
+    "address": "3585 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4655014308",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.122902,
+     37.891155
+    ]
+   },
+   "properties": {
+    "name": "Women's Health Center: Sutter Alta Bates Summit Medical Center",
+    "category": "business:health",
+    "osm_tag": "clinic",
+    "description": null,
+    "address": "3595 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4655014309",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.122687,
+     37.891289
+    ]
+   },
+   "properties": {
+    "name": "Caveman Food LLC",
+    "category": "business:yes",
+    "osm_tag": "yes",
+    "description": null,
+    "address": "3595 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4655014310",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120339,
+     37.890288
+    ]
+   },
+   "properties": {
+    "name": "American Kitchen",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4812924611",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.119939,
+     37.890719
+    ]
+   },
+   "properties": {
+    "name": "Tutu's",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": "53 Lafayette Circle",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4812924612",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120318,
+     37.890723
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Public House",
+    "category": "business:cafe",
+    "osm_tag": "cafe",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4812924613",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120202,
+     37.891061
+    ]
+   },
+   "properties": {
+    "name": "The cooperage",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/4812925462",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.119136,
+     37.891712
+    ]
+   },
+   "properties": {
+    "name": "Local Food Adventures",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": "6114 La Salle Avenue",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/6165266922",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.119731,
+     37.89016
+    ]
+   },
+   "properties": {
+    "name": "Solano Jewelers",
+    "category": "business:shop",
+    "osm_tag": "jewelry",
+    "description": null,
+    "address": "61 Lafayette Circle",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/6257089275",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.110764,
+     37.89354
+    ]
+   },
+   "properties": {
+    "name": "Headlands Brewing Company",
+    "category": "business:bar",
+    "osm_tag": "pub",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/8883613216",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.118238,
+     37.891553
+    ]
+   },
+   "properties": {
+    "name": "Sideboard",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/9163549062",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.117833,
+     37.891945
+    ]
+   },
+   "properties": {
+    "name": "76",
+    "category": "business:fuel",
+    "osm_tag": "fuel",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/9163567607",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.117671,
+     37.892494
+    ]
+   },
+   "properties": {
+    "name": "Metro",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/9275177463",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.118012,
+     37.893124
+    ]
+   },
+   "properties": {
+    "name": "Peet's Coffee",
+    "category": "business:cafe",
+    "osm_tag": "cafe",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/9275203680",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.117392,
+     37.892455
+    ]
+   },
+   "properties": {
+    "name": "Jackson's",
+    "category": "business:shop",
+    "osm_tag": "alcohol",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/9275213200",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.122588,
+     37.890809
+    ]
+   },
+   "properties": {
+    "name": "Kiku Sushi and Vegetarian",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460144",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.122305,
+     37.890873
+    ]
+   },
+   "properties": {
+    "name": "Ensor Jeremy E OD",
+    "category": "business:shop",
+    "osm_tag": "optician",
+    "description": null,
+    "address": "284 Lafayette Circle",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460145",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.122192,
+     37.891383
+    ]
+   },
+   "properties": {
+    "name": "BMO",
+    "category": "business:bank",
+    "osm_tag": "bank",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460146",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.123392,
+     37.891234
+    ]
+   },
+   "properties": {
+    "name": "Philz Coffee",
+    "category": "business:cafe",
+    "osm_tag": "cafe",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460147",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.123618,
+     37.891589
+    ]
+   },
+   "properties": {
+    "name": "Panda Express",
+    "category": "business:fast_food",
+    "osm_tag": "fast_food",
+    "description": null,
+    "address": "3608 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460148",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.123437,
+     37.891612
+    ]
+   },
+   "properties": {
+    "name": "Batch and Brine",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460149",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.123063,
+     37.89164
+    ]
+   },
+   "properties": {
+    "name": "SusieCakes",
+    "category": "business:shop",
+    "osm_tag": "bakery",
+    "description": null,
+    "address": "3598 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460150",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.122921,
+     37.891701
+    ]
+   },
+   "properties": {
+    "name": "Barranco Cocina Peruana",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460151",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.121834,
+     37.891453
+    ]
+   },
+   "properties": {
+    "name": "The Breakfast Club at Midtown",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460152",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.121102,
+     37.891553
+    ]
+   },
+   "properties": {
+    "name": "El Jarro Mexican Cafe",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460153",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.121224,
+     37.891354
+    ]
+   },
+   "properties": {
+    "name": "Postino",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460154",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120673,
+     37.891615
+    ]
+   },
+   "properties": {
+    "name": "Amarin",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460155",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120607,
+     37.891628
+    ]
+   },
+   "properties": {
+    "name": "Poke Go",
+    "category": "business:fast_food",
+    "osm_tag": "fast_food",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460156",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.124008,
+     37.891137
+    ]
+   },
+   "properties": {
+    "name": "Chase",
+    "category": "business:bank",
+    "osm_tag": "bank",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460157",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.124601,
+     37.890762
+    ]
+   },
+   "properties": {
+    "name": "Diablo Foods",
+    "category": "business:shop",
+    "osm_tag": "supermarket",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460158",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.125083,
+     37.890764
+    ]
+   },
+   "properties": {
+    "name": "CVS Pharmacy",
+    "category": "business:shop",
+    "osm_tag": "chemist",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460159",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.125879,
+     37.890676
+    ]
+   },
+   "properties": {
+    "name": "Round Table Pizza",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460160",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.126746,
+     37.89039
+    ]
+   },
+   "properties": {
+    "name": "Kabab Burger Mediterranean Grill",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460162",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.127551,
+     37.890479
+    ]
+   },
+   "properties": {
+    "name": "Pho Benny",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460163",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.127568,
+     37.890664
+    ]
+   },
+   "properties": {
+    "name": "Oyama Sushi",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460164",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.126095,
+     37.89128
+    ]
+   },
+   "properties": {
+    "name": "Chevron",
+    "category": "business:fuel",
+    "osm_tag": "fuel",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460165",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.125366,
+     37.891468
+    ]
+   },
+   "properties": {
+    "name": "Wells Fargo",
+    "category": "business:bank",
+    "osm_tag": "bank",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460167",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.125342,
+     37.89076
+    ]
+   },
+   "properties": {
+    "name": "Johnny's Donut Shop",
+    "category": "business:fast_food",
+    "osm_tag": "fast_food",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460168",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.126592,
+     37.890402
+    ]
+   },
+   "properties": {
+    "name": "Reasonable Books",
+    "category": "business:shop",
+    "osm_tag": "books",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460169",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.126378,
+     37.890438
+    ]
+   },
+   "properties": {
+    "name": "The Rising Loafer",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/12878460170",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.110952,
+     37.893524
+    ]
+   },
+   "properties": {
+    "name": "Horn Barbeque",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/13367876205",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120937,
+     37.891961
+    ]
+   },
+   "properties": {
+    "name": "Learning Express Toys",
+    "category": "business:shop",
+    "osm_tag": "toys",
+    "description": null,
+    "address": "3568 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/13461328224",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120851,
+     37.89197
+    ]
+   },
+   "properties": {
+    "name": "First Mile Cycle Works",
+    "category": "business:shop",
+    "osm_tag": "bicycle",
+    "description": null,
+    "address": "3566 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/13461328225",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.127668,
+     37.891146
+    ]
+   },
+   "properties": {
+    "name": "The Final Stretch",
+    "category": "business:therapist",
+    "osm_tag": "therapist",
+    "description": null,
+    "address": "3658 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/13598734701",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.119512,
+     37.891683
+    ]
+   },
+   "properties": {
+    "name": "Douglah Designs",
+    "category": "business:shop",
+    "osm_tag": "interior_decoration",
+    "description": null,
+    "address": "985 Moraga Road",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/node/14276190352",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.119416,
+     37.892808
+    ]
+   },
+   "properties": {
+    "name": "Safeway",
+    "category": "business:shop",
+    "osm_tag": "supermarket",
+    "description": null,
+    "address": "3540 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/154644945",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.118477,
+     37.892507
+    ]
+   },
+   "properties": {
+    "name": "Bank of America",
+    "category": "business:bank",
+    "osm_tag": "bank",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/252728823",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.117249,
+     37.893591
+    ]
+   },
+   "properties": {
+    "name": "Whole Foods Market",
+    "category": "business:shop",
+    "osm_tag": "supermarket",
+    "description": null,
+    "address": "3502 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/252728826",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.115288,
+     37.892776
+    ]
+   },
+   "properties": {
+    "name": "Kane Sushi",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/272696196",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120767,
+     37.892358
+    ]
+   },
+   "properties": {
+    "name": "Uncle Yu's",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": "999 Oak Hill Road",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/471338247",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.121277,
+     37.892013
+    ]
+   },
+   "properties": {
+    "name": "Rustic Tavern",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": "3576 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/471338249",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.121751,
+     37.891904
+    ]
+   },
+   "properties": {
+    "name": "One Hour Cleaners",
+    "category": "business:shop",
+    "osm_tag": "dry_cleaning",
+    "description": null,
+    "address": "3580 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/471338250",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.121842,
+     37.891924
+    ]
+   },
+   "properties": {
+    "name": "Floral Arts Florist",
+    "category": "business:shop",
+    "osm_tag": "florist",
+    "description": null,
+    "address": "3584 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/471338251",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.123219,
+     37.891745
+    ]
+   },
+   "properties": {
+    "name": "Pizza Antica",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": "3600 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/471338256",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.126948,
+     37.890245
+    ]
+   },
+   "properties": {
+    "name": "Trader Joe's",
+    "category": "business:shop",
+    "osm_tag": "supermarket",
+    "description": null,
+    "address": "3649 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/508544694",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.113981,
+     37.892432
+    ]
+   },
+   "properties": {
+    "name": "McDonald's",
+    "category": "business:fast_food",
+    "osm_tag": "fast_food",
+    "description": null,
+    "address": "3459 Mount Diablo Boulevard",
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/597105276",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120228,
+     37.893172
+    ]
+   },
+   "properties": {
+    "name": "Millie's",
+    "category": "business:restaurant",
+    "osm_tag": "restaurant",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/888519444",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.116799,
+     37.892703
+    ]
+   },
+   "properties": {
+    "name": "Max Auto Center LLC",
+    "category": "business:shop",
+    "osm_tag": "car_repair",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/888519445",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.117935,
+     37.892421
+    ]
+   },
+   "properties": {
+    "name": "Citibank",
+    "category": "business:bank",
+    "osm_tag": "bank",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/888519448",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.124023,
+     37.891616
+    ]
+   },
+   "properties": {
+    "name": "Pet Food Express",
+    "category": "business:shop",
+    "osm_tag": "pet",
+    "description": null,
+    "address": null,
+    "storefront_color": "unknown",
+    "building_material": "unknown",
+    "signage_style": "unknown",
+    "source": "https://www.openstreetmap.org/way/992609533",
+    "coord_source": "OSM API 0.6 map call 2026-10-19 (way centroid if way)",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.120802,
+     37.891799
+    ]
+   },
+   "properties": {
+    "name": "Park Theater",
+    "category": "landmark:cinema",
+    "description": "Streamline Moderne single-screen cinema opened Aug 21, 1941 (designed by William B. David); closed 2005; bought by the Park Theater Trust in Dec 2021; under renovation as a two-screen cinema, target reopening early 2027. Interior palette originally blues, ivory and maroon; 1941 neon marquee in storage at NeonWorks.",
+    "address": "3558 Mt Diablo Blvd",
+    "source": "https://parktheatertrust.org/history/ ; https://lamorindaweekly.com/articles/2026/park-theater-renovation-plans-and-timeline-presented-to-city-council/",
+    "coord_source": "US Census geocoder (address interpolation)",
+    "confidence": "medium",
+    "people": [
+     {
+      "name": "Elwood P. Laws",
+      "role": "builder/owner 1941",
+      "blurb": "Walnut Creek theater operator who built the Park in 1941; also built Walnut Creek's El Rey Theater (1937).",
+      "source": "https://parktheatertrust.org/history/"
+     },
+     {
+      "name": "William B. David",
+      "role": "architect",
+      "blurb": "Cinema architect who designed 25+ theaters in California and Oregon in the Streamlined Moderne style, including the Park.",
+      "source": "https://lamorindaweekly.com/articles/2026/park-theater-renovation-plans-and-timeline-presented-to-city-council/"
+     },
+     {
+      "name": "The Park Theater Trust",
+      "role": "savior/owner",
+      "blurb": "All-volunteer nonprofit, first convened as a City task force; raised $3M and bought the theater for the community in Dec 2021.",
+      "source": "https://parktheatertrust.org/"
+     },
+     {
+      "name": "CinemaSF (Adam Bergeron, Jaimi Holker)",
+      "role": "future operator",
+      "blurb": "SF historic-cinema operators chosen to run the reopened Park; their first East Bay venue.",
+      "source": "https://www.cinemasf.com/park"
+     },
+     {
+      "name": "Lafayette-Orinda Presbyterian Church",
+      "role": "early tenant",
+      "blurb": "The newly founded congregation held Sunday services in the theater starting in 1954.",
+      "source": "https://parktheatertrust.org/history/"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.115752,
+     37.891942
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Library and Learning Center",
+    "category": "landmark:civic",
+    "description": "Library opened Nov 14, 2009, designed by Killefer Flammang Architects as a 'contemporary Craftsman' stone-and-wood building stepping down from Mt Diablo Blvd to First St. Its atrium honors Nobel laureate Glenn Seaborg. Built on the site of the 1938-39 WPA Veterans Memorial Building.",
+    "address": "3491 Mt Diablo Blvd",
+    "source": "https://www.sfgate.com/opinion/article/Library-success-story-in-Lafayette-3211232.php ; https://www.lovelafayette.org/home/showpublisheddocument/197/635561390008430000",
+    "coord_source": "OSM way/326482972 centroid",
+    "confidence": "high",
+    "people": [
+     {
+      "name": "Lafayette Community Foundation",
+      "role": "fundraiser",
+      "blurb": "Formed by citizens (via Lafayette Library Vision 2000, 1998) to fund the library; nearly 25% of residents gave $12.7M toward construction.",
+      "source": "https://www.sfgate.com/opinion/article/Library-success-story-in-Lafayette-3211232.php"
+     },
+     {
+      "name": "Rick & Janet Cronk",
+      "role": "first major donors",
+      "blurb": "Rick spent 30 years building Dreyer's; the couple were approached as the project's first major donors and agreed, saying nothing matters more than educating children.",
+      "source": "https://lafayettehistory.org/oral-history-rick-janet-cronk-march-27th-2009/"
+     },
+     {
+      "name": "Glenn Seaborg",
+      "role": "namesake",
+      "blurb": "Nobel laureate and 40-year Lafayette resident, honored by the atrium and the Glenn Seaborg Learning Consortium of 12 Bay Area institutions.",
+      "source": "https://www.lovelafayette.org/home/showpublisheddocument/234/635561390008430000"
+     },
+     {
+      "name": "Killefer Flammang Architects",
+      "role": "architect",
+      "blurb": "Won the City's design competition, drawing on ideas from 1,000+ residents.",
+      "source": "https://www.lovelafayette.org/home/showpublisheddocument/197/635561390008430000"
+     },
+     {
+      "name": "Don Tatzin",
+      "role": "mayor",
+      "blurb": "Mayor who signed the City's 2009 support for the Seaborg Consortium; the Don Tatzin Community Hall in the library bears his name.",
+      "source": "https://lafayette.granicus.com/MetaViewer.php?clip_id=598&meta_id=4349&view_id=3"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.1158,
+     37.8919
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Historical Society",
+    "category": "landmark:history",
+    "description": "Began 1967 as a committee of the Lafayette Library Association; incorporated as a nonprofit March 19, 1973. Located in the Library and Learning Center (location approximate).",
+    "address": "3491 Mt Diablo Blvd",
+    "source": "https://lafayettehistory.org/wp-content/uploads/2017/04/Newsletter-March-April-2017-2.pdf",
+    "coord_source": "approximate: library building centroid",
+    "confidence": "low",
+    "people": [
+     {
+      "name": "Lafayette Historical Society",
+      "role": "keeper of town memory",
+      "blurb": "Runs the town's oral-history archive and the downtown history tour.",
+      "source": "https://lafayettehistory.org/local-sites/tour/"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.123311,
+     37.895013
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Hillside Memorial (The Crosses of Lafayette)",
+    "category": "landmark:memorial",
+    "description": "Hillside of thousands of crosses and other symbols on Deer Hill Rd, visible from BART and Hwy 24, begun 2003 and in earnest Nov 11, 2006. The count sign was replaced with 'Remember' in 2022.",
+    "address": "Deer Hill Rd",
+    "source": "https://www.lafayettehillsidememorial.org/history.html",
+    "coord_source": "OSM way/459217544 centroid",
+    "confidence": "high",
+    "people": [
+     {
+      "name": "Jeff Heaton",
+      "role": "creator",
+      "blurb": "Local contractor who planted the first 19 crosses in spring 2003 and relaunched the memorial on Armistice Day 2006.",
+      "source": "https://www.lafayettehillsidememorial.org/history.html"
+     },
+     {
+      "name": "John & Louise Clark",
+      "role": "property owners",
+      "blurb": "Longtime residents who allowed the memorial on their hillside.",
+      "source": "https://lafayettehistory.org/oral-history-louise-clark-october-14th-2010/"
+     },
+     {
+      "name": "Mt. Diablo Peace and Justice Center / Lamorinda Peace Group",
+      "role": "volunteers",
+      "blurb": "Groups that helped build and plant thousands of crosses.",
+      "source": "https://www.lafayettehillsidememorial.org/history.html"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.142307,
+     37.880813
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Reservoir",
+    "category": "landmark:park",
+    "description": "EBMUD reservoir. Dam built 1927-1933 after a 1928 slide forced a lower, wider redesign. Opened for recreation June 13, 1966, with a 2.7-mile paved loop.",
+    "address": null,
+    "source": "https://lafayettehistory.org/wp-content/uploads/2024/01/Newsletter-April-2023.pdf ; https://www.ebmud.com/customers/pipeline/2016/05/50-years-reservoir-fun",
+    "coord_source": "OSM way/27877916 centroid",
+    "confidence": "high",
+    "people": [
+     {
+      "name": "EBMUD",
+      "role": "owner/builder",
+      "blurb": "East Bay Municipal Utility District (organized 1923) built the reservoir and opened it to the public in 1966.",
+      "source": "https://www.ebmud.com/about-us/who-we-are/mission-and-history"
+     },
+     {
+      "name": "George Pollock Company",
+      "role": "dam contractor",
+      "blurb": "Low bidder awarded the dam contract in July 1927 for $1,370,685.",
+      "source": "https://lafayettehistory.org/wp-content/uploads/2024/01/Newsletter-April-2023.pdf"
+     },
+     {
+      "name": "Leo J. Coleman",
+      "role": "EBMUD engineer",
+      "blurb": "Tumbled down the dam face while walking it in the dark on the night of the first cracks, in Sept 1928.",
+      "source": "https://lafayettehistory.org/wp-content/uploads/2024/01/Newsletter-April-2023.pdf"
+     },
+     {
+      "name": "Lafayette Improvement Club (Rodebaugh, Garrett, Stanley, Meredith)",
+      "role": "water advocates",
+      "blurb": "Formed the Lafayette County Water District to bring Mokelumne water, which led Lafayette into EBMUD.",
+      "source": "https://lafayettehistory.org/wp-content/uploads/2024/01/Newsletter-April-2023.pdf"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.140672,
+     37.884012
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Reservoir Outlet Tower",
+    "category": "landmark:structure",
+    "description": "Dam outlet tower with valves and pipes to the filter plant. The original plan for a dam 33 ft taller was abandoned, so the tower stands well above the water.",
+    "address": null,
+    "source": "https://www.ebmud.com/about-us/construction-and-maintenance/construction-my-neighborhood/lafayettetower",
+    "coord_source": "OSM node/2084054143",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.142789,
+     37.8839
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Reservoir Visitor Center / boat rental",
+    "category": "landmark:structure",
+    "description": "Visitor center and boat rental on the north shore.",
+    "address": null,
+    "source": "https://www.openstreetmap.org/way/348816503",
+    "coord_source": "OSM way/348816503 centroid",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.143842,
+     37.876197
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Reservoir Rim Trail",
+    "category": "trail",
+    "description": "Rim trail circling the reservoir ridge. The centroid here is from a single OSM segment.",
+    "address": null,
+    "source": "https://www.openstreetmap.org/way/444096454",
+    "coord_source": "OSM way centroid (segment)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.124637,
+     37.893186
+    ]
+   },
+   "properties": {
+    "name": "Lafayette BART station",
+    "category": "landmark:transit",
+    "description": "Opened May 21, 1973. One island platform in the Hwy 24 median.",
+    "address": null,
+    "source": "https://en.wikipedia.org/wiki/Lafayette_station_(BART)",
+    "coord_source": "Nominatim OSM node/257088282",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.134284,
+     37.888489
+    ]
+   },
+   "properties": {
+    "name": "Veterans Memorial Center",
+    "category": "landmark:civic",
+    "description": "New Veterans Memorial Center, dedicated May 30, 2005. It replaced the 1938-39 WPA building, whose site became the library.",
+    "address": "3780 Mt Diablo Blvd",
+    "source": "https://livingnewdeal.org/sites/old-veterans-memorial-building-lafayette-ca/ ; https://www.westerncity.com/article/lafayette-walnut-creek-and-contra-costa-county-join-forces-construct-veterans-memorial",
+    "coord_source": "Nominatim OSM node/5889459287",
+    "confidence": "high",
+    "people": [
+     {
+      "name": "Works Progress Administration",
+      "role": "builder of original",
+      "blurb": "New Deal program that built the original 1938-39 Veterans Memorial Building at Mt Diablo Blvd and First St.",
+      "source": "https://livingnewdeal.org/sites/old-veterans-memorial-building-lafayette-ca/"
+     },
+     {
+      "name": "Lafayette, Walnut Creek & Contra Costa County",
+      "role": "partners",
+      "blurb": "Jointly built the 2005 replacement.",
+      "source": "https://www.westerncity.com/article/lafayette-walnut-creek-and-contra-costa-county-join-forces-construct-veterans-memorial"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.11832,
+     37.89172
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Plaza",
+    "category": "landmark:park",
+    "description": "Historic triangular town square at Mt Diablo Blvd and Moraga Rd. Elam Brown deeded the land in 1864; redesigned 1998-2001. Pony Express riders changed horses at this intersection in the early 1860s.",
+    "address": "Mt Diablo Blvd & Moraga Rd",
+    "source": "https://lafayette.granicus.com/MetaViewer.php?clip_id=764&meta_id=5405&view_id=16 ; https://www.lovelafayette.org/why-lafayette/about-lafayette/history-of-lafayette",
+    "coord_source": "approximate: Nominatim Plaza Drive",
+    "confidence": "low",
+    "people": [
+     {
+      "name": "Elam Brown",
+      "role": "donor of land",
+      "blurb": "Deeded the plaza triangle to the town in 1864.",
+      "source": "https://lafayette.granicus.com/MetaViewer.php?clip_id=764&meta_id=5405&view_id=16"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.11813,
+     37.891637
+    ]
+   },
+   "properties": {
+    "name": "Pioneer Store (Benjamin Shreve's store)",
+    "category": "landmark:history",
+    "description": "Shreve's store, post office and insurance agency, opened in the early 1860s; much remodeled with a false front. Named the Pioneer Store by Robert Elam McNeil in 1902.",
+    "address": "3535 Plaza Way",
+    "source": "https://lafayettehistory.org/local-sites/tour/",
+    "coord_source": "US Census geocoder (matched Plaza Dr; verify)",
+    "confidence": "low",
+    "people": [
+     {
+      "name": "Benjamin Shreve",
+      "role": "schoolteacher/postmaster",
+      "blurb": "Stayed after the Gold Rush, ran the first school, named the town 'La Fayette' when Centerville was taken, and was postmaster for 30 years.",
+      "source": "https://lafayettehistory.org/town-history/pictorial-history/village-life/"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.117918,
+     37.887815
+    ]
+   },
+   "properties": {
+    "name": "Town Hall Theatre",
+    "category": "landmark:history",
+    "description": "Built 1914 at School St and Moraga Rd by volunteers and the Lafayette Improvement Association. Theater use began with the Lafayette Playshop in 1941.",
+    "address": "3535 School St",
+    "source": "https://www.townhalltheatre.com/mission-and-history",
+    "coord_source": "OSM node/368171449",
+    "confidence": "high",
+    "people": [
+     {
+      "name": "Lafayette Improvement Association",
+      "role": "builder",
+      "blurb": "Civic group that built the hall in 1914 with community volunteers.",
+      "source": "https://www.townhalltheatre.com/mission-and-history"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.118501,
+     37.890026
+    ]
+   },
+   "properties": {
+    "name": "Lafayette United Methodist Church",
+    "category": "landmark:church",
+    "description": "The congregation moved in 1927 into the former 1893 third school building on Moraga Rd.",
+    "address": "955 Moraga Rd",
+    "source": "https://thelumc.org/our-history",
+    "coord_source": "US Census geocoder (address interpolation)",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.113735,
+     37.886539
+    ]
+   },
+   "properties": {
+    "name": "Stanley Middle School",
+    "category": "landmark:school",
+    "description": "Middle school named for M.H. Stanley.",
+    "address": null,
+    "source": "https://lafayettehistory.org/wp-content/uploads/2024/06/Newsletter-January-2024.pdf",
+    "coord_source": "OSM way/31426940 centroid",
+    "confidence": "high",
+    "people": [
+     {
+      "name": "Matthew Howard 'M.H.' Stanley",
+      "role": "namesake",
+      "blurb": "Lafayette businessman and school-board member who helped expand local schools.",
+      "source": "https://lafayettehistory.org/wp-content/uploads/2024/06/Newsletter-January-2024.pdf"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.097379,
+     37.90455
+    ]
+   },
+   "properties": {
+    "name": "Acalanes High School",
+    "category": "landmark:school",
+    "description": "Opened Sept 10, 1940 with a flag-raising and 406 students.",
+    "address": "1200 Pleasant Hill Rd",
+    "source": "https://lafayettehistory.org/wp-content/uploads/2024/06/Newsletter-January-2024.pdf",
+    "coord_source": "Nominatim OSM way/31320691",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.099274,
+     37.865222
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Community Center",
+    "category": "landmark:civic",
+    "description": "City community center in Burton Valley.",
+    "address": "500 St Marys Rd",
+    "source": "https://www.openstreetmap.org/way/508537765",
+    "coord_source": "Nominatim OSM way/508537765",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.121139,
+     37.890135
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Chamber of Commerce",
+    "category": "organization",
+    "description": "Launched in 1947 by local businesspeople.",
+    "address": null,
+    "source": "https://lafayettechamber.org/eras/",
+    "coord_source": "OSM node/2952933815",
+    "confidence": "medium",
+    "people": [
+     {
+      "name": "Lafayette Chamber of Commerce",
+      "role": "civic org",
+      "blurb": "Founded 1947; a supporter of the Park Theater rescue.",
+      "source": "https://parktheatertrust.org/"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.10573,
+     37.89032
+    ]
+   },
+   "properties": {
+    "name": "Lafayette-Moraga Regional Trail (Lafayette segment)",
+    "category": "trail",
+    "description": "Rail-trail on the former Sacramento Northern right-of-way (passenger service ended 1941, freight 1957). Dedicated July 4, 1976.",
+    "address": null,
+    "source": "https://www.ebparks.org/about-us/whats-new/news/45-years-lafayette-moraga-regional-trail",
+    "coord_source": "Nominatim OSM way/464374988",
+    "confidence": "medium",
+    "people": [
+     {
+      "name": "Avon Wilson & Lynn Hiden ('the Bike Ladies')",
+      "role": "advocates",
+      "blurb": "Started the early-1970s bike-safety push that produced the trail.",
+      "source": "https://www.ebparks.org/about-us/whats-new/news/45-years-lafayette-moraga-regional-trail"
+     },
+     {
+      "name": "East Bay Regional Park District",
+      "role": "operator",
+      "blurb": "Partnered with Lafayette and Moraga in the Trails Advisory Committee and manages the trail.",
+      "source": "https://www.ebparks.org/trails/interpark/lafayette-moraga"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.143449,
+     37.933667
+    ]
+   },
+   "properties": {
+    "name": "Briones Regional Park",
+    "category": "park",
+    "description": "EBRPD regional park north of Lafayette.",
+    "address": null,
+    "source": "https://www.openstreetmap.org/relation/10895202",
+    "coord_source": "Nominatim relation centroid",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.092938,
+     37.913715
+    ]
+   },
+   "properties": {
+    "name": "Acalanes Ridge Open Space",
+    "category": "park",
+    "description": "Open-space ridge on the Lafayette/Walnut Creek border.",
+    "address": null,
+    "source": "https://www.openstreetmap.org/relation/6518527",
+    "coord_source": "Nominatim relation centroid",
+    "confidence": "medium"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.044587,
+     37.918534
+    ]
+   },
+   "properties": {
+    "name": "The Gardens at Heather Farm (Walnut Creek, nearby)",
+    "category": "park",
+    "description": "Public garden; the garden association was incorporated in 1971, groundbreaking 1979.",
+    "address": "1540 Marchbanks Dr, Walnut Creek",
+    "source": "https://en.wikipedia.org/wiki/Gardens_at_Heather_Farm",
+    "coord_source": "Nominatim OSM way/112113127",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.212648,
+     37.857325
+    ]
+   },
+   "properties": {
+    "name": "Caldecott Tunnel (west, toward Oakland)",
+    "category": "landmark:road",
+    "description": "Hwy 24 tunnel west of Orinda. Hwy 24 and BART run through Lafayette toward it.",
+    "address": null,
+    "source": "https://www.openstreetmap.org/way/9898614",
+    "coord_source": "Nominatim OSM way",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.139452,
+     37.889228
+    ]
+   },
+   "properties": {
+    "name": "Lafayette Water Treatment Plant",
+    "category": "landmark:structure",
+    "description": "EBMUD treatment plant below the dam.",
+    "address": null,
+    "source": "https://www.openstreetmap.org/way/775417954",
+    "coord_source": "OSM way centroid",
+    "confidence": "high"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -122.15142,
+     37.857728
+    ]
+   },
+   "properties": {
+    "name": "Old Buckeye Tree",
+    "category": "nature",
+    "description": "Named tree in OSM, just south of Lafayette (Orinda Oaks area).",
+    "address": null,
+    "source": "https://www.openstreetmap.org/node/13924510062",
+    "coord_source": "OSM node",
+    "confidence": "high"
+   }
+  }
+ ]
+}
