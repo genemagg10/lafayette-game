@@ -109,7 +109,7 @@ export class Picture {
     } catch (err) {
       console.warn(err)
     }
-    dofGain.value = this.quality === 'high' ? 0.16 : this.quality === 'medium' ? 0.08 : 0
+    dofGain.value = this.quality === 'high' ? 0.04 : this.quality === 'medium' ? 0.02 : 0
     this.compose()
   }
 
@@ -171,7 +171,7 @@ export class Picture {
     this.webgpu = backend.isWebGPUBackend === true
     if (this.webgpu) this.webgpu = false
     this.applyShadowBudget()
-    dofGain.value = this.quality === 'high' ? 0.28 : this.quality === 'medium' ? 0.12 : 0
+    dofGain.value = this.quality === 'high' ? 0.04 : this.quality === 'medium' ? 0.02 : 0
     this.compose()
     this.swapping = false
   }
@@ -195,13 +195,13 @@ export class Picture {
     this.env?.dispose()
     this.env = next
     this.scene.environment = next.texture
-    this.scene.environmentIntensity = 0.72
+    this.scene.environmentIntensity = 0.28
   }
 
   setQuality(quality: Quality): void {
     this.quality = quality
     this.renderer.shadowMap.enabled = quality !== 'low'
-    dofGain.value = quality === 'high' ? 0.16 : quality === 'medium' ? 0.08 : 0
+    dofGain.value = quality === 'high' ? 0.04 : quality === 'medium' ? 0.02 : 0
     this.compose()
   }
 

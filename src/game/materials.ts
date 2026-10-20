@@ -9,8 +9,8 @@ import {
   RepeatWrapping,
   SRGBColorSpace,
 } from 'three/webgpu'
-import { attribute, frameGroup, mix, normalWorld, positionWorld, sin, smoothstep, uniform, vec3, vertexColor } from 'three/tsl'
-import { bounceTint, sunDirShade, swayFromHeight, swayFromTip } from './wind.ts'
+import { attribute, frameGroup, mix, normalWorld, smoothstep, uniform, vec3, vertexColor } from 'three/tsl'
+import { sunDirShade, swayFromHeight, swayFromTip } from './wind.ts'
 
 /** Leaves stay green in shade. `fade` is per tree so a crown in the lens can disappear. */
 export function townLeafMaterial(): MeshStandardNodeMaterial {
@@ -217,12 +217,21 @@ export function foliageMaterial(hex: number, roughness = 0.86, flex = 0.2): Mesh
 /** Hills keep real lighting, with a soft wrap so the shadowed side stays the bounce color. */
 export function hillMaterial(): MeshStandardNodeMaterial {
   const material = new MeshStandardNodeMaterial({ roughness: 0.94, metalness: 0, vertexColors: true })
-  const wrap = mix(
-    vec3(1, 1, 1),
-    mix(bounceTint, vec3(1.04, 0.99, 0.94), smoothstep(-0.15, 0.85, normalWorld.dot(sunDirShade))),
-    0.34,
-  )
-  material.colorNode = vertexColor().mul(wrap).mul(sin(positionWorld.x.mul(0.17).add(positionWorld.z.mul(0.13))).mul(0.045).add(1)) as never
+  const wrap = mix(vec3(0.94, 0.96, 0.92), vec3(1, 1, 1), smoothstep(-0.25, 0.8, normalWorld.dot(sunDirShade)))
+  material.colorNode = vertexColor().mul(wrap) as never
+  return material
+}
+
+/** Storefronts keep their color in shade. The sun still brightens the facing side. */
+export function facadeMaterial(roughness = 0.84): MeshStandardNodeMaterial {
+  const material = new MeshStandardNodeMaterial({
+    color: 0xffffff,
+    roughness,
+    metalness: 0,
+    vertexColors: true,
+    flatShading: true,
+  })
+  material.emissiveNode = vertexColor().mul(0.48) as never
   return material
 }
 
@@ -337,18 +346,19 @@ export function streetNameTexture(title: string): CanvasTexture {
   if (cached) return cached
   const canvas = document.createElement('canvas')
   canvas.width = 1024
-  canvas.height = 128
+  canvas.height = 160
   const g = canvas.getContext('2d')
   if (!g) throw new Error('Canvas unavailable')
-  g.clearRect(0, 0, 1024, 128)
-  g.font = '700 78px Outfit, sans-serif'
+  g.clearRect(0, 0, 1024, 160)
+  g.font = '800 104px Outfit, sans-serif'
   g.textAlign = 'center'
   g.textBaseline = 'middle'
-  g.lineWidth = 10
-  g.strokeStyle = 'rgba(18, 22, 28, 0.55)'
-  g.strokeText(text, 512, 68)
-  g.fillStyle = '#f7f8f4'
-  g.fillText(text, 512, 68)
+  g.lineWidth = 22
+  g.strokeStyle = 'rgba(10, 14, 18, 0.92)'
+  g.lineJoin = 'round'
+  g.strokeText(text, 512, 84)
+  g.fillStyle = '#fffdf6'
+  g.fillText(text, 512, 84)
   const tex = new CanvasTexture(canvas)
   tex.colorSpace = SRGBColorSpace
   tex.anisotropy = 4

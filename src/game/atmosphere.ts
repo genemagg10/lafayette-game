@@ -168,13 +168,13 @@ export class Atmosphere {
     this.moon.position.copy(focus).addScaledVector(this.sunDir, -140)
     this.moon.target.position.copy(focus)
     this.moon.intensity = this.night * 0.35
-    this.hemi.intensity = 0.85 + day * 0.55
-    this.hemi.color.set(golden > 0.25 ? 0xffd7b0 : 0x9ed4fb)
+    this.hemi.intensity = 0.72 + day * 0.34
+    this.hemi.color.set(golden > 0.25 ? 0xffd7b0 : 0x8ec8f2)
     const bounce = this.season === 'summer' ? 0xe4c99a : this.season === 'spring' ? 0x9ed48a : 0x6aaa78
     this.hemi.groundColor.set(bounce)
     bounceTint.value.set(bounce)
-    this.fill.color.set(golden > 0.25 ? 0xffe0c0 : 0xb9dcff)
-    this.fill.intensity = (0.42 + day * 0.38) * (1 - this.night * 0.35)
+    this.fill.color.set(golden > 0.25 ? 0xffe0c0 : 0xc5e4ff)
+    this.fill.intensity = (0.34 + day * 0.22) * (1 - this.night * 0.35)
     this.fill.position.copy(focus).addScaledVector(this.sunDir, -90)
     this.fill.position.y += 50
     this.fill.target.position.copy(focus)
@@ -201,7 +201,7 @@ export class Atmosphere {
     this.sky.uOvercast.value = this.overcast
     this.sky.uStar.value = 1
     world.setSun(this.sunDir)
-    this.scene.environmentIntensity = 0.16 + day * 0.38
+    this.scene.environmentIntensity = 0.08 + day * 0.16
     gradeGolden.value = golden
     gradeNight.value = this.night
     windTime.value = this.clock
@@ -222,7 +222,7 @@ export class Atmosphere {
     if (this.fog > 0.2) this.fogColor.lerp(this.bankFog, this.fog * 0.7)
     if (this.morning > 0.2) this.fogColor.lerp(this.morningFog, this.morning * 0.45)
     fogTint.value.copy(this.fogColor)
-    renderer.toneMappingExposure = 1.18 + golden * 0.1 - this.night * 0.22 - this.overcast * 0.1
+    renderer.toneMappingExposure = 1.02 + golden * 0.08 - this.night * 0.2 - this.overcast * 0.08
 
     shared.time.value = this.clock
     shared.wind.value = 0.12 + this.wind * 0.55

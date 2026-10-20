@@ -51,8 +51,9 @@ export function createSky() {
     const b = X.mul(0.0557).sub(Y.mul(0.204)).add(Z.mul(1.057))
     const lum = max(r.mul(0.2126).add(g.mul(0.7152)).add(b.mul(0.0722)), float(0.0008))
     const chroma = vec3(max(r, float(0)), max(g, float(0)), max(b, float(0))).div(lum)
-    const bright = float(0.92).add(smoothstep(float(0), float(0.55), h).mul(0.28)).add(pow(sunDot, float(6)).mul(0.16))
-    let col = chroma.mul(bright)
+    // A painted zenith-to-horizon blue. The Perez term stays a hint so the sun side warms without blowing the dome white.
+    const dayBlue = mix(vec3(0.38, 0.64, 0.96), vec3(0.035, 0.18, 0.68), smoothstep(float(0.0), float(0.78), h))
+    let col = mix(chroma.mul(float(0.28)), dayBlue, float(0.94))
 
     const setHorizon = vec3(0.99, 0.46, 0.2)
     const setZenith = vec3(0.28, 0.34, 0.62)

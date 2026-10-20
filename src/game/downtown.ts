@@ -1,7 +1,26 @@
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { MeshBuilder } from './geom.ts'
 import type { Heightfield } from './height.ts'
 import { hash01 } from './math.ts'
+
+/** A few overlapping spheres, so a crown reads as a clump instead of one gem. */
+export function clusterCanopy(radius = 1): THREE.BufferGeometry {
+  const blobs: THREE.BufferGeometry[] = []
+  blobs.push(new THREE.SphereGeometry(radius, 8, 6))
+  const puffs: [number, number, number, number][] = [
+    [0.58, 0.32, 0.1, 0.76],
+    [-0.46, 0.22, 0.4, 0.7],
+    [0.14, 0.46, -0.5, 0.72],
+    [-0.16, -0.08, -0.46, 0.6],
+  ]
+  for (const [ox, oy, oz, scale] of puffs) {
+    const puff = new THREE.SphereGeometry(radius * scale, 6, 5)
+    puff.translate(ox * radius, oy * radius, oz * radius)
+    blobs.push(puff)
+  }
+  return mergeGeometries(blobs) ?? blobs[0]
+}
 
 /**
  * Downtown Lafayette, as the street reads today.
@@ -175,25 +194,32 @@ export function punchFacade(
     if (len < 2.2) continue
     const ux = dx / len
     const uz = dz / len
-    const ox = uz * 0.08
-    const oz = -ux * 0.08
-    const bays = Math.max(1, Math.round(len / 7.6))
+    const ox = uz * 0.16
+    const oz = -ux * 0.16
+    const bays = Math.max(1, Math.round(len / 6.4))
+    const floors = height > 8.4 ? 3 : height > 5.2 ? 2 : 1
+    for (let f = 0; f < floors; f++) {
+      const sill = y0 + 1.35 + f * 3.05
+      if (sill > y0 + height - 0.55) continue
+      const band = new THREE.Color(0x1a2330)
+      glass.tri(x1 + ox, sill, z1 + oz, x2 + ox, sill, z2 + oz, x1 + ox, sill + 0.14, z1 + oz, band)
+      glass.tri(x2 + ox, sill, z2 + oz, x2 + ox, sill + 0.14, z2 + oz, x1 + ox, sill + 0.14, z1 + oz, band)
+    }
     for (let b = 0; b < bays; b++) {
       const t = (b + 0.5) / bays
       const cx = x1 + dx * t + ox
       const cz = z1 + dz * t + oz
-      const hw = 0.7
-      const floors = height > 8.4 ? 3 : height > 5.4 ? 2 : 1
+      const hw = Math.min(1.7, Math.max(0.95, (len / bays) * 0.32))
       for (let f = 0; f < floors; f++) {
-        const wy = y0 + 1.35 + f * 3.15
-        const top = wy + 1.35
-        if (top > y0 + height - 0.3) continue
+        const wy = y0 + 1.55 + f * 3.05
+        const top = wy + 1.85
+        if (top > y0 + height - 0.25) continue
         const color = f === 0 && hash01((cx * 10 + f) | 0) > 0.72 ? warm : glassColor
         glass.tri(cx - ux * hw, wy, cz - uz * hw, cx + ux * hw, wy, cz + uz * hw, cx - ux * hw, top, cz - uz * hw, color)
         glass.tri(cx + ux * hw, wy, cz + uz * hw, cx + ux * hw, top, cz + uz * hw, cx - ux * hw, top, cz - uz * hw, color)
       }
     }
-    if (i === longI && len > 4) {
+    if (awning && i === longI && len > 4) {
       const y = y0 + Math.min(3.15, height * 0.42)
       const reach = 1.15
       awnings.tri(
@@ -300,7 +326,7 @@ export function plantBoulevard(
   const count = lines.length
   const trunkGeo = new THREE.CylinderGeometry(0.16, 0.24, 2.8, 6)
   trunkGeo.translate(0, 1.4, 0)
-  const canopyGeo = new THREE.IcosahedronGeometry(1, 1)
+  const canopyGeo = clusterCanopy(1)
   const trunkFade = new THREE.InstancedBufferAttribute(new Float32Array(count).fill(1), 1)
   const canopyFade = new THREE.InstancedBufferAttribute(new Float32Array(count).fill(1), 1)
   trunkGeo.setAttribute('fade', trunkFade)
@@ -322,18 +348,20 @@ export function plantBoulevard(
     dummy.scale.set(1, trunkH, 1)
     dummy.updateMatrix()
     trunks.setMatrixAt(i, dummy.matrix)
-    const crown = plane ? 1.7 : pear ? 1.15 : 1.35
-    const lift = plane ? 5.15 : pear ? 4.35 : 4.65
+    const jitter = 0.72 + hash01(i * 9 + 2) * 0.62
+    const crown = (plane ? 1.45 : pear ? 0.98 : 1.16) * jitter
+    const lift = 3.85 + crown * 1.55
     dummy.position.set(p.x, y + lift, p.z)
-    dummy.scale.set(crown, crown * 0.82, crown)
+    dummy.scale.set(crown, crown * 0.92, crown)
     dummy.updateMatrix()
     canopy.setMatrixAt(i, dummy.matrix)
     // Planes are the broad green crowns. Sweetgums carry a little red [E, species]. Pears stay pale.
+    const n = hash01(i * 5 + 3)
     const hex = plane
-      ? hash01(i + 3) > 0.5 ? 0x46c84e : 0x2f9a3c
+      ? n > 0.66 ? 0x7ed34a : n > 0.33 ? 0x2f9a3c : 0x1d6e32
       : pear
-        ? 0xd5e7b0
-        : hash01(i + 6) > 0.72 ? 0xd06a30 : 0x3aaa44
+        ? n > 0.5 ? 0xd5e7b0 : 0xb7d07a
+        : n > 0.82 ? 0xd06a30 : n > 0.45 ? 0x3aaa44 : 0x8fce3a
     color.setHex(hex)
     canopy.setColorAt(i, color)
     planted.push({

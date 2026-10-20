@@ -134,8 +134,8 @@ export class Horizon {
     const geo = new ConeGeometry(radius, height, 7)
     geo.translate(0, height * 0.45, 0)
     const mat = new MeshStandardNodeMaterial({ roughness: 0.96, metalness: 0 })
-    mat.fog = true
-    mat.colorNode = mix(tint as never, vec3(0.62, 0.74, 0.86), smoothstep(800, 5600, cameraPosition.distance(positionWorld)).mul(0.72)) as never
+    mat.fog = false
+    mat.colorNode = mix(tint as never, vec3(0.42, 0.55, 0.7), smoothstep(3400, 6800, cameraPosition.distance(positionWorld)).mul(0.28)) as never
     const mesh = new Mesh(geo, mat)
     mesh.castShadow = false
     mesh.receiveShadow = false

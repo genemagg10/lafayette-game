@@ -21,25 +21,21 @@ function curve(v: number): number {
   return x * x * (3 - 2 * x)
 }
 
-/** Warm grade with the blacks lifted, so shade stays a color instead of a hole. */
+/** A light toe so shade stays a color. Highlights are left alone so the sky stays blue. */
 function bake(r: number, g: number, b: number): [number, number, number] {
   const contrast = (v: number) => {
     const x = Math.min(1, Math.max(0, v))
-    const lifted = 0.16 + x * 0.84
-    return (lifted - 0.5) * 1.02 + 0.52
+    const lifted = x + (1 - x) * (1 - x) * 0.07
+    return (lifted - 0.5) * 1.05 + 0.5
   }
   let R = contrast(curve(r))
   let G = contrast(curve(g))
   let B = contrast(curve(b * 0.98))
   const l = 0.2126 * R + 0.7152 * G + 0.0722 * B
-  const sat = 1.28
+  const sat = 1.4
   R = l + (R - l) * sat
   G = l + (G - l) * sat
   B = l + (B - l) * sat
-  const shade = 1 - Math.min(1, l * 1.8)
-  R += 0.02 * shade
-  G += 0.028 * shade
-  B += 0.008 * shade
   const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v * 255)))
   return [clamp(R), clamp(G), clamp(B)]
 }
