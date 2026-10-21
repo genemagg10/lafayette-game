@@ -39,6 +39,7 @@ export class Heightfield {
     for (let i = 0; i < count; i++) this.heights[i] = view.getInt16(44 + i * 2, true) / 10
     this.flags = new Uint8Array(buffer, 44 + count * 2, count)
     this.easeSpikes()
+    this.easeMounds()
   }
 
   /**
@@ -71,6 +72,41 @@ export class Heightfield {
       }
     }
     this.heights = next
+  }
+
+  /**
+   * A smooth pyramid can clear an 8 m neighbor test on every cell.
+   * Two wider passes pull a cell that stands more than 12 m above the
+   * median of a ~40 m window. A steady hillside stays, because that
+   * median already sits on the slope.
+   */
+  private easeMounds(): void {
+    const cols = this.cols
+    const rows = this.rows
+    const rad = 3
+    for (let pass = 0; pass < 2; pass++) {
+      const src = this.heights
+      const next = new Float32Array(src)
+      for (let j = rad; j < rows - rad; j++) {
+        for (let i = rad; i < cols - rad; i++) {
+          const idx = j * cols + i
+          if (this.flags[idx] & F_WATER) continue
+          const samples: number[] = []
+          for (let dj = -rad; dj <= rad; dj++) {
+            const row = (j + dj) * cols
+            for (let di = -rad; di <= rad; di++) {
+              if (di === 0 && dj === 0) continue
+              samples.push(src[row + i + di])
+            }
+          }
+          samples.sort((a, b) => a - b)
+          const median = samples[(samples.length / 2) | 0]
+          const spike = src[idx] - median
+          if (Math.abs(spike) > 12) next[idx] = src[idx] * 0.25 + median * 0.75
+        }
+      }
+      this.heights = next
+    }
   }
 
   sample(x: number, z: number): number {

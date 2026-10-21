@@ -176,13 +176,28 @@ export class Hud {
         mark.style.setProperty('--ang', `${i * 30}deg`)
         face.append(mark)
       }
+      const run = document.createElement('div')
+      run.id = 'quail-run'
+      run.hidden = true
+      const pos = document.createElement('div')
+      pos.className = 'quail-pos'
+      const quailFace = document.createElement('div')
+      quailFace.className = 'quail-face'
       const quail = document.createElement('canvas')
       quail.id = 'quail'
-      quail.width = 22
-      quail.height = 16
-      quail.hidden = true
+      quail.width = 42
+      quail.height = 32
       paintQuail(quail)
-      face.append(quail)
+      const say = document.createElement('p')
+      say.className = 'quail-say'
+      say.textContent = 'chi-ca-go'
+      say.hidden = true
+      quailFace.append(quail, say)
+      pos.append(quailFace)
+      const prints = document.createElement('div')
+      prints.id = 'quail-prints'
+      run.append(pos)
+      face.append(prints, run)
       dial.append(face)
       eras.append(dial)
     }
@@ -646,28 +661,77 @@ export class Hud {
 
   waddleQuail(): void {
     const quail = document.getElementById('quail')
+    const run = document.getElementById('quail-run')
+    const pos = run?.querySelector('.quail-pos') as HTMLElement | null
+    const quailFace = run?.querySelector('.quail-face') as HTMLElement | null
+    const say = run?.querySelector('.quail-say') as HTMLElement | null
+    const prints = document.getElementById('quail-prints')
     const hand = document.getElementById('era-hand')
     if (hand) {
       hand.classList.remove('spin')
       void hand.offsetWidth
       hand.classList.add('spin')
     }
-    if (!quail) return
-    quail.hidden = false
-    quail.classList.remove('run')
-    if (new URLSearchParams(location.search).get('egg') === 'quail') {
-      quail.style.animation = 'none'
-      quail.style.transform = 'translateX(54px)'
+    if (!quail || !run || !pos || !quailFace || !prints) return
+    if (quailFrame) cancelAnimationFrame(quailFrame)
+    quailFrame = 0
+    prints.replaceChildren()
+    run.hidden = false
+    quail.classList.add('bob')
+    if (say) say.hidden = false
+    const hold = new URLSearchParams(location.search).get('egg') === 'quail'
+    const place = (ang: number) => {
+      pos.style.transform = `rotate(${ang}deg) translateY(-78px) rotate(${-ang}deg)`
+      const faceRight = Math.cos((ang * Math.PI) / 180) >= 0
+      quailFace.style.transform = faceRight ? 'scaleX(1)' : 'scaleX(-1)'
+    }
+    const drop = (ang: number, opacity: number) => {
+      const dot = document.createElement('span')
+      dot.className = 'quail-print'
+      dot.style.opacity = String(opacity)
+      dot.style.transform = `rotate(${ang}deg) translateY(-78px)`
+      prints.append(dot)
+      if (!hold) {
+        const born = performance.now()
+        const fade = () => {
+          const t = (performance.now() - born) / 1400
+          dot.style.opacity = String(Math.max(0, opacity * (1 - t)))
+          if (t < 1) requestAnimationFrame(fade)
+          else dot.remove()
+        }
+        requestAnimationFrame(fade)
+      }
+    }
+    if (hold) {
+      place(128)
+      drop(108, 0.72)
+      drop(90, 0.48)
+      drop(72, 0.28)
+      drop(54, 0.12)
+      run.dataset.held = '1'
       return
     }
-    quail.style.animation = ''
-    quail.style.transform = ''
-    void quail.offsetWidth
-    quail.classList.add('run')
-    window.setTimeout(() => {
-      quail.hidden = true
-      quail.classList.remove('run')
-    }, 2300)
+    delete run.dataset.held
+    const started = performance.now()
+    let lastDrop = -1
+    const step = (now: number) => {
+      const t = Math.min(1, (now - started) / 2800)
+      const ang = -24 + t * 250
+      place(ang)
+      if (t - lastDrop > 0.08) {
+        lastDrop = t
+        drop(ang - 16, 0.7)
+      }
+      if (t < 1) quailFrame = requestAnimationFrame(step)
+      else {
+        quailFrame = 0
+        run.hidden = true
+        quail.classList.remove('bob')
+        if (say) say.hidden = true
+        prints.replaceChildren()
+      }
+    }
+    quailFrame = requestAnimationFrame(step)
   }
 
   noteInk(ax: number, az: number, bx: number, bz: number): void {
@@ -1150,6 +1214,7 @@ export class Hud {
 }
 
 let softToastShown = false
+let quailFrame = 0
 
 function segHit(px: number, py: number, ax: number, ay: number, bx: number, by: number): { d: number; x: number; y: number } {
   const dx = bx - ax
@@ -1207,20 +1272,64 @@ function paintPortrait(canvas: HTMLCanvasElement, who: 'milo' | 'juniper'): void
 function paintQuail(canvas: HTMLCanvasElement): void {
   const g = canvas.getContext('2d')
   if (!g) return
+  g.imageSmoothingEnabled = false
   const pix = (x: number, y: number, color: string) => {
     g.fillStyle = color
-    g.fillRect(x, y, 2, 2)
+    g.fillRect(x, y, 1, 1)
   }
-  const body = [
-    [6, 6], [8, 6], [10, 6], [12, 6], [4, 8], [6, 8], [8, 8], [10, 8], [12, 8], [14, 8],
-    [4, 10], [6, 10], [8, 10], [10, 10], [12, 10], [6, 12], [8, 12], [10, 12],
+  const body = '#8d8f86'
+  const belly = '#e4d2b0'
+  const ink = '#1c2430'
+  const cream = '#f4f1ea'
+  // Plump body, facing right. Feet sit on the bottom row.
+  for (let y = 14; y <= 24; y++) {
+    for (let x = 8; x <= 28; x++) {
+      const dx = (x - 18) / 11
+      const dy = (y - 19) / 6
+      if (dx * dx + dy * dy <= 1) pix(x, y, y > 21 ? belly : body)
+    }
+  }
+  for (let y = 12; y <= 18; y++) {
+    for (let x = 24; x <= 32; x++) {
+      const dx = (x - 27) / 6
+      const dy = (y - 15) / 4
+      if (dx * dx + dy * dy <= 1) pix(x, y, body)
+    }
+  }
+  // Black face and a white cheek stripe.
+  for (let x = 29; x <= 33; x++) pix(x, 14, ink)
+  pix(30, 13, ink)
+  pix(31, 13, ink)
+  pix(32, 13, ink)
+  pix(33, 14, ink)
+  pix(34, 15, ink)
+  pix(28, 15, cream)
+  pix(28, 16, cream)
+  pix(29, 15, cream)
+  // Beak.
+  pix(34, 16, '#c4a574')
+  pix(35, 16, '#c4a574')
+  pix(35, 17, '#c4a574')
+  // Eye.
+  pix(31, 14, cream)
+  pix(32, 14, ink)
+  // Curled black topknot, forward over the beak.
+  const plume = [
+    [27, 12], [28, 11], [29, 10], [30, 9], [31, 8], [32, 7], [33, 6], [34, 6], [35, 7], [35, 8], [34, 9], [33, 10], [32, 11],
   ]
-  for (const [x, y] of body) pix(x, y, '#8d8f86')
-  pix(14, 6, '#1c2430')
-  pix(16, 6, '#1c2430')
-  pix(12, 4, '#f4f1ea')
-  pix(10, 2, '#2a3340')
-  pix(10, 0, '#2a3340')
-  pix(6, 14, '#c4a574')
-  pix(10, 14, '#c4a574')
+  for (const [x, y] of plume) pix(x, y, ink)
+  pix(31, 8, ink)
+  pix(33, 7, ink)
+  // Scale flecks on the belly.
+  pix(16, 22, ink)
+  pix(19, 23, ink)
+  pix(22, 22, ink)
+  pix(14, 21, '#6e6258')
+  // Two feet.
+  pix(14, 26, '#c4a574')
+  pix(15, 27, '#c4a574')
+  pix(16, 27, '#c4a574')
+  pix(22, 26, '#c4a574')
+  pix(23, 27, '#c4a574')
+  pix(24, 27, '#c4a574')
 }

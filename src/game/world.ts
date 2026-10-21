@@ -4,7 +4,7 @@ import { uniform } from 'three/tsl'
 import { WaterMesh } from 'three/addons/objects/WaterMesh.js'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { Blockers, MeshBuilder, appendRibbon, drapePath, pointInPoly, tint } from './geom.ts'
-import { Heightfield, F_BUILDING, F_PARK, F_PARKING, F_ROAD, F_URBAN, F_WATER, F_WOOD } from './height.ts'
+import { Heightfield, F_BUILDING, F_PARK, F_PARKING, F_ROAD, F_URBAN, F_WATER } from './height.ts'
 import { badgeTexture, battenMaterial, facadeMaterial, foliageMaterial, hillDry, hillMaterial, impostorMaterial, makeSignTexture, pillTexture, poiAccent, shared, streetNameTexture, townLeafMaterial, trunkMaterial, type Textures } from './materials.ts'
 import { dressTown } from './dress.ts'
 import { addClassroomRows, dressDistricts, footprintSize, schoolDress } from './districts.ts'
@@ -13,7 +13,7 @@ import { dressFifties } from './period.ts'
 import { forwardFromHeading, hash01, headingFromForward, wrapAngle } from './math.ts'
 import { addHouseLots } from './houses.ts'
 import { parseOsmColor, town } from './palette.ts'
-import { BATTEN_HEX, addHeroAccent, assignPhase, chaparralClump, clusterCanopy, coreBoulevard, crownLift, facadeFor, greyIntersection, inDowntown, noteHero, plantBoulevard, punchFacade, shopSignTexture, storyHeight, treeTrunk, type BlvdTree, type Facade, type HeroId } from './downtown.ts'
+import { BATTEN_HEX, addHeroAccent, assignPhase, clusterCanopy, coreBoulevard, crownLift, facadeFor, greyIntersection, inDowntown, noteHero, plantBoulevard, punchFacade, shopSignTexture, storyHeight, treeTrunk, type BlvdTree, type Facade, type HeroId } from './downtown.ts'
 import { tileKey, tileOf, type TileSet, type VectorTile } from './tiles.ts'
 import type { Meta, Road, Season, WaterFile } from './types.ts'
 
@@ -76,6 +76,7 @@ export class World {
   private readonly signalPos: { x: number; z: number }[] = []
   private terrainColors: Float32Array | null = null
   private groundCover: Float32Array | null = null
+  private terrainCarved = false
   private season: Season = 'summer'
   private readonly canopies: THREE.InstancedMesh[] = []
   private readonly occluders: TreeOccluder[] = []
@@ -167,8 +168,11 @@ export class World {
     this.walkMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, vertexColors: true })
     this.trailMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, vertexColors: true })
     this.roadMat.polygonOffset = true
-    this.roadMat.polygonOffsetFactor = -1
-    this.roadMat.polygonOffsetUnits = -1
+    this.roadMat.polygonOffsetFactor = -4
+    this.roadMat.polygonOffsetUnits = -4
+    this.walkMat.polygonOffset = true
+    this.walkMat.polygonOffsetFactor = -2
+    this.walkMat.polygonOffsetUnits = -2
     this.reedGeo.translate(0, 0.5, 0)
     this.trunkMat = trunkMaterial()
     this.canopyMat = townLeafMaterial()
@@ -975,43 +979,102 @@ export class World {
     this.built.delete(key)
   }
 
-  private buildTerrain(): THREE.Mesh {
+  /** Two samples per DEM cell. Facets land near 6 m instead of a 13 m chevron. */
+  private terrainDims(): { sub: number; cols: number; rows: number } {
+    const sub = 2
     const h = this.height
-    const step = 1
-    const cols = Math.floor((h.cols - 1) / step) + 1
-    const rows = Math.floor((h.rows - 1) / step) + 1
+    return { sub, cols: (h.cols - 1) * sub + 1, rows: (h.rows - 1) * sub + 1 }
+  }
+
+  private demCell(i: number, j: number, sub: number): { x: number; z: number; elev: number; ii: number; jj: number; f: number } {
+    const h = this.height
+    const fx = i / sub
+    const fz = j / sub
+    const i0 = Math.min(h.cols - 1, Math.floor(fx))
+    const j0 = Math.min(h.rows - 1, Math.floor(fz))
+    const i1 = Math.min(h.cols - 1, i0 + 1)
+    const j1 = Math.min(h.rows - 1, j0 + 1)
+    const tx = fx - i0
+    const tz = fz - j0
+    const at = (jj: number, ii: number) => h.heights[jj * h.cols + ii]
+    const elev =
+      at(j0, i0) * (1 - tx) * (1 - tz) +
+      at(j0, i1) * tx * (1 - tz) +
+      at(j1, i0) * (1 - tx) * tz +
+      at(j1, i1) * tx * tz
+    const x = h.originX + (fx / (h.cols - 1)) * h.sizeX
+    const z = h.originZ + (fz / (h.rows - 1)) * h.sizeZ
+    let f = h.flags[j0 * h.cols + i0]
+    const corners = h.flags[j0 * h.cols + i1] | h.flags[j1 * h.cols + i0] | h.flags[j1 * h.cols + i1]
+    if (corners & F_WATER) f |= F_WATER
+    return { x, z, elev, ii: i0, jj: j0, f }
+  }
+
+  /** Hwy 24 valley. Straw here, so the station bowl is not a flag-colored checker. */
+  private hwyValley(x: number, z: number): boolean {
+    return x > -500 && x < 1100 && z > -1100 && z < -200
+  }
+
+  /** Within the carriageways. Dirt chords through this band read as orange ribbons. */
+  private onFreeway(x: number, z: number): boolean {
+    const line: [number, number][] = [
+      [-180, -510],
+      [0, -568],
+      [180, -622],
+      [400, -676],
+      [720, -745],
+    ]
+    for (let i = 1; i < line.length; i++) {
+      const ax = line[i - 1][0]
+      const az = line[i - 1][1]
+      const bx = line[i][0]
+      const bz = line[i][1]
+      const dx = bx - ax
+      const dz = bz - az
+      const len2 = dx * dx + dz * dz || 1
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / len2))
+      if (Math.hypot(x - (ax + dx * t), z - (az + dz * t)) < 34) return true
+    }
+    return false
+  }
+
+  private buildTerrain(): THREE.Mesh {
+    const { sub, cols, rows } = this.terrainDims()
     const positions = new Float32Array(cols * rows * 3)
     const colors = new Float32Array(cols * rows * 3)
     this.terrainColors = colors
     this.groundCover = new Float32Array(cols * rows)
     let k = 0
     for (let j = 0; j < rows; j++) {
-      const jj = Math.min(h.rows - 1, j * step)
-      const z = h.originZ + (jj / (h.rows - 1)) * h.sizeZ
       for (let i = 0; i < cols; i++) {
-        const ii = Math.min(h.cols - 1, i * step)
-        const x = h.originX + (ii / (h.cols - 1)) * h.sizeX
-        positions[k++] = x
-        positions[k++] = h.heights[jj * h.cols + ii]
-        positions[k++] = z
+        const cell = this.demCell(i, j, sub)
+        positions[k++] = cell.x
+        positions[k++] = cell.elev
+        positions[k++] = cell.z
       }
     }
     this.paint(colors, this.season)
-    const indices: number[] = []
+    const indices = new Uint32Array((rows - 1) * (cols - 1) * 6)
+    let t = 0
     for (let j = 0; j < rows - 1; j++) {
       for (let i = 0; i < cols - 1; i++) {
         const a = j * cols + i
         const b = a + 1
         const c = a + cols
         const d = c + 1
-        indices.push(a, c, b, b, c, d)
+        indices[t++] = a
+        indices[t++] = c
+        indices[t++] = b
+        indices[t++] = b
+        indices[t++] = c
+        indices[t++] = d
       }
     }
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
     geo.setAttribute('ground', new THREE.BufferAttribute(this.groundCover ?? new Float32Array(cols * rows), 1))
-    geo.setIndex(indices)
+    geo.setIndex(new THREE.BufferAttribute(indices, 1))
     geo.computeVertexNormals()
     const normals = geo.getAttribute('normal')
     const pos = geo.getAttribute('position')
@@ -1027,70 +1090,47 @@ export class World {
 
   private paint(colors: Float32Array, season: Season): void {
     const h = this.height
-    const step = 1
-    const cols = Math.floor((h.cols - 1) / step) + 1
-    const rows = Math.floor((h.rows - 1) / step) + 1
+    const { sub, cols, rows } = this.terrainDims()
     const c = new THREE.Color()
     const lawn = (n: number, winter: number, spring: number) => {
       if (season === 'winter') return n > 0.86 ? 0xc4b07a : winter
       if (season === 'spring') return n > 0.86 ? 0xc4b07a : spring
       if (n > 0.88) return 0xc4b07a
-      return n > 0.5 ? 0x6e8a46 : 0x7d9a52
+      return n > 0.5 ? 0x788a58 : 0x82945f
     }
     let k = 0
     for (let j = 0; j < rows; j++) {
-      const jj = Math.min(h.rows - 1, j * step)
       for (let i = 0; i < cols; i++) {
-        const ii = Math.min(h.cols - 1, i * step)
-        const idx = jj * h.cols + ii
-        const elev = h.heights[idx]
-        const f = h.flags[idx]
+        const cell = this.demCell(i, j, sub)
+        const { x, z, elev, ii, jj, f } = cell
         const n = hash01(ii * 13 + jj * 9)
-        const x = h.originX + (ii / (h.cols - 1)) * h.sizeX
-        const z = h.originZ + (jj / (h.rows - 1)) * h.sizeZ
-        const hillHex = season === 'winter' ? 0x7f9a5a : season === 'spring' ? 0x8aa35c : 0xc6b070
+        const hillHex = season === 'winter' ? 0x7f9a5a : season === 'spring' ? 0x8aa35c : 0xc8c090
         let hex = hillHex
-        let vary = 0.94 + n * 0.1
-        // 0 town, 1 open hill, 2 lawn. The shader varies hills and lifts lawn shade.
+        let vary = 0.97 + (n - 0.5) * 0.05
+        // 0 town, 1 open hill, 2 lawn. Outside downtown the flag mosaic is not a ground color.
         let cover = 1
         if (inDowntown(x, z) && (f & F_WATER) === 0) {
-          // One flat fill. Road and lot meshes carry the asphalt, so a building
-          // cell does not pick up a lawn-green or road-black neighbour.
           const nearBuilding = this.buildingNear(ii, jj)
           const park = (f & F_PARK) !== 0 && (f & F_BUILDING) === 0 && !nearBuilding
-          hex = park ? 0x7d9a52 : 0xd9d0c2
+          hex = park ? 0x82945f : 0xd9d0c2
           vary = 1
           cover = park ? 2 : 0
         } else if (f & F_WATER) {
           hex = 0x8a7a58
+          vary = 1
           cover = 0
-        } else if (f & F_ROAD) {
-          hex = 0x454c58
-          cover = 0
-        } else if (f & F_PARK) {
-          hex = lawn(n, 0x6d8a48, 0x6f9a48)
-          cover = 2
-        } else if (f & F_WOOD) {
-          hex = season === 'summer' ? 0x6a8a3c : 0x4f7a48
+        } else if (this.hwyValley(x, z) || elev >= h.waterLevel + 18) {
+          hex = hillHex
           cover = 1
-        } else if (f & F_URBAN) {
-          const n2 = hash01(ii * 3 + jj * 17)
-          const green = n2 > 0.78
-          hex = n2 > 0.9 ? 0x6e8a46 : green ? 0x7d9a52 : n2 > 0.46 ? 0xd4c8a4 : 0xe4dcc8
-          cover = green ? 2 : 0
-        } else if (elev < h.waterLevel + 18) {
-          hex = lawn(n, 0x6d8a48, 0x6f9a48)
+          if (season === 'spring' && n > 0.9) hex = n > 0.96 ? 0xe7a0b8 : 0xf2d36b
+          else if (season === 'winter' && n > 0.92) hex = 0x6d8a48
+        } else {
+          hex = lawn(n, 0x6a7d52, 0x708656)
           cover = 2
-        } else if (season !== 'winter' && n > 0.74) {
-          hex = n > 0.9 ? 0x5f7a38 : 0x7d9a52
-        } else if (season === 'summer' && n < 0.12) {
-          hex = 0xb89a58
-        } else if (season === 'winter' && n > 0.72) {
-          hex = 0x6d8a48
+          vary = 0.98 + (n - 0.5) * 0.04
         }
-        if (!inDowntown(x, z) && season === 'spring' && n > 0.86 && (f & (F_ROAD | F_URBAN | F_WATER)) === 0 && cover === 1) hex = n > 0.93 ? 0xe7a0b8 : 0xf2d36b
         c.setHex(hex)
-        let shade = cover === 0 ? this.vertexShade(ii, jj, f) : 1
+        const shade = cover === 0 ? this.vertexShade(ii, jj, f) : 1
         if (this.groundCover) this.groundCover[j * cols + i] = cover
         colors[k++] = c.r * vary * shade
         colors[k++] = c.g * vary * shade
@@ -1490,6 +1530,106 @@ export class World {
     group.add(mesh)
   }
 
+  /**
+   * Lower every terrain vertex under a ribbon, plus one cell past its edge,
+   * so a facet whose corner sits outside the asphalt cannot arch through it.
+   * The ribbon was already sampled from the uncarved heightfield.
+   */
+  private carveCorridor(pts: { x: number; y: number; z: number }[], width: number, lift: number): void {
+    const mesh = this.root.getObjectByName('terrain') as THREE.Mesh | undefined
+    if (!mesh || pts.length < 2 || width <= 0) return
+    const pos = mesh.geometry.getAttribute('position') as THREE.BufferAttribute
+    const arr = pos.array as Float32Array
+    const { cols, rows } = this.terrainDims()
+    const h = this.height
+    const skirt = 11
+    const half = width * 0.5
+    const reach = half + skirt
+    for (let s = 0; s < pts.length - 1; s++) {
+      const a = pts[s]
+      const b = pts[s + 1]
+      const dx = b.x - a.x
+      const dz = b.z - a.z
+      const len = Math.hypot(dx, dz)
+      if (len < 0.05) continue
+      const inv = 1 / len
+      const fx = dx * inv
+      const fz = dz * inv
+      const px = -fz
+      const pz = fx
+      const yL0 = h.sample(a.x + px * half, a.z + pz * half) + lift
+      const yR0 = h.sample(a.x - px * half, a.z - pz * half) + lift
+      const yL1 = h.sample(b.x + px * half, b.z + pz * half) + lift
+      const yR1 = h.sample(b.x - px * half, b.z - pz * half) + lift
+      const minX = Math.min(a.x, b.x) - reach
+      const maxX = Math.max(a.x, b.x) + reach
+      const minZ = Math.min(a.z, b.z) - reach
+      const maxZ = Math.max(a.z, b.z) + reach
+      const i0 = Math.max(0, Math.floor(((minX - h.originX) / h.sizeX) * (cols - 1)) - 1)
+      const i1 = Math.min(cols - 1, Math.ceil(((maxX - h.originX) / h.sizeX) * (cols - 1)) + 1)
+      const j0 = Math.max(0, Math.floor(((minZ - h.originZ) / h.sizeZ) * (rows - 1)) - 1)
+      const j1 = Math.min(rows - 1, Math.ceil(((maxZ - h.originZ) / h.sizeZ) * (rows - 1)) + 1)
+      for (let j = j0; j <= j1; j++) {
+        const row = j * cols
+        for (let i = i0; i <= i1; i++) {
+          const idx = row + i
+          const o = idx * 3
+          const x = arr[o]
+          const z = arr[o + 2]
+          const relX = x - a.x
+          const relZ = z - a.z
+          const t = (relX * fx + relZ * fz) * inv
+          if (t < -0.05 || t > 1.05) continue
+          const lat = relX * px + relZ * pz
+          if (Math.abs(lat) > reach) continue
+          if ((h.flag(x, z) & F_WATER) !== 0) continue
+          const tc = t < 0 ? 0 : t > 1 ? 1 : t
+          const yL = yL0 + (yL1 - yL0) * tc
+          const yR = yR0 + (yR1 - yR0) * tc
+          let roadY: number
+          if (lat >= half) roadY = yL
+          else if (lat <= -half) roadY = yR
+          else roadY = yR + ((yL - yR) * (lat + half)) / width
+          const cap = roadY - 0.08
+          if (arr[o + 1] > cap) {
+            arr[o + 1] = cap
+            this.terrainCarved = true
+          }
+        }
+      }
+    }
+  }
+
+  /** One normal pass after every corridor in the tile has been lowered. */
+  private finishTerrain(): void {
+    if (!this.terrainCarved) return
+    const mesh = this.root.getObjectByName('terrain') as THREE.Mesh | undefined
+    if (!mesh) return
+    const geo = mesh.geometry
+    const pos = geo.getAttribute('position')
+    pos.needsUpdate = true
+    geo.computeVertexNormals()
+    geo.computeBoundingBox()
+    geo.computeBoundingSphere()
+    const normals = geo.getAttribute('normal')
+    for (let i = 0; i < pos.count; i++) {
+      if (inDowntown(pos.getX(i), pos.getZ(i))) normals.setXYZ(i, 0, 1, 0)
+    }
+    normals.needsUpdate = true
+    this.terrainCarved = false
+  }
+
+  /** Centerline and both edges sit on the heightfield. Lift is only a z-fight bias. */
+  private groundRibbon(
+    out: MeshBuilder,
+    pts: { x: number; y: number; z: number }[],
+    width: number,
+    color: THREE.Color,
+    lift: number,
+  ): void {
+    appendRibbon(out, pts, width, color, lift, (x, z) => this.height.sample(x, z))
+  }
+
   private addRoads(group: THREE.Group, rows: unknown[][], rich: boolean, blvdTrees: BlvdTree[]): void {
     const casing = new MeshBuilder()
     const asphalt = new MeshBuilder()
@@ -1525,7 +1665,10 @@ export class World {
         rawPts.push({ x: Number(raw[i]), y: Number(raw[i + 1]), z: Number(raw[i + 2]) })
       }
       if (rawPts.length < 2 || !Number.isFinite(width)) continue
-      const pts = drapePath(rawPts, (x, z) => this.height.sample(x, z))
+      const pts = drapePath(rawPts, (x, z) => this.height.sample(x, z), 4)
+      const minorTrail = /^(path|track|footway|steps|cycleway)$/.test(cls)
+      const dirtRibbon = (flags & 2) !== 0 || minorTrail
+      if (dirtRibbon && pts.some((p) => this.hwyValley(p.x, p.z))) continue
       const shorePath = /lakeside nature trail|dock trail/i.test(name)
       const dirt = (flags & 2) !== 0 && !shorePath
       let sidewalk = (flags & 1) !== 0 && !dirt
@@ -1557,31 +1700,43 @@ export class World {
         sidewalk = true
       }
       const trailWidth = dirt ? Math.max(width, cls === 'steps' ? 2.05 : 2.65) : drawWidth
-      if (shorePath) appendRibbon(asphalt, pts, 3.6, asphaltColor, 0.08)
-      else if (dirt) appendRibbon(trail, pts, trailWidth, trailColor, 0.05)
-      else if (boulevard) {
+      if (shorePath) {
+        this.carveCorridor(pts, 3.6, 0.08)
+        this.groundRibbon(asphalt, pts, 3.6, asphaltColor, 0.08)
+      } else if (dirt) {
+        this.carveCorridor(pts, trailWidth, 0.05)
+        this.groundRibbon(trail, pts, trailWidth, trailColor, 0.05)
+      } else if (boulevard) {
         const paver = new THREE.Color(0xcfc6b6)
         const band = new THREE.Color(0xcfc6b6)
         const median = new THREE.Color(0x7d9a52)
         const half = 6.4
-        appendRibbon(walk, pts, half * 2 + 7.2, paver, 0.04)
-        appendRibbon(casing, pts, half * 2 + 4.4, band, 0.055)
-        appendRibbon(asphalt, this.shiftLine(pts, half * 0.55), half - 0.3, asphaltColor, 0.1)
-        appendRibbon(asphalt, this.shiftLine(pts, -half * 0.55), half - 0.3, salt ? paved : pavedAlt, 0.1)
-        appendRibbon(walk, pts, 2.2, median, 0.12)
+        this.carveCorridor(pts, half * 2 + 7.2, 0.04)
+        this.groundRibbon(walk, pts, half * 2 + 7.2, paver, 0.04)
+        this.groundRibbon(casing, pts, half * 2 + 4.4, band, 0.055)
+        this.groundRibbon(asphalt, this.shiftLine(pts, half * 0.55), half - 0.3, asphaltColor, 0.1)
+        this.groundRibbon(asphalt, this.shiftLine(pts, -half * 0.55), half - 0.3, salt ? paved : pavedAlt, 0.1)
+        this.groundRibbon(walk, pts, 2.2, median, 0.12)
         this.lanePaint(paint, this.shiftLine(pts, half * 0.55), half - 0.5, 2, false, white, yellow)
         this.lanePaint(paint, this.shiftLine(pts, -half * 0.55), half - 0.5, 2, false, white, yellow)
         this.scatterTrees(blvdTrees, pts)
       } else if (freeway) {
-        appendRibbon(freewayCasing, pts, width + 1.15, curb, 0.05)
-        appendRibbon(freewayAsphalt, pts, width, asphaltColor, 0.1)
+        this.carveCorridor(pts, width + 1.15, 0.05)
+        this.groundRibbon(freewayCasing, pts, width + 1.15, curb, 0.05)
+        this.groundRibbon(freewayAsphalt, pts, width, asphaltColor, 0.1)
         this.lanePaint(freewayPaint, pts, width, laneCount, oneway || big, white, yellow)
       } else {
-        if (sidewalk) appendRibbon(walk, pts, drawWidth + 3.4, walkColor, 0.04)
-        appendRibbon(casing, pts, drawWidth + 0.85, curb, 0.065)
-        appendRibbon(asphalt, pts, drawWidth, asphaltColor, 0.1)
+        const outer = sidewalk ? drawWidth + 3.4 : drawWidth + 0.85
+        this.carveCorridor(pts, outer, sidewalk ? 0.04 : 0.065)
+        if (sidewalk) this.groundRibbon(walk, pts, drawWidth + 3.4, walkColor, 0.04)
+        this.groundRibbon(casing, pts, drawWidth + 0.85, curb, 0.065)
+        this.groundRibbon(asphalt, pts, drawWidth, asphaltColor, 0.1)
         if (cls !== 'service' && drawWidth >= 3.2) this.lanePaint(paint, pts, drawWidth, laneCount, oneway, white, yellow)
-        if (/^school street$/i.test(name)) appendRibbon(asphalt, this.shiftLine(pts, drawWidth * 0.5 + 2.8), 3.05, asphaltColor, 0.08)
+        if (/^school street$/i.test(name)) {
+          const lot = this.shiftLine(pts, drawWidth * 0.5 + 2.8)
+          this.carveCorridor(lot, 3.05, 0.08)
+          this.groundRibbon(asphalt, lot, 3.05, asphaltColor, 0.08)
+        }
       }
       if (name.length > 2) {
         let len = 0
@@ -1611,6 +1766,7 @@ export class World {
       if (!rich && !/^(motorway|trunk|primary|secondary|tertiary|residential|unclassified)/.test(road.cls)) continue
       this.paintStreetNames(group, road.name, road.pts, road.cls, painted)
     }
+    this.finishTerrain()
   }
 
   /** Repeat the painted name along the roadway so a high camera still has one in frame. */
@@ -1670,7 +1826,9 @@ export class World {
       const len = Math.hypot(dx, dz) || 1
       dx /= len
       dz /= len
-      return { x: p.x - dz * offset, y: p.y, z: p.z + dx * offset }
+      const x = p.x - dz * offset
+      const z = p.z + dx * offset
+      return { x, y: this.height.sample(x, z), z }
     })
   }
 
@@ -1740,8 +1898,9 @@ export class World {
     lift: number,
     offset: number,
   ): void {
+    const ground = (x: number, z: number) => this.height.sample(x, z)
     if (Math.abs(offset) < 0.02) {
-      appendRibbon(builder, pts, width, color, lift)
+      appendRibbon(builder, pts, width, color, lift, ground)
       return
     }
     const shifted = pts.map((p, i) => {
@@ -1752,9 +1911,11 @@ export class World {
       const len = Math.hypot(dx, dz) || 1
       dx /= len
       dz /= len
-      return { x: p.x + -dz * offset, y: p.y, z: p.z + dx * offset }
+      const x = p.x + -dz * offset
+      const z = p.z + dx * offset
+      return { x, y: ground(x, z), z }
     })
-    appendRibbon(builder, shifted, width, color, lift)
+    appendRibbon(builder, shifted, width, color, lift, ground)
   }
 
   private addStreetName(group: THREE.Group, name: string, x: number, z: number, bx: number, bz: number, y: number): THREE.Mesh {
@@ -1837,7 +1998,6 @@ export class World {
       const b = pts[i + 1]
       const dx = b.x - a.x
       const dz = b.z - a.z
-      const dy = b.y - a.y
       const len = Math.hypot(dx, dz)
       if (len < 0.3) continue
       const ux = dx / len
@@ -1849,14 +2009,15 @@ export class World {
         const t0 = d
         const t1 = Math.min(len, d + dash)
         if (t1 - t0 > 0.45) {
-          const y = a.y + (dy * (t0 + t1)) / (2 * len) + 0.2
           const c0x = a.x + ux * t0 + rx * offset
           const c0z = a.z + uz * t0 + rz * offset
           const c1x = a.x + ux * t1 + rx * offset
           const c1z = a.z + uz * t1 + rz * offset
+          const y0 = this.height.sample(c0x, c0z) + 0.2
+          const y1 = this.height.sample(c1x, c1z) + 0.2
           const hw = 0.2
-          builder.tri(c0x - rx * hw, y, c0z - rz * hw, c0x + rx * hw, y, c0z + rz * hw, c1x - rx * hw, y, c1z - rz * hw, color)
-          builder.tri(c0x + rx * hw, y, c0z + rz * hw, c1x + rx * hw, y, c1z + rz * hw, c1x - rx * hw, y, c1z - rz * hw, color)
+          builder.tri(c0x - rx * hw, y0, c0z - rz * hw, c0x + rx * hw, y0, c0z + rz * hw, c1x - rx * hw, y1, c1z - rz * hw, color)
+          builder.tri(c0x + rx * hw, y0, c0z + rz * hw, c1x + rx * hw, y1, c1z + rz * hw, c1x - rx * hw, y1, c1z - rz * hw, color)
         }
         d += dash + gap
       }
@@ -2282,12 +2443,42 @@ export class World {
     }
   }
 
-  /** Valley oaks and chaparral on the golden hills, above the valley lawns and off the pavement. */
+  /** A few round live oaks on each open slope. No cone shrubs. */
   private addHillCover(): void {
     const h = this.height
-    const oaks: { x: number; z: number; n: number }[] = []
-    const shrubs: { x: number; z: number; n: number }[] = []
-    const step = 3
+    const oaks: { x: number; z: number; n: number; s: number }[] = []
+    const keep = (x: number, z: number, n: number, roadPad: number, scale = 1) => {
+      if (oaks.length >= 470) return
+      if (inDowntown(x, z) || this.onFreeway(x, z)) return
+      if (!h.inBounds(x, z, 4)) return
+      const f = h.flag(x, z)
+      if (f & (F_ROAD | F_WATER | F_BUILDING | F_PARKING)) return
+      const road = this.nearestRoad(x, z, 16)
+      if (road && Math.hypot(road.x - x, road.z - z) < road.w * 0.5 + roadPad) return
+      oaks.push({ x, z, n, s: scale })
+    }
+    // The station bowl first, so the cap is not spent on the north rises the drone barely sees.
+    const sow = (x0: number, x1: number, z0: number, z1: number, lo: number, hi: number, cap: number, skip: number, scale: number) => {
+      for (let j = 4; j < h.rows - 4 && oaks.length < cap; j += 5) {
+        for (let i = 4; i < h.cols - 4 && oaks.length < cap; i += 5) {
+          const idx = j * h.cols + i
+          const elev = h.heights[idx]
+          if (elev < lo || elev > hi) continue
+          const x = h.originX + (i / (h.cols - 1)) * h.sizeX
+          const z = h.originZ + (j / (h.rows - 1)) * h.sizeZ
+          if (x < x0 || x > x1 || z < z0 || z > z1) continue
+          const n = hash01(i * 19 + j * 7)
+          if (n > skip) continue
+          const jx = x + (hash01(i * 3 + j) - 0.5) * 22
+          const jz = z + (hash01(i + j * 11) - 0.5) * 22
+          if (h.sample(jx, jz) < lo - 2) continue
+          keep(jx, jz, n, 8, scale)
+        }
+      }
+    }
+    sow(-120, 760, -880, -360, 100, 158, 32, 0.8, 1.7)
+    sow(-280, 820, -980, -280, 104, 168, 62, 0.66, 1.45)
+    const step = 8
     for (let j = step; j < h.rows - step; j += step) {
       for (let i = step; i < h.cols - step; i += step) {
         const idx = j * h.cols + i
@@ -2298,36 +2489,56 @@ export class World {
         const z = h.originZ + (j / (h.rows - 1)) * h.sizeZ
         if (inDowntown(x, z)) continue
         const n = hash01(i * 19 + j * 7)
-        if (n >= 0.82) continue
-        const jx = x + (hash01(i * 3 + j) - 0.5) * 22
-        const jz = z + (hash01(i + j * 11) - 0.5) * 22
+        if (n > 0.42 || oaks.length >= 420) continue
+        const jx = x + (hash01(i * 3 + j) - 0.5) * 28
+        const jz = z + (hash01(i + j * 11) - 0.5) * 28
         if (!h.inBounds(jx, jz, 4)) continue
         const jf = h.flag(jx, jz)
         if (jf & (F_ROAD | F_WATER | F_BUILDING | F_PARKING | F_URBAN)) continue
         if (h.sample(jx, jz) < h.waterLevel + 34) continue
         const road = this.nearestRoad(jx, jz, 16)
-        if (road && Math.hypot(road.x - jx, road.z - jz) < road.w * 0.5 + 2.4) continue
-        if (n < 0.28 && oaks.length < 1600) oaks.push({ x: jx, z: jz, n })
-        else if (shrubs.length < 3200) {
-          shrubs.push({ x: jx, z: jz, n })
-          if (n > 0.4 && n < 0.62 && shrubs.length < 3200) {
-            shrubs.push({
-              x: jx + (hash01(i * 5 + 2) - 0.5) * 5,
-              z: jz + (hash01(j * 5 + 3) - 0.5) * 5,
-              n: n + 0.17,
-            })
-          }
+        if (road && Math.hypot(road.x - jx, road.z - jz) < road.w * 0.5 + 6) continue
+        oaks.push({ x: jx, z: jz, n, s: 1 })
+      }
+    }
+    // Larger oaks on the outer banks of the station freeway, where the drone sees bare straw.
+    const spine: [number, number][] = [
+      [-180, -510],
+      [0, -568],
+      [180, -622],
+      [400, -676],
+      [720, -745],
+    ]
+    const shoulderCap = oaks.length + 22
+    for (let s = 1; s < spine.length && oaks.length < shoulderCap; s++) {
+      const ax = spine[s - 1][0]
+      const az = spine[s - 1][1]
+      const bx = spine[s][0]
+      const bz = spine[s][1]
+      const len = Math.hypot(bx - ax, bz - az)
+      const px = -(bz - az) / len
+      const pz = (bx - ax) / len
+      const steps = Math.max(1, Math.round(len / 48))
+      for (let k = 0; k <= steps && oaks.length < shoulderCap; k++) {
+        const t = k / steps
+        const x = ax + (bx - ax) * t
+        const z = az + (bz - az) * t
+        for (const side of [1, -1]) {
+          if (oaks.length >= shoulderCap) break
+          const n = hash01(s * 17 + k * 5 + side * 3)
+          const jx = x + px * side * 58 + (hash01(s * 9 + k) - 0.5) * 14
+          const jz = z + pz * side * 58 + (hash01(k * 13 + s * side) - 0.5) * 14
+          keep(jx, jz, n, 10, 2.2)
         }
       }
     }
     const group = new THREE.Group()
     group.name = 'hill-cover'
     if (oaks.length) this.plantOaks(group, oaks)
-    if (shrubs.length) this.plantChaparral(group, shrubs)
     if (group.children.length) this.root.add(group)
   }
 
-  private plantOaks(group: THREE.Group, spots: { x: number; z: number; n: number }[]): void {
+  private plantOaks(group: THREE.Group, spots: { x: number; z: number; n: number; s: number }[]): void {
     const count = spots.length
     const trunkGeo = this.trunkGeo.clone()
     const canopyGeo = this.canopyGeo.clone()
@@ -2343,62 +2554,31 @@ export class World {
     for (let i = 0; i < count; i++) {
       const spot = spots[i]
       const y = this.height.sample(spot.x, spot.z)
-      const trunkSY = 1.05 + hash01(i * 5) * 0.45
+      const trunkSY = 0.85 + hash01(i * 5) * 0.35
       dummy.position.set(spot.x, y, spot.z)
       dummy.rotation.set(0, spot.n * Math.PI * 2, 0)
-      dummy.scale.set(0.85 + spot.n, trunkSY, 0.85 + spot.n * 0.6)
+      dummy.scale.set(0.9 + spot.n * 0.3, trunkSY, 0.9 + spot.n * 0.3)
       dummy.updateMatrix()
       trunks.setMatrixAt(i, dummy.matrix)
       color.setRGB(0.96, 0.94, 0.9)
       trunks.setColorAt(i, color)
-      const crown = 1.35 + hash01(i * 9) * 0.7
-      const canopySY = crown * 0.62
+      const crown = (2.5 + hash01(i * 9) * 1.15) * spot.s
+      const canopySY = crown * 0.5
       const lift = crownLift(trunkSY, canopySY)
       dummy.position.set(spot.x, y + lift, spot.z)
-      dummy.scale.set(crown * 1.15, canopySY, crown * 1.15)
+      dummy.scale.set(crown * 1.55, canopySY, crown * 1.55)
       dummy.updateMatrix()
       canopy.setMatrixAt(i, dummy.matrix)
-      const warm = hash01(i * 13)
-      color.setRGB(0.82 + warm * 0.2, 0.92 + warm * 0.1, 0.62 + warm * 0.12)
+      // Vertex foliage is brighter than #4f5e36. This multiplier keeps the crown on that oak in shade.
+      color.setRGB(0.72, 0.8, 0.62)
       canopy.setColorAt(i, color)
-      this.noteTree(group, spot.x, spot.z, y, 0.22, crown * 1.2, y + lift, i, trunkFade, canopyFade)
+      this.noteTree(group, spot.x, spot.z, y, 0.22, crown * 1.3, y + lift, i, trunkFade, canopyFade)
     }
     trunks.castShadow = true
     canopy.castShadow = false
     canopy.receiveShadow = false
     canopy.userData.canopy = true
-    this.canopies.push(canopy)
     group.add(trunks, canopy)
-  }
-
-  private plantChaparral(group: THREE.Group, spots: { x: number; z: number; n: number }[]): void {
-    const count = spots.length
-    const geo = chaparralClump()
-    const fade = this.fadeBuffer(geo, count)
-    assignPhase(geo, count, 83)
-    const mesh = new THREE.InstancedMesh(geo, this.canopyMat, count)
-    mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
-    const dummy = new THREE.Object3D()
-    const color = new THREE.Color()
-    for (let i = 0; i < count; i++) {
-      const spot = spots[i]
-      const y = this.height.sample(spot.x, spot.z)
-      const wide = 1.35 + hash01(i * 7) * 1.15
-      dummy.position.set(spot.x, y, spot.z)
-      dummy.rotation.set(0, spot.n * Math.PI * 2, 0)
-      dummy.scale.set(wide, 0.75 + hash01(i * 3) * 0.55, wide)
-      dummy.updateMatrix()
-      mesh.setMatrixAt(i, dummy.matrix)
-      const n = hash01(i * 11)
-      color.setRGB(0.78 + n * 0.22, 0.9 + n * 0.12, 0.58 + n * 0.1)
-      mesh.setColorAt(i, color)
-      fade.setX(i, 1)
-    }
-    mesh.castShadow = false
-    mesh.receiveShadow = false
-    mesh.userData.canopy = true
-    this.canopies.push(mesh)
-    group.add(mesh)
   }
 
   private addTrees(group: THREE.Group, flat: number[]): void {

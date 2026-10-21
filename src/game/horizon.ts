@@ -19,19 +19,22 @@ export class Horizon {
   private readonly cards: InstancedMesh
 
   constructor(scene: Scene, height: Heightfield, oak: CanvasTexture) {
-    // East of downtown, close enough to read as a massif rather than a speck.
-    const east = height.originX + height.sizeX - 120
+    // Past the heightfield, so a cone base cannot rise inside the valley
+    // as a pyramid behind the station. Broad and low: a massif on the
+    // horizon, not a spike over Hwy 24.
+    const edge = height.originX + height.sizeX
     const midZ = -180
+    const peakX = edge + 1600
     const group = new Group()
     group.name = 'horizon'
 
-    this.peak = this.mass(980, 1560, this.peakTint)
-    this.peak.position.set(east, 60, midZ)
+    this.peak = this.mass(1500, 720, this.peakTint)
+    this.peak.position.set(peakX, 80, midZ)
     group.add(this.peak)
-    const shoulder = this.mass(980, 680, this.ridgeTint)
-    shoulder.position.set(east - 280, 20, midZ - 980)
-    const shoulderB = this.mass(1120, 760, this.ridgeTint)
-    shoulderB.position.set(east + 180, 10, midZ + 1200)
+    const shoulder = this.mass(1200, 420, this.ridgeTint)
+    shoulder.position.set(peakX - 200, 40, midZ - 1500)
+    const shoulderB = this.mass(1300, 460, this.ridgeTint)
+    shoulderB.position.set(peakX + 280, 30, midZ + 1700)
     group.add(shoulder, shoulderB)
 
     const minX = height.originX - 900
@@ -49,21 +52,24 @@ export class Horizon {
       [height.originX + height.sizeX * 0.2, maxZ, 300],
     ]
     for (const [x, z, h] of ring) {
-      const ridge = this.mass(h * 1.8, h, this.ridgeTint)
-      ridge.position.set(x, -20, z)
+      // North of the map this cone sat on the station skyline as a smooth orange pyramid.
+      if (z < height.originZ - 200) continue
+      const ridge = this.mass(Math.min(h * 1.8, 700), Math.min(h, 280), this.ridgeTint)
+      ridge.position.set(x, -40, z)
       group.add(ridge)
     }
 
-    // Low ridges west of the boulevard, far enough to sit on the horizon
-    // instead of standing in the sky like the old poles.
+    // Low ridges west of the map edge. Kept outside the heightfield so
+    // they do not stand up in the Hwy 24 corridor.
+    const westEdge = height.originX - 1400
     const west: [number, number, number, number][] = [
-      [-2800, -500, 980, 300],
-      [-2600, -1600, 860, 260],
-      [-3000, 500, 900, 280],
+      [westEdge, -500, 800, 220],
+      [westEdge + 200, -1700, 740, 200],
+      [westEdge - 200, 600, 780, 210],
     ]
     for (const [x, z, radius, heightM] of west) {
       const ridge = this.mass(radius, heightM, this.ridgeTint)
-      ridge.position.set(x, 70, z)
+      ridge.position.set(x, 50, z)
       group.add(ridge)
     }
 
@@ -76,7 +82,7 @@ export class Horizon {
     const tint = new Color()
     for (let i = 0; i < count; i++) {
       const around = i < 96
-      const x = around ? east + (hash01(i) - 0.5) * 1600 : ring[i % ring.length][0] + (hash01(i + 4) - 0.5) * 700
+      const x = around ? peakX + (hash01(i) - 0.5) * 1600 : ring[i % ring.length][0] + (hash01(i + 4) - 0.5) * 700
       const z = around ? midZ + (hash01(i + 2) - 0.5) * 1800 : ring[i % ring.length][1] + (hash01(i + 9) - 0.5) * 600
       const y = 6 + hash01(i + 6) * 18
       dummy.position.set(x, y, z)
@@ -95,7 +101,7 @@ export class Horizon {
 
     this.label = new Sprite(new SpriteMaterial({ transparent: true, opacity: 0 }))
     this.label.visible = false
-    this.label.position.set(east, 1400, midZ)
+    this.label.position.set(peakX, 900, midZ)
 
     scene.add(group)
     this.setSeason('summer')
@@ -124,7 +130,7 @@ export class Horizon {
   }
 
   private mass(radius: number, height: number, tint: unknown): Mesh {
-    const geo = new ConeGeometry(radius, height, 7)
+    const geo = new ConeGeometry(radius, height, 14)
     geo.translate(0, height * 0.45, 0)
     const mat = new MeshStandardNodeMaterial({ roughness: 0.96, metalness: 0 })
     mat.fog = false

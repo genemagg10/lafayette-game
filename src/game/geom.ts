@@ -63,6 +63,7 @@ export function appendRibbon(
   width: number,
   color: THREE.Color,
   lift = 0,
+  sample?: (x: number, z: number) => number,
 ): void {
   if (pts.length < 2 || width <= 0) return
   const left: number[] = []
@@ -99,8 +100,14 @@ export function appendRibbon(
       pz *= miter
     }
     const hw = width / 2
-    left.push(cur.x + px * hw, cur.y + lift, cur.z + pz * hw)
-    right.push(cur.x - px * hw, cur.y + lift, cur.z - pz * hw)
+    const lx = cur.x + px * hw
+    const lz = cur.z + pz * hw
+    const rx = cur.x - px * hw
+    const rz = cur.z - pz * hw
+    const yL = (sample ? sample(lx, lz) : cur.y) + lift
+    const yR = (sample ? sample(rx, rz) : cur.y) + lift
+    left.push(lx, yL, lz)
+    right.push(rx, yR, rz)
   }
   let u = 0
   for (let i = 0; i < pts.length - 1; i++) {
@@ -126,9 +133,8 @@ export function appendRibbon(
 }
 
 /**
- * Follow the heightfield every few metres. A long chord whose straight Y
- * floats above a dip becomes a ribbon in the air and a black smear on the grass.
- * A real overpass, more than 6 m above the ground, keeps its authored height.
+ * Follow the heightfield every few metres. Authored Y is ignored so a long
+ * chord cannot bridge a dip and hang in the air. Ramps meet the freeway at grade.
  */
 export function drapePath(
   pts: { x: number; y: number; z: number }[],
@@ -137,9 +143,8 @@ export function drapePath(
 ): { x: number; y: number; z: number }[] {
   if (pts.length < 2) return pts
   const out: { x: number; y: number; z: number }[] = []
-  const push = (x: number, z: number, authored: number) => {
-    const ground = sample(x, z)
-    const y = authored > ground + 6 ? authored : ground
+  const push = (x: number, z: number) => {
+    const y = sample(x, z)
     const last = out[out.length - 1]
     if (last && Math.hypot(last.x - x, last.z - z) < 0.35) {
       last.y = y
@@ -147,7 +152,7 @@ export function drapePath(
     }
     out.push({ x, y, z })
   }
-  push(pts[0].x, pts[0].z, pts[0].y)
+  push(pts[0].x, pts[0].z)
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i]
     const b = pts[i + 1]
@@ -155,7 +160,7 @@ export function drapePath(
     const n = Math.max(1, Math.ceil(len / step))
     for (let k = 1; k <= n; k++) {
       const t = k / n
-      push(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t, a.y + (b.y - a.y) * t)
+      push(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t)
     }
   }
   return out.length >= 2 ? out : pts

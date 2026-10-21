@@ -373,7 +373,7 @@ export function addHouseLots(
   const lawnTint = (n: number) => {
     const pick = (n * 7) | 0
     if (pick === 0) return 0xc4b07a
-    return pick < 4 ? 0x7d9a52 : 0x6e8a46
+    return pick < 4 ? 0x82945f : 0x788a58
   }
 
   const put = (bucket: Bucket, house: House, lx: number, ly: number, lz: number, sx: number, sy: number, sz: number, hex: number) => {

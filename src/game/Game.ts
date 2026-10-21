@@ -36,6 +36,112 @@ type Mount = Bike | Car | Wagon | Helicopter
 
 let softenedNoted = false
 
+/** Centerline of the Hwy 24 median through Lafayette Station. The two carriageways sit ~23 m off this line. */
+const BART_MEDIAN: [number, number][] = [
+  [-160.1, -518],
+  [-112.3, -532.8],
+  [-64.5, -547.5],
+  [0.6, -567.5],
+  [31.1, -576.9],
+  [78.9, -591.7],
+  [126.7, -606.4],
+  [174.5, -621.1],
+  [223.3, -635],
+  [271.6, -647.9],
+  [321.2, -659.7],
+  [370.4, -670.3],
+  [419.4, -680.5],
+  [468.3, -690.7],
+  [517.3, -700.9],
+  [566.2, -711],
+  [615.2, -721.2],
+  [664.1, -731.3],
+]
+
+function medianLength(pts: [number, number][]): number {
+  let total = 0
+  for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])
+  return total
+}
+
+function medianPoint(pts: [number, number][], dist: number): { x: number; z: number; yaw: number } {
+  let left = dist
+  for (let i = 1; i < pts.length; i++) {
+    const ax = pts[i - 1][0]
+    const az = pts[i - 1][1]
+    const bx = pts[i][0]
+    const bz = pts[i][1]
+    const len = Math.hypot(bx - ax, bz - az) || 0.001
+    if (left <= len || i === pts.length - 1) {
+      const t = Math.max(0, Math.min(1, left / len))
+      const dx = bx - ax
+      const dz = bz - az
+      return { x: ax + dx * t, z: az + dz * t, yaw: Math.atan2(-dz, dx) }
+    }
+    left -= len
+  }
+  const last = pts[pts.length - 1]
+  return { x: last[0], z: last[1], yaw: 0 }
+}
+
+function bartNose(): THREE.BufferGeometry {
+  const y0 = -1.52
+  const y1 = 1.52
+  const z0 = -1.4
+  const z1 = 1.4
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(
+      [
+        0, y0, z0, 0, y0, z1, 0, y1, z1, 0, y1, z0,
+        3.5, y0, z0 * 0.7, 3.5, y0, z1 * 0.7, 3.5, y0 + 0.9, z1 * 0.5, 3.5, y0 + 0.9, z0 * 0.5,
+      ],
+      3,
+    ),
+  )
+  geo.setIndex([
+    0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 3, 2, 6, 3, 6, 7, 0, 3, 7, 0, 7, 4, 1, 5, 6, 1, 6, 2,
+  ])
+  geo.computeVertexNormals()
+  return geo
+}
+
+function dingBubble(): THREE.Sprite {
+  const canvas = document.createElement('canvas')
+  canvas.width = 320
+  canvas.height = 128
+  const g = canvas.getContext('2d')
+  if (g) {
+    g.clearRect(0, 0, 320, 128)
+    g.fillStyle = '#f7f3ea'
+    g.strokeStyle = '#1c2430'
+    g.lineWidth = 8
+    g.beginPath()
+    g.roundRect(12, 8, 296, 84, 28)
+    g.fill()
+    g.stroke()
+    g.beginPath()
+    g.moveTo(54, 90)
+    g.lineTo(78, 118)
+    g.lineTo(108, 90)
+    g.closePath()
+    g.fill()
+    g.stroke()
+    g.fillStyle = '#1c2430'
+    g.font = '700 52px Georgia, serif'
+    g.textAlign = 'center'
+    g.textBaseline = 'middle'
+    g.fillText('ding-dong', 160, 52)
+  }
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }))
+  sprite.scale.set(6.4, 2.55, 1)
+  sprite.renderOrder = 12
+  return sprite
+}
+
 export class Game {
   private picture!: Picture
   private meadow!: Meadow
@@ -242,6 +348,7 @@ export class Game {
       this.meadow.keepOff = (x, z) => this.world.paved(x, z)
       this.horizon = new Horizon(this.scene, height, textures.oak)
       addBanners(this.scene, height)
+      this.buildTrain()
       this.resize()
       this.syncWater()
       this.sunBucket = this.lightBucket()
@@ -1017,9 +1124,14 @@ export class Game {
     const sx = spot?.x ?? x
     const sz = spot?.z ?? z
     const y = this.world.surface(sx, sz, null)
-    const prefer = this.pendingFace ? Math.atan2(this.pendingFace.x - sx, -(this.pendingFace.z - sz)) : this.walker.heading
+    const face = this.pendingFace
     this.pendingFace = null
-    const heading = this.world.streetHeading(sx, sz, prefer)
+    const prefer = face ? Math.atan2(face.x - sx, -(face.z - sz)) : this.walker.heading
+    // A train hold frames the consist from the look target. Street heading
+    // would turn down the freeway and stack the cars into one.
+    const sideOn = face != null && new URLSearchParams(location.search).get('egg') === 'train'
+    const heading = sideOn ? prefer : this.world.streetHeading(sx, sz, prefer)
+    if (sideOn) this.cam.dist = 22
     this.walker.place(sx, y, sz, heading)
     this.walker.heading = heading
     this.cam.cut(heading)
@@ -1178,6 +1290,10 @@ export class Game {
   private toldSoft = false
   private mile = -1
   private train: THREE.Group | null = null
+  private trainCars: THREE.Group[] = []
+  private trainBubble: THREE.Sprite | null = null
+  private bartRails: THREE.Group | null = null
+  private bartPlatform: THREE.Group | null = null
   private trainUntil = 0
 
   private noteSoftened(): void {
@@ -1414,69 +1530,241 @@ export class Game {
   }
 
   private toyTrain(): void {
-    if (!this.train) {
-      const group = new THREE.Group()
-      // Emissive so the shell stays silver in shade. A metalness-only paint was disappearing into the sidewalk.
-      const shell = new THREE.MeshStandardMaterial({
-        color: 0xf4f7fb,
-        emissive: 0xb7c3d0,
-        emissiveIntensity: 0.65,
-        roughness: 0.42,
-        metalness: 0.04,
-      })
-      const blue = new THREE.MeshStandardMaterial({
-        color: 0x1d4e89,
-        emissive: 0x143864,
-        emissiveIntensity: 0.45,
-        roughness: 0.45,
-      })
-      const glass = new THREE.MeshStandardMaterial({
-        color: 0xd5e4f2,
-        emissive: 0x8eabc4,
-        emissiveIntensity: 0.4,
-        roughness: 0.22,
-        metalness: 0.04,
-      })
-      const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.72, 0.78), shell)
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.62, 0.16, 0.8), blue)
-      stripe.position.y = 0.08
-      const cab = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.42, 0.66), glass)
-      cab.position.set(0.7, 0.5, 0)
-      const nose = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.36, 0.7), blue)
-      nose.position.set(1.28, 0.02, 0)
-      group.add(body, stripe, cab, nose)
-      group.scale.setScalar(1.5)
-      group.visible = false
-      this.scene.add(group)
-      this.train = group
-    }
+    if (this.eraId !== 'today') return
+    if (!this.train) this.buildTrain()
+    if (!this.train) return
     this.train.visible = true
-    this.trainUntil = performance.now() + 2800
+    if (this.trainBubble) this.trainBubble.visible = true
+    this.trainUntil = performance.now() + 3400
     this.audio.ensure()
     this.audio.toot()
   }
 
+  private buildTrain(): void {
+    const shell = new THREE.MeshStandardMaterial({
+      color: 0xe6e6e6,
+      emissive: 0xc8c8c8,
+      emissiveIntensity: 0.55,
+      roughness: 0.42,
+      metalness: 0.02,
+    })
+    const blue = new THREE.MeshStandardMaterial({
+      color: 0x0099d8,
+      emissive: 0x0099d8,
+      emissiveIntensity: 0.42,
+      roughness: 0.4,
+    })
+    const glass = new THREE.MeshStandardMaterial({
+      color: 0x1e3c4e,
+      emissive: 0x163044,
+      emissiveIntensity: 0.4,
+      roughness: 0.22,
+    })
+    const pane = new THREE.MeshStandardMaterial({
+      color: 0xd7e6f2,
+      emissive: 0x9bb8cc,
+      emissiveIntensity: 0.28,
+      roughness: 0.16,
+    })
+    const lamp = new THREE.MeshStandardMaterial({
+      color: 0xfff1c4,
+      emissive: 0xfff6d0,
+      emissiveIntensity: 2.4,
+      roughness: 0.3,
+    })
+    const group = new THREE.Group()
+    group.name = 'bart-egg'
+    group.frustumCulled = false
+    const cars: THREE.Group[] = []
+    for (let i = 0; i < 4; i++) {
+      const car = new THREE.Group()
+      car.rotation.order = 'YXZ'
+      const body = new THREE.Mesh(new THREE.BoxGeometry(13.6, 3.05, 2.8), shell)
+      const band = new THREE.Mesh(new THREE.BoxGeometry(13.65, 0.4, 2.94), blue)
+      band.position.y = -0.72
+      const windows = new THREE.Mesh(new THREE.BoxGeometry(11.2, 0.64, 2.9), glass)
+      windows.position.y = 0.58
+      const shine = new THREE.Mesh(new THREE.BoxGeometry(10.4, 0.22, 2.96), pane)
+      shine.position.y = 0.78
+      // The side stripe vanishes from the drone. A roof stripe keeps the consist readable.
+      const roofStripe = new THREE.Mesh(new THREE.BoxGeometry(11.4, 0.08, 0.72), blue)
+      roofStripe.position.y = 1.58
+      car.add(body, band, windows, shine, roofStripe)
+      if (i === 0) {
+        const nose = new THREE.Mesh(bartNose(), shell)
+        nose.position.x = 6.8
+        const noseBand = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.28, 2.15), blue)
+        noseBand.position.set(8.1, -0.95, 0)
+        const light = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8), lamp)
+        light.position.set(10.7, -0.35, 0)
+        light.frustumCulled = false
+        car.add(nose, noseBand, light)
+      }
+      cars.push(car)
+      group.add(car)
+    }
+    const bubble = dingBubble()
+    bubble.scale.set(11, 4.4, 1)
+    bubble.frustumCulled = false
+    bubble.visible = false
+    this.scene.add(bubble)
+    group.visible = true
+    this.scene.add(group)
+    this.train = group
+    this.trainCars = cars
+    this.trainBubble = bubble
+    this.layBartRails()
+    this.layBartPlatform()
+    this.tickTrain()
+  }
+
+  private layBartRails(): void {
+    const total = medianLength(BART_MEDIAN)
+    const step = 4
+    const count = Math.floor(total / step) + 1
+    const tieMat = new THREE.MeshStandardMaterial({ color: 0x6b5344, roughness: 0.9 })
+    const railMat = new THREE.MeshStandardMaterial({
+      color: 0x5c6168,
+      emissive: 0x3a3e44,
+      emissiveIntensity: 0.35,
+      roughness: 0.45,
+      metalness: 0.2,
+    })
+    railMat.polygonOffset = true
+    railMat.polygonOffsetFactor = -2
+    railMat.polygonOffsetUnits = -2
+    const ties = new THREE.InstancedMesh(new THREE.BoxGeometry(2.15, 0.08, 0.32), tieMat, count)
+    const rails = new THREE.InstancedMesh(new THREE.BoxGeometry(4.15, 0.1, 0.14), railMat, count * 2)
+    const dummy = new THREE.Object3D()
+    for (let i = 0; i < count; i++) {
+      const at = medianPoint(BART_MEDIAN, i * step)
+      const y = this.world.height.sample(at.x, at.z) + 0.08
+      dummy.position.set(at.x, y, at.z)
+      dummy.rotation.set(0, at.yaw, 0)
+      dummy.scale.set(1, 1, 1)
+      dummy.updateMatrix()
+      ties.setMatrixAt(i, dummy.matrix)
+      const ox = Math.sin(at.yaw) * 0.72
+      const oz = Math.cos(at.yaw) * 0.72
+      dummy.position.set(at.x + ox, y + 0.08, at.z + oz)
+      dummy.updateMatrix()
+      rails.setMatrixAt(i * 2, dummy.matrix)
+      dummy.position.set(at.x - ox, y + 0.08, at.z - oz)
+      dummy.updateMatrix()
+      rails.setMatrixAt(i * 2 + 1, dummy.matrix)
+    }
+    ties.frustumCulled = false
+    rails.frustumCulled = false
+    const group = new THREE.Group()
+    group.name = 'bart-rails'
+    group.add(ties, rails)
+    this.scene.add(group)
+    this.bartRails = group
+  }
+
+  /** Island platform and canopy on the near side of the median, clear of the consist. */
+  private layBartPlatform(): void {
+    const deckStart = 80
+    const deckEnd = 320
+    const step = 8
+    const deckCount = Math.floor((deckEnd - deckStart) / step) + 1
+    const roofStart = 128
+    const roofEnd = 272
+    const roofCount = Math.floor((roofEnd - roofStart) / step) + 1
+    const concrete = new THREE.MeshStandardMaterial({
+      color: 0xc8c2b6,
+      emissive: 0x9a9488,
+      emissiveIntensity: 0.4,
+      roughness: 0.92,
+    })
+    const roofMat = new THREE.MeshStandardMaterial({
+      color: 0xd9d4c8,
+      emissive: 0xc4bfb2,
+      emissiveIntensity: 0.55,
+      roughness: 0.68,
+    })
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x4e545c, roughness: 0.6 })
+    const deck = new THREE.InstancedMesh(new THREE.BoxGeometry(8.05, 0.85, 4.6), concrete, deckCount)
+    const roof = new THREE.InstancedMesh(new THREE.BoxGeometry(8.05, 0.18, 5.6), roofMat, roofCount)
+    const posts = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, 4.2, 0.22), postMat, roofCount * 2)
+    deck.castShadow = false
+    roof.castShadow = false
+    posts.castShadow = false
+    const dummy = new THREE.Object3D()
+    const place = (arc: number) => {
+      const at = medianPoint(BART_MEDIAN, arc)
+      const ground = this.world.height.sample(at.x, at.z)
+      const ox = Math.sin(at.yaw)
+      const oz = Math.cos(at.yaw)
+      const side = 5.2
+      return { at, ground, ox, oz, x: at.x + ox * side, z: at.z + oz * side }
+    }
+    for (let i = 0; i < deckCount; i++) {
+      const spot = place(deckStart + i * step)
+      dummy.rotation.set(0, spot.at.yaw, 0)
+      dummy.scale.set(1, 1, 1)
+      dummy.position.set(spot.x, spot.ground + 0.48, spot.z)
+      dummy.updateMatrix()
+      deck.setMatrixAt(i, dummy.matrix)
+    }
+    for (let i = 0; i < roofCount; i++) {
+      const spot = place(roofStart + i * step)
+      dummy.rotation.set(0, spot.at.yaw, 0)
+      dummy.scale.set(1, 1, 1)
+      dummy.position.set(spot.x, spot.ground + 5.2, spot.z)
+      dummy.updateMatrix()
+      roof.setMatrixAt(i, dummy.matrix)
+      const inset = 1.7
+      dummy.position.set(spot.x + spot.ox * inset, spot.ground + 2.95, spot.z + spot.oz * inset)
+      dummy.updateMatrix()
+      posts.setMatrixAt(i * 2, dummy.matrix)
+      dummy.position.set(spot.x - spot.ox * inset, spot.ground + 2.95, spot.z - spot.oz * inset)
+      dummy.updateMatrix()
+      posts.setMatrixAt(i * 2 + 1, dummy.matrix)
+    }
+    deck.frustumCulled = false
+    roof.frustumCulled = false
+    posts.frustumCulled = false
+    const group = new THREE.Group()
+    group.name = 'bart-platform'
+    group.add(deck, roof, posts)
+    this.scene.add(group)
+    this.bartPlatform = group
+  }
+
+  private showStation(on: boolean): void {
+    if (this.train) this.train.visible = on
+    if (this.bartRails) this.bartRails.visible = on
+    if (this.bartPlatform) this.bartPlatform.visible = on
+    if (!on && this.trainBubble) this.trainBubble.visible = false
+  }
+
   private tickTrain(): void {
     const train = this.train
-    if (!train || !train.visible) return
+    if (!train) return
+    const live = this.eraId === 'today'
+    this.showStation(live)
+    if (!live) return
     const hold = new URLSearchParams(location.search).get('egg') === 'train'
-    const left = this.trainUntil - performance.now()
-    if (!hold && left <= 0) {
-      train.visible = false
-      return
+    const now = performance.now()
+    const left = this.trainUntil - now
+    const tooting = left > 0
+    const lead = tooting && !hold ? 80 + (1 - left / 3400) * 560 : 200
+    const sway = tooting || hold ? 1 : 0
+    const swayT = hold ? 0.85 : now / 1000
+    for (let i = 0; i < this.trainCars.length; i++) {
+      const car = this.trainCars[i]
+      const at = medianPoint(BART_MEDIAN, lead - i * 16.8)
+      const y = this.world.height.sample(at.x, at.z) + 1.72
+      car.position.set(at.x, y, at.z)
+      car.rotation.set(Math.sin(swayT * 4.1 + i * 0.4) * 0.012 * sway, at.yaw, Math.sin(swayT * 5.2 + i * 0.65) * 0.04 * sway)
     }
-    const u = hold ? 0.42 : 1 - left / 2800
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion)
-    const ahead = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion)
-    ahead.y = 0
-    right.y = 0
-    if (ahead.lengthSq() > 1e-6) ahead.normalize()
-    if (right.lengthSq() > 1e-6) right.normalize()
-    train.position.copy(this.camera.position).addScaledVector(ahead, 9).addScaledVector(right, -8 + u * 16)
-    // Sit the shell on the pavement. Dropping from the camera buried the body and left only the stripe.
-    train.position.y = this.world.surface(train.position.x, train.position.z, null) + 0.72
-    const yaw = new THREE.Euler().setFromQuaternion(this.camera.quaternion, 'YXZ')
-    train.rotation.set(0, yaw.y, 0)
+    const leadCar = this.trainCars[0]
+    if (this.trainBubble && leadCar) {
+      const show = tooting || hold
+      this.trainBubble.visible = show
+      if (show) this.trainBubble.position.set(leadCar.position.x, leadCar.position.y + 5.4, leadCar.position.z)
+    }
   }
 
   private fly(t: number): void {
