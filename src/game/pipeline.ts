@@ -1,10 +1,11 @@
 import {
   ACESFilmicToneMapping,
-  PCFShadowMap,
+  PCFSoftShadowMap,
   PMREMGenerator,
   RenderPipeline,
   Scene,
   SRGBColorSpace,
+  UnsignedByteType,
   WebGPURenderer,
   type Camera,
   type DirectionalLight,
@@ -41,143 +42,339 @@ import type { Sky } from './sky.ts'
 
 export type Quality = 'low' | 'medium' | 'high'
 
+const LOST = /createBuffer|too large|out of memory|device lost|depthTexture|backend is initialized|getSupportedExtensions/i
+
+type GpuNavigator = {
+  requestAdapter?: () => Promise<unknown>
+  getPreferredCanvasFormat?: () => string
+}
+
+type AdapterInfo = {
+  vendor?: string
+  architecture?: string
+  device?: string
+  description?: string
+}
+
+/**
+ * Phone, or a window too short to spend a desktop shadow budget.
+ * One predicate feeds the starting tier, the reflector, and the cascade choice.
+ */
+export function prefersMobile(): boolean {
+  return matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 820
+}
+
 export class Picture {
   renderer: WebGPURenderer
   pipeline: RenderPipeline
   quality: Quality
   webgpu = false
   bloomOn = true
+  /** Frames that actually presented. Compile hitches before the first one do not count. */
+  presented = 0
+  /** Stop the frame loop. The backend is not safe to render. */
+  terminal = false
+  gpuLine = ''
+  onCanvas: ((canvas: HTMLCanvasElement) => void) | null = null
+  onRecovered: (() => void) | null = null
+  onTerminal: (() => void) | null = null
+
   private env: { texture: Texture; dispose: () => void } | null = null
   private pmrem: PMREMGenerator | null = null
   private failed = false
   private pendingFallback = false
   private swapping = false
+  private disposing = false
+  private sawDevice = false
+  private watchGen = 0
+  private marchOn = false
+  private sky: Sky | null = null
+  private gpuQuery: string | null
+  private loseLeft: number
+  private loseReady = false
+  private framesSinceArm = 0
+  private armFrame = 0
   private bloomNode: { strength: { value: number }; radius: { value: number } } | null = null
   private readonly lut = createLut()
+  private csm: CSMShadowNode | null = null
 
-  private readonly canvas: HTMLCanvasElement
+  private canvas: HTMLCanvasElement
   private readonly scene: Scene
   private readonly camera: Camera
   private readonly sun: DirectionalLight
 
-  constructor(canvas: HTMLCanvasElement, scene: Scene, camera: Camera, sun: DirectionalLight, quality: Quality) {
+  constructor(canvas: HTMLCanvasElement, scene: Scene, camera: Camera, sun: DirectionalLight, quality: Quality, gpuQuery: string | null) {
     this.canvas = canvas
     this.scene = scene
     this.camera = camera
     this.sun = sun
     this.quality = quality
-    this.renderer = this.mountRenderer(false)
+    this.gpuQuery = gpuQuery
+    this.loseLeft = gpuQuery === 'lose' ? 2 : 0
+    this.renderer = this.mountRenderer(gpuQuery === 'webgl')
     this.pipeline = new RenderPipeline(this.renderer)
+    this.bindVisibility()
   }
 
-  /** WebGPU when the browser has it. `forceWebGL` is the fallback when that init throws. */
+  get busy(): boolean {
+    return this.swapping || this.terminal || this.failed
+  }
+
+  isMobile(): boolean {
+    return prefersMobile()
+  }
+
+  /** WebGPU when the browser has it. A lost device gets a new canvas before the next backend. */
   private mountRenderer(forceWebGL: boolean): WebGPURenderer {
-    const renderer = new WebGPURenderer({ canvas: this.canvas, antialias: this.quality !== 'low', forceWebGL })
+    const renderer = new WebGPURenderer({
+      canvas: this.canvas,
+      antialias: false,
+      forceWebGL,
+      outputBufferType: this.quality === 'low' ? UnsignedByteType : undefined,
+    })
     renderer.outputColorSpace = SRGBColorSpace
     renderer.toneMapping = ACESFilmicToneMapping
-    renderer.toneMappingExposure = 0.96
+    renderer.toneMappingExposure = 1
     renderer.shadowMap.enabled = this.quality !== 'low'
-    renderer.shadowMap.type = PCFShadowMap
+    renderer.shadowMap.type = PCFSoftShadowMap
     return renderer
   }
 
   async init(sky: Sky): Promise<void> {
+    this.sky = sky
     try {
       await this.renderer.init()
     } catch (err) {
       console.warn(err)
-      this.renderer.dispose()
-      this.renderer = this.mountRenderer(true)
-      this.pipeline = new RenderPipeline(this.renderer)
-      await this.renderer.init()
+      await this.recoverFromInit()
+      return
     }
+    this.finishInit(this.gpuQuery === 'webgl')
+  }
+
+  private backendIsWebGPU(): boolean {
     const backend = this.renderer.backend as { isWebGPUBackend?: boolean }
-    this.webgpu = backend.isWebGPUBackend === true
+    return backend.isWebGPUBackend === true
+  }
+
+  private finishInit(forceWebGL: boolean): void {
+    this.webgpu = this.backendIsWebGPU() && !forceWebGL
+    if (this.webgpu) this.sawDevice = true
     this.armDeviceWatch()
-    const mobile = this.mobile()
-    if (this.quality !== 'low' && this.webgpu && !mobile) {
+    this.applyShadowBudget()
+    this.pmrem = new PMREMGenerator(this.renderer)
+    if (this.sky) {
+      try {
+        this.refreshEnvironment(this.sky)
+      } catch (err) {
+        console.warn(err)
+      }
+    }
+    dofGain.value = this.quality === 'high' ? 0.04 : 0
+    this.compose()
+    this.publishInfo()
+    this.armFrame = (this.renderer.info as { render?: { frame?: number } } | undefined)?.render?.frame ?? 0
+    this.framesSinceArm = 0
+    this.loseReady = false
+  }
+
+  private publishInfo(): void {
+    const backend = this.renderer.backend as {
+      isWebGPUBackend?: boolean
+      adapter?: { info?: AdapterInfo; isFallbackAdapter?: boolean; features?: { has: (name: string) => boolean } }
+      device?: { limits?: { maxBufferSize?: number; maxStorageBufferBindingSize?: number; maxTextureDimension2D?: number; maxColorAttachments?: number } }
+    }
+    const info = backend.adapter?.info
+    const limits = backend.device?.limits
+    const named = info ? [info.vendor, info.architecture, info.device, info.description].filter(Boolean).join(' ') : 'no-adapter'
+    const gpu = (navigator as Navigator & { gpu?: GpuNavigator }).gpu
+    const format = gpu?.getPreferredCanvasFormat?.() ?? 'n/a'
+    const core = backend.adapter?.features?.has('core-features-and-limits') ? 'core-features-and-limits' : 'no-core-features-and-limits'
+    this.gpuLine = [
+      named,
+      backend.adapter?.isFallbackAdapter ? 'fallback-adapter' : 'adapter',
+      core,
+      `maxBufferSize=${limits?.maxBufferSize ?? 0}`,
+      `maxStorageBufferBindingSize=${limits?.maxStorageBufferBindingSize ?? 0}`,
+      `maxTextureDimension2D=${limits?.maxTextureDimension2D ?? 0}`,
+      `maxColorAttachments=${limits?.maxColorAttachments ?? 0}`,
+      `canvas=${format}`,
+      `samples=${this.renderer.samples}`,
+      this.webgpu ? 'webgpu' : 'webgl',
+    ].join(' ')
+    if (this.gpuQuery === 'info') console.info(this.gpuLine)
+  }
+
+  private applyShadowBudget(): void {
+    const low = this.quality === 'low'
+    const vivid = this.quality === 'high' && this.webgpu && !this.isMobile()
+    if (!vivid) this.clearCascades()
+    const size = low ? 256 : vivid ? 1024 : 512
+    this.sun.shadow.mapSize.set(size, size)
+    this.sun.shadow.radius = 4
+    this.sun.shadow.bias = -0.0002
+    this.sun.shadow.normalBias = 0.03
+    this.renderer.shadowMap.enabled = !low
+    this.renderer.shadowMap.type = PCFSoftShadowMap
+    if (vivid && !this.csm) {
       try {
         this.cascades()
       } catch (err) {
         console.warn(err)
       }
     }
-    this.applyShadowBudget()
-    this.pmrem = new PMREMGenerator(this.renderer)
-    try {
-      this.refreshEnvironment(sky)
-    } catch (err) {
-      console.warn(err)
-    }
-    dofGain.value = this.quality === 'high' ? 0.04 : this.quality === 'medium' ? 0.02 : 0
-    this.compose()
-  }
-
-  private csm: CSMShadowNode | null = null
-
-  /** Phone and a short window. Large shadow and splat buffers are what blow the device. */
-  private mobile(): boolean {
-    return matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 820
-  }
-
-  private applyShadowBudget(): void {
-    const size = this.mobile() ? 512 : this.webgpu ? 1024 : 1536
-    this.sun.shadow.mapSize.set(size, size)
-    this.renderer.shadowMap.enabled = this.quality !== 'low'
-    this.renderer.shadowMap.type = PCFShadowMap
   }
 
   private armDeviceWatch(): void {
-    const backend = this.renderer.backend as { device?: { lost: Promise<{ message?: string }>; addEventListener?: (type: string, cb: (event: Event) => void) => void } }
+    const backend = this.renderer.backend as {
+      device?: {
+        lost: Promise<{ message?: string; reason?: string }>
+        addEventListener?: (type: string, cb: (event: Event) => void) => void
+      }
+    }
     const device = backend.device
     if (!this.webgpu || !device) return
+    const gen = this.watchGen
     device.lost.then((info) => {
-      console.warn('WebGPU device lost', info?.message ?? '')
+      if (gen !== this.watchGen || this.disposing) return
+      console.warn('WebGPU device lost', info?.reason ?? '', info?.message ?? '')
       this.pendingFallback = true
     }).catch((err) => {
+      if (gen !== this.watchGen || this.disposing) return
       console.warn(err)
       this.pendingFallback = true
     })
     device.addEventListener?.('uncapturederror', (event: Event) => {
+      if (gen !== this.watchGen || this.disposing) return
       const message = String((event as { error?: { message?: string } }).error?.message ?? '')
-      if (/createBuffer|too large|out of memory|device lost|popErrorScope/i.test(message)) {
+      if (LOST.test(message)) {
         console.warn(message)
         this.pendingFallback = true
       }
     })
   }
 
-  private async fallbackWebGL(): Promise<void> {
-    if (this.swapping || !this.webgpu) return
-    this.swapping = true
-    this.webgpu = false
-    this.pendingFallback = false
-    const shadow = this.sun.shadow as { shadowNode?: CSMShadowNode | null }
-    shadow.shadowNode = null
-    this.csm = null
+  private bindVisibility(): void {
+    const wake = () => {
+      if (document.hidden || this.swapping || this.terminal || !this.webgpu || !this.sawDevice) return
+      const renderer = this.renderer as unknown as { _isDeviceLost?: boolean }
+      const backend = this.renderer.backend as { isDeviceLost?: boolean }
+      if (renderer._isDeviceLost || backend.isDeviceLost) this.pendingFallback = true
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) wake()
+    })
+    window.addEventListener('pageshow', () => wake())
+  }
+
+  private swapCanvas(): void {
+    const next = this.canvas.cloneNode(false) as HTMLCanvasElement
+    next.width = this.canvas.width
+    next.height = this.canvas.height
+    this.canvas.replaceWith(next)
+    this.canvas = next
+    this.onCanvas?.(next)
+  }
+
+  private disposeRenderer(): void {
+    this.watchGen += 1
+    this.disposing = true
+    this.clearCascades()
+    try {
+      this.env?.dispose()
+    } catch (err) {
+      console.warn(err)
+    }
+    this.env = null
+    try {
+      this.pmrem?.dispose()
+    } catch (err) {
+      console.warn(err)
+    }
+    this.pmrem = null
     try {
       this.renderer.dispose()
     } catch (err) {
       console.warn(err)
     }
-    this.renderer = this.mountRenderer(true)
-    this.pipeline = new RenderPipeline(this.renderer)
+    this.disposing = false
+  }
+
+  private async swapRenderer(forceWebGL: boolean): Promise<boolean> {
     try {
+      this.disposeRenderer()
+      this.swapCanvas()
+      this.renderer = this.mountRenderer(forceWebGL)
+      this.pipeline = new RenderPipeline(this.renderer)
       await this.renderer.init()
     } catch (err) {
       console.warn(err)
+      return false
     }
-    const backend = this.renderer.backend as { isWebGPUBackend?: boolean }
-    this.webgpu = backend.isWebGPUBackend === true
-    if (this.webgpu) this.webgpu = false
-    this.applyShadowBudget()
-    dofGain.value = this.quality === 'high' ? 0.04 : this.quality === 'medium' ? 0.02 : 0
-    this.compose()
+    this.failed = false
+    this.finishInit(forceWebGL)
+    this.onRecovered?.()
     this.swapping = false
+    return true
+  }
+
+  private failTerminal(): void {
+    this.failed = true
+    this.terminal = true
+    this.swapping = false
+    this.webgpu = false
+    this.pendingFallback = false
+    this.onTerminal?.()
+  }
+
+  /** Init threw before a device existed. A new canvas, then WebGL. */
+  private async recoverFromInit(): Promise<void> {
+    if (this.terminal) return
+    this.swapping = true
+    const ok = await this.swapRenderer(true)
+    if (!ok) this.failTerminal()
+  }
+
+  /**
+   * The device that owned the first canvas is gone.
+   * Try WebGPU once more on a new canvas when an adapter still exists.
+   * Otherwise ask for a reload and stop. Never call getContext on the old canvas.
+   */
+  private async recover(): Promise<void> {
+    if (this.swapping || this.terminal || !this.sky) return
+    if (!this.webgpu) {
+      this.failTerminal()
+      return
+    }
+    this.swapping = true
+    this.pendingFallback = false
+    let adapterOk = false
+    try {
+      const gpu = (navigator as Navigator & { gpu?: GpuNavigator }).gpu
+      adapterOk = (await gpu?.requestAdapter?.()) != null
+    } catch {
+      adapterOk = false
+    }
+    if (!adapterOk) {
+      this.disposeRenderer()
+      this.failTerminal()
+      return
+    }
+    const again = await this.swapRenderer(false)
+    if (again) return
+    const webgl = await this.swapRenderer(true)
+    if (!webgl) this.failTerminal()
+  }
+
+  /** Drop cascaded shadows without writing null. A null shadow node is compiled into the shader as the identifier `null`. */
+  private clearCascades(): void {
+    const shadow = this.sun.shadow as { shadowNode?: CSMShadowNode }
+    delete shadow.shadowNode
+    this.csm = null
   }
 
   private cascades(): void {
-    const csm = new CSMShadowNode(this.sun, { cascades: this.quality === 'high' ? 2 : 2, maxFar: 220, mode: 'practical', lightMargin: 48 })
+    const csm = new CSMShadowNode(this.sun, { cascades: 2, maxFar: 220, mode: 'practical', lightMargin: 48 })
     this.csm = csm
     csm.fade = true
     const shadow = this.sun.shadow as { shadowNode?: CSMShadowNode; mapSize: { set: (w: number, h: number) => void } }
@@ -186,7 +383,7 @@ export class Picture {
   }
 
   refreshEnvironment(sky: Sky): void {
-    if (!this.pmrem) return
+    if (!this.pmrem || this.terminal) return
     const probe = new Scene()
     const shell = sky.mesh.clone()
     shell.scale.setScalar(0.01)
@@ -200,8 +397,17 @@ export class Picture {
 
   setQuality(quality: Quality): void {
     this.quality = quality
-    this.renderer.shadowMap.enabled = quality !== 'low'
-    dofGain.value = quality === 'high' ? 0.04 : quality === 'medium' ? 0.02 : 0
+    dofGain.value = quality === 'high' ? 0.04 : 0
+    this.applyShadowBudget()
+    this.compose()
+  }
+
+  /** Recompose only when fog or night shafts actually have a term. */
+  syncShafts(fog: number, gain: number): void {
+    const on = fog > 0.005 || gain > 0.005
+    if (on === this.marchOn) return
+    this.marchOn = on
+    if (this.busy) return
     this.compose()
   }
 
@@ -215,6 +421,23 @@ export class Picture {
   setBloom(on: boolean): void {
     this.bloomOn = on
     this.compose()
+  }
+
+  /** @returns true when this call destroyed the device and the frame must not render. */
+  private maybeLose(): boolean {
+    if (this.loseLeft <= 0 || !this.webgpu || this.loseReady || this.busy) return false
+    const frame = (this.renderer.info as { render?: { frame?: number } } | undefined)?.render?.frame ?? 0
+    this.framesSinceArm += 1
+    if (frame <= this.armFrame && this.framesSinceArm <= 120) return false
+    this.loseReady = true
+    this.loseLeft -= 1
+    const device = (this.renderer.backend as { device?: { destroy?: () => void } }).device
+    try {
+      device?.destroy?.()
+    } catch (err) {
+      console.warn(err)
+    }
+    return true
   }
 
   private compose(): void {
@@ -231,14 +454,12 @@ export class Picture {
       const aoNode = new GTAONode(depth, null as never, this.camera)
       aoNode.resolutionScale = 0.5
       aoNode.samples.value = 8
-      aoNode.radius.value = 0.18
+      aoNode.radius.value = 0.35
       const occlusion = aoNode.getTextureNode() as unknown as { r: { mul: (v: unknown) => { add: (v: unknown) => unknown } } }
-      picture = mul(asNode(picture), asNode(occlusion.r.mul(0.28).add(0.72)))
-      // Daytime stays a dry valley. God rays stay off: the node needs a
-      // shadow map, and cascades never allocate one.
+      picture = mul(asNode(picture), asNode(occlusion.r.mul(0.45).add(0.55)))
     }
 
-    if (depth && this.quality !== 'low') {
+    if (depth && this.quality !== 'low' && this.marchOn) {
       const depthTex = depth as { sample: (uv: unknown) => unknown }
       const light = Fn(() => {
         const view = getViewPosition(screenUV, asNode(depth), invProj)
@@ -302,29 +523,28 @@ export class Picture {
   }
 
   render(): void {
-    if (this.pendingFallback && !this.swapping) void this.fallbackWebGL()
+    if (this.terminal || this.failed) return
+    if (this.pendingFallback && !this.swapping) void this.recover()
     if (this.swapping) return
-    if (this.failed) {
-      this.renderer.render(this.scene, this.camera)
-      return
-    }
+    if (this.maybeLose()) return
     try {
       this.pipeline.render()
+      this.presented += 1
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      if (/createBuffer|too large|out of memory|device lost|depthTexture/i.test(message)) {
+      if (LOST.test(message)) {
         console.warn(message)
-        this.pendingFallback = true
+        if (this.webgpu) this.pendingFallback = true
+        else this.failTerminal()
         return
       }
       console.warn(err)
       if (this.csm) {
-        const shadow = this.sun.shadow as { shadowNode?: CSMShadowNode | null }
-        shadow.shadowNode = null
-        this.csm = null
+        this.clearCascades()
         this.compose()
         try {
           this.pipeline.render()
+          this.presented += 1
           return
         } catch (again) {
           console.warn(again)
@@ -335,13 +555,13 @@ export class Picture {
         this.compose()
         try {
           this.pipeline.render()
+          this.presented += 1
           return
         } catch (again) {
           console.warn(again)
         }
       }
-      this.failed = true
-      this.renderer.render(this.scene, this.camera)
+      this.failTerminal()
     }
   }
 }

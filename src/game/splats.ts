@@ -18,13 +18,41 @@ import {
 } from 'three'
 import type { WebGPURenderer } from 'three/webgpu'
 import { uniform } from 'three/tsl'
-import { GaussianSplat } from 'three/addons/objects/GaussianSplat.js'
-import { SPZLoader } from 'three/addons/loaders/SPZLoader.js'
-import { SPLATLoader } from 'three/addons/loaders/SPLATLoader.js'
-import { GaussianSplatPLYLoader } from 'three/addons/loaders/GaussianSplatPLYLoader.js'
-import { KSPLATLoader } from 'three/addons/loaders/KSPLATLoader.js'
-import { createGaussianSplatGeometry } from 'three/addons/utils/GaussianSplatUtils.js'
 import type { Quality } from './pipeline.ts'
+
+type SplatCtor = new (geometry: BufferGeometry) => SplatMesh
+
+interface SplatLibs {
+  Splat: SplatCtor
+  create: (centers: Float32Array, covariances: Float32Array, colors: Uint8ClampedArray) => BufferGeometry
+  load: (url: string, format: SplatRecord['format']) => Promise<BufferGeometry>
+}
+
+let libsPromise: Promise<SplatLibs> | null = null
+
+/** Loaders stay out of the boot bundle until a door is close enough to stream. */
+function splatLibs(): Promise<SplatLibs> {
+  if (!libsPromise) {
+    libsPromise = Promise.all([
+      import('three/addons/loaders/GaussianSplatPLYLoader.js'),
+      import('three/addons/loaders/SPLATLoader.js'),
+      import('three/addons/loaders/KSPLATLoader.js'),
+      import('three/addons/loaders/SPZLoader.js'),
+      import('three/addons/utils/GaussianSplatUtils.js'),
+      import('three/addons/objects/GaussianSplat.js'),
+    ]).then(([ply, splat, ksplat, spz, utils, objects]) => ({
+      Splat: objects.GaussianSplat as unknown as SplatCtor,
+      create: utils.createGaussianSplatGeometry,
+      load: (url, format) => {
+        if (format === 'ply') return new ply.GaussianSplatPLYLoader().loadAsync(url)
+        if (format === 'splat') return new splat.SPLATLoader().loadAsync(url)
+        if (format === 'ksplat') return new ksplat.KSPLATLoader().loadAsync(url)
+        return new spz.SPZLoader().loadAsync(url)
+      },
+    }))
+  }
+  return libsPromise
+}
 
 /**
  * One resident Gaussian splat, stride-sampled to a count the frame can sort.
@@ -106,6 +134,7 @@ interface Capture extends SplatRecord {
   mesh: SplatMesh | null
   fade: { value: number } | null
   applied: number
+  mounting: boolean
   sorted: boolean
   rig: Group
   door: Group
@@ -183,11 +212,8 @@ export async function loadSplatManifest(base: string): Promise<SplatRecord[]> {
 }
 
 async function loadGeometry(url: string, format: SplatRecord['format']): Promise<BufferGeometry> {
-  if (format === 'ply') return new GaussianSplatPLYLoader().loadAsync(url)
-  if (format === 'splat') return new SPLATLoader().loadAsync(url)
-  if (format === 'ksplat') return new KSPLATLoader().loadAsync(url)
-  const parsed = await new SPZLoader().loadAsync(url)
-  return parsed
+  const libs = await splatLibs()
+  return libs.load(url, format)
 }
 
 function measure(geometry: BufferGeometry): Fit {
@@ -202,7 +228,7 @@ function measure(geometry: BufferGeometry): Fit {
   }
 }
 
-function budgetGeometry(source: BufferGeometry, maxCount: number): BufferGeometry {
+function budgetGeometry(source: BufferGeometry, maxCount: number, create: SplatLibs['create']): BufferGeometry {
   const position = source.getAttribute('position')
   const covariance = source.getAttribute('covariance')
   const color = source.getAttribute('color')
@@ -229,7 +255,7 @@ function budgetGeometry(source: BufferGeometry, maxCount: number): BufferGeometr
     covariances.set(cov.subarray(i * 6, i * 6 + 6), k * 6)
     outColors.set(colors.subarray(i * 4, i * 4 + 4), k * 4)
   }
-  return createGaussianSplatGeometry(centers, covariances, outColors)
+  return create(centers, covariances, outColors)
 }
 
 function approach(x: number, z: number, yaw: number, dist: number): { x: number; z: number } {
@@ -347,6 +373,7 @@ export class MemoryPortals {
         mesh: null,
         fade: null,
         applied: 0,
+        mounting: false,
         sorted: false,
         rig,
         door,
@@ -517,8 +544,12 @@ export class MemoryPortals {
     if (streaming && this.active) this.ensure(this.active)
 
     const budget = this.active ? Math.min(this.active.budget, capFor(quality, this.webgpu)) : 0
-    if (this.active?.source && this.active.fit && budget > 0 && this.active.applied !== budget) {
-      this.mount(this.active, budget)
+    if (this.active?.source && this.active.fit && budget > 0 && this.active.applied !== budget && !this.active.mounting) {
+      this.active.mounting = true
+      const cap = this.active
+      void this.mount(cap, budget).finally(() => {
+        cap.mounting = false
+      })
     }
 
     this.nearWorld = false
@@ -639,12 +670,22 @@ export class MemoryPortals {
       })
   }
 
-  private mount(cap: Capture, budget: number): void {
+  /** Drop resident splat meshes so the next stream rebuilds them on the new device. */
+  releaseGpu(): void {
+    this.broken = false
+    for (const cap of this.captures) {
+      if (cap.mesh) this.dropMesh(cap)
+    }
+  }
+
+  private async mount(cap: Capture, budget: number): Promise<void> {
+    if (!cap.source || !cap.fit) return
+    const libs = await splatLibs()
     if (!cap.source || !cap.fit) return
     this.dropMesh(cap)
     try {
-      const geometry = budgetGeometry(cap.source, budget)
-      const mesh = new GaussianSplat(geometry) as SplatMesh
+      const geometry = budgetGeometry(cap.source, budget, libs.create)
+      const mesh = new libs.Splat(geometry)
       mesh.frustumCulled = false
       mesh.castShadow = false
       mesh.receiveShadow = false

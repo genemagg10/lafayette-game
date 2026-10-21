@@ -14,11 +14,11 @@ import { loadStories } from './stories.ts'
 import { loadStorefronts } from './storefronts.ts'
 import { Hud } from './ui.ts'
 import { blurAmount, createTextures, eraFilm, gradeGolden } from './materials.ts'
-import { Picture, type Quality } from './pipeline.ts'
+import { Picture, prefersMobile, type Quality } from './pipeline.ts'
 import { Meadow } from './meadow.ts'
 import { Horizon } from './horizon.ts'
 import { addBanners } from './banners.ts'
-import { projectSun } from './wind.ts'
+import { projectSun, shaftGain, valleyFog } from './wind.ts'
 import { Wash } from './wash.ts'
 import { forwardFromHeading, rightFromHeading } from './math.ts'
 import type { TileSet } from './tiles.ts'
@@ -80,8 +80,15 @@ export class Game {
   private titleTime = 0
   private last = 0
   private fps = 60
-  private fpsWarm = 0
-  private adapted = false
+  private ema = 16.7
+  private adaptSteps = 0
+  private fastFor = 0
+  private sinceStep = 0
+  private qualityLock = false
+  private sawPresent = 0
+  private halted = false
+  private sunBucket = ''
+  private waterNormals: THREE.Texture | null = null
   private edgeNote = false
   private photo = false
   private photoRate = 0
@@ -90,22 +97,29 @@ export class Game {
   private photoHudWasHidden = false
   private travelTakeoff = false
   private travelSettle = false
+  private frameStand: { x: number; z: number; lookX: number; lookZ: number } | null = null
+  private pendingFace: { x: number; z: number } | null = null
   private step = 0
   private bird = 2
   private readonly coarse = matchMedia('(pointer: coarse)').matches
-  private quality: Quality = this.coarse ? 'medium' : 'high'
-  private envClock = 0
-
+  private quality: Quality = prefersMobile() ? 'medium' : 'high'
   constructor() {
     const canvas = document.querySelector('#view') as HTMLCanvasElement
     this.camera = new THREE.PerspectiveCamera(58, 1, 0.25, 9000)
     this.input = new Input(canvas)
     this.wash = new Wash(this.scene)
     window.addEventListener('resize', () => this.resize())
+    const params = new URLSearchParams(window.location.search)
+    const raw = [params.get('x'), params.get('z'), params.get('lx'), params.get('lz')]
+    if (raw.every((value) => value != null && value !== '')) {
+      const [sx, sz, lx, lz] = raw.map(Number)
+      if ([sx, sz, lx, lz].every((n) => Number.isFinite(n))) this.frameStand = { x: sx, z: sz, lookX: lx, lookZ: lz }
+    }
     this.hud.onPlay = () => {
       if (this.mode === 'pause') this.resume()
       else this.play()
     }
+    this.hud.onTitle = () => this.openPicker()
     this.hud.onPause = () => this.togglePause()
     this.hud.onKid = (id) => this.chooseKid(id)
     this.hud.onHoverKid = (id) => this.hoverKid(id)
@@ -151,7 +165,10 @@ export class Game {
       if (at) this.face(at.x, at.z)
     }
     this.hud.onBloom = (on) => this.picture?.setBloom(on)
-    this.hud.onQuality = (quality) => this.applyQuality(quality)
+    this.hud.onQuality = (quality) => {
+      this.qualityLock = true
+      this.applyQuality(quality)
+    }
     this.hud.onPhoto = () => this.togglePhoto()
     this.hud.onTravelKind = (kind) => this.input.pickTravel(kind)
     this.hud.onEra = (id) => this.beginEra(id)
@@ -164,6 +181,27 @@ export class Game {
   async start(): Promise<void> {
     try {
       const base = import.meta.env.BASE_URL
+      const canvas = document.querySelector('#view') as HTMLCanvasElement
+      const gpu = new URLSearchParams(window.location.search).get('gpu')
+      const textures = createTextures()
+      this.waterNormals = textures.waterNormals
+      this.atmo = new Atmosphere(this.scene, textures.soft)
+      this.picture = new Picture(canvas, this.scene, this.camera, this.atmo.sun, this.quality, gpu)
+      this.picture.onCanvas = (next) => this.input.retarget(next)
+      this.picture.onRecovered = () => {
+        this.meadow?.releaseGpu()
+        this.portals?.releaseGpu()
+        this.resize()
+        this.syncWater()
+        const n = Number(document.body.dataset.recover || 0) + 1
+        document.body.dataset.recover = String(n)
+      }
+      this.picture.onTerminal = () => {
+        this.halted = true
+        this.hud.loading(null)
+        this.hud.holdToast('The picture needs a reload', () => location.reload())
+      }
+      const pictureReady = this.picture.init(this.atmo.sky)
       this.hud.loading('Fetching Mt. Diablo Boulevard…')
       const [meta, roads, water, tileset, stories, storefronts, terrainBuf, splats, eraLines, history] = await Promise.all([
         this.getJSON<Meta>(`${base}data/meta.json`),
@@ -180,36 +218,22 @@ export class Game {
         loadEraCopy(base),
         loadHistory(base),
       ])
+      await pictureReady
+      if (this.picture.terminal) return
       this.eraLines = eraLines
       this.meta = meta
       this.hud.loading('Raising the hills and the reservoir…')
       const height = new Heightfield(terrainBuf, meta.terrain)
-      const textures = createTextures()
       this.world = new World(this.scene, meta, height, roads, water, tileset, textures, base)
       this.world.setStorefronts(storefronts)
       this.hud.loading('Streaming downtown tiles…')
-      const lake = this.lakeCenter(water)
-      await this.world.preload(meta.spawn.x, meta.spawn.z, 2)
-      await this.world.preload(lake.x, lake.z, 1)
-      const bart = meta.places.find((p) => p.id === 'bart')
-      if (bart) await this.world.preload(bart.x, bart.z, 1)
-      const overlook = meta.places.find((p) => p.id === 'overlook')
-      if (overlook) await this.world.preload(overlook.x, overlook.z, 1)
-      this.atmo = new Atmosphere(this.scene, textures.soft)
+      await this.world.preload(meta.spawn.x, meta.spawn.z, 1)
       this.meadow = new Meadow(this.scene, height, this.quality)
       this.horizon = new Horizon(this.scene, height, textures.oak)
       addBanners(this.scene, height)
-      const canvas = document.querySelector('#view') as HTMLCanvasElement
-      this.picture = new Picture(canvas, this.scene, this.camera, this.atmo.sun, this.quality)
-      await this.picture.init(this.atmo.sky)
       this.resize()
-      if (this.quality !== 'low') {
-        try {
-          this.world.useReflections(textures.waterNormals, this.quality === 'high' ? 0.45 : 0.3)
-        } catch (err) {
-          console.warn(err)
-        }
-      }
+      this.syncWater()
+      this.sunBucket = this.lightBucket()
       this.walker = new Walker(this.kidId)
       this.scene.add(this.walker.group)
       this.milo = new Walker('milo')
@@ -243,6 +267,7 @@ export class Game {
       this.townClock = createTownClock()
       this.townClock.position.set(clockAt.x, clockY, clockAt.z)
       this.scene.add(this.townClock)
+      const lake = this.lakeCenter(water)
       this.traffic = new Traffic(this.scene, roads, this.world, lake)
       this.collect = new Collectibles(this.scene, meta.collectibles, this.world)
       this.discover = new Discover(this.scene, this.world, meta)
@@ -280,6 +305,7 @@ export class Game {
       this.mode = 'title'
       this.focus.set(stand.x, 160, stand.z)
       requestAnimationFrame((t) => this.frame(t))
+      void this.warmFarther(meta, water)
     } catch (err) {
       console.error(err)
       this.hud.loading('The map didn’t load. Run npm run bake if the data files are missing.')
@@ -320,8 +346,17 @@ export class Game {
     }
   }
 
+  private picking = false
+
+  private openPicker(): void {
+    if (this.mode !== 'title' || this.picking) return
+    this.picking = true
+    this.hud.openPicker()
+  }
+
   private play(): void {
     if (this.mode === 'play') return
+    this.picking = false
     this.mode = 'play'
     this.input.allowLock = true
     this.walker.group.visible = true
@@ -331,6 +366,12 @@ export class Game {
     this.hud.beginPlay()
     this.input.setTouchVisible(true)
     this.cam.snap(this.walker.heading)
+    if (this.frameStand) {
+      const stand = this.frameStand
+      this.frameStand = null
+      this.pendingFace = { x: stand.lookX, z: stand.lookZ }
+      this.travel(stand.x, stand.z)
+    }
     queueMicrotask(() => this.audio.ensure())
   }
 
@@ -338,8 +379,10 @@ export class Game {
     if (!this.picture) return
     const w = window.innerWidth
     const h = window.innerHeight
-    const cap = this.quality === 'low' ? 1 : this.quality === 'medium' ? 1.25 : this.coarse ? 1.15 : 1.5
-    const pr = Math.min(window.devicePixelRatio || 1, cap)
+    const long = Math.max(w, h)
+    const cap = this.quality === 'low' ? 1 : this.quality === 'medium' ? 1.25 : 1.5
+    const limit = this.quality === 'high' ? 1600 : this.quality === 'medium' ? 1280 : long
+    const pr = Math.min(window.devicePixelRatio || 1, cap, limit / Math.max(1, long))
     this.picture.renderer.setPixelRatio(pr)
     this.picture.renderer.setSize(w, h, false)
     this.camera.aspect = w / Math.max(1, h)
@@ -351,8 +394,40 @@ export class Game {
     this.atmo.shadows = quality !== 'low'
     this.meadow?.setQuality(quality)
     this.picture.setQuality(quality)
+    this.syncWater()
     this.resize()
     this.hud.setQualityLabel(quality)
+  }
+
+  /** Reservoir reflections stay on desktop Vivid. Phones and Balanced skip the extra pass. */
+  private syncWater(): void {
+    if (!this.waterNormals || !this.world) return
+    if (this.quality === 'high' && !prefersMobile()) this.world.useReflections(this.waterNormals, 0.45)
+    else this.world.clearReflections()
+  }
+
+  private lightBucket(): string {
+    const hour = this.atmo.minutes / 60
+    if (this.atmo.overcast > 0.55) return 'overcast'
+    if (this.atmo.night > 0.62) return 'night'
+    if (hour >= 19.4 && hour < 21.2) return 'blue'
+    if (hour >= 17.2 && hour < 19.4) return 'golden'
+    return 'day'
+  }
+
+  /** Lake, BART, and the overlook stream after the title, so Start is not waiting on them. */
+  private async warmFarther(meta: Meta, water: WaterFile): Promise<void> {
+    const lake = this.lakeCenter(water)
+    const jobs = [this.world.preload(meta.spawn.x, meta.spawn.z, 2), this.world.preload(lake.x, lake.z, 1)]
+    const bart = meta.places.find((p) => p.id === 'bart')
+    if (bart) jobs.push(this.world.preload(bart.x, bart.z, 1))
+    const overlook = meta.places.find((p) => p.id === 'overlook')
+    if (overlook) jobs.push(this.world.preload(overlook.x, overlook.z, 1))
+    try {
+      await Promise.all(jobs)
+    } catch (err) {
+      console.warn(err)
+    }
   }
 
   private position(): { x: number; y: number; z: number; heading: number; speed: number; agl: number } {
@@ -377,6 +452,20 @@ export class Game {
   }
 
   private frame = (now: number): void => {
+    if (this.halted) return
+    try {
+      this.tickFrame(now)
+    } catch (err) {
+      console.error(err)
+    }
+    if (this.halted || this.picture?.terminal) {
+      this.halted = true
+      return
+    }
+    requestAnimationFrame(this.frame)
+  }
+
+  private tickFrame(now: number): void {
     const raw = this.last ? (now - this.last) / 1000 : 0.016
     const dt = Math.min(0.05, raw)
     this.last = now
@@ -387,7 +476,8 @@ export class Game {
       else this.togglePause()
     }
     if (this.input.confirmEdge) {
-      if (this.mode === 'title') this.play()
+      if (this.mode === 'title' && !this.picking) this.openPicker()
+      else if (this.mode === 'title') this.play()
       else if (this.mode === 'pause') this.resume()
     }
     if (this.input.photoEdge) this.togglePhoto()
@@ -407,6 +497,16 @@ export class Game {
     if (this.mode === 'title') this.focus.copy(this.camera.position)
     else this.focus.set(pos.x, pos.y + 1.5, pos.z)
     this.atmo.update(dt, !playing, this.focus, this.world, this.picture.renderer)
+    if (!this.picture.busy) this.picture.syncShafts(valleyFog.value, shaftGain.value)
+    const bucket = this.lightBucket()
+    if (bucket !== this.sunBucket) {
+      this.sunBucket = bucket
+      try {
+        this.picture.refreshEnvironment(this.atmo.sky)
+      } catch (err) {
+        console.warn(err)
+      }
+    }
     const portals = this.portals
     const memory = portals?.inside === true
     const streamX = this.mode === 'title' ? this.camera.position.x : memory && portals ? portals.holdX : pos.x
@@ -414,7 +514,11 @@ export class Game {
     const airborne = this.mode === 'title' || this.ride === 'heli' || this.walker.flying
     this.world.update(streamX, streamZ, airborne, this.camera, this.atmo.time)
     if (this.mode === 'play') this.traffic.update(dt, this.atmo.time, pos.x, pos.z, this.world)
-    if (this.mode === 'title' || this.mode === 'pause') this.stageCast(dt)
+    if (this.mode === 'title' && !this.picking) {
+      this.milo.group.visible = false
+      this.juniper.group.visible = false
+      this.castLight.visible = false
+    } else if (this.mode === 'title' || this.mode === 'pause') this.stageCast(dt)
     if (playing) {
       const camKind: CamKind = this.walker.flying ? 'fly' : this.ride
       this.cam.update(dt, this.input, this.camera, this.world, { x: pos.x, y: pos.y, z: pos.z }, pos.heading, camKind, pos.speed, this.walker.bank)
@@ -427,7 +531,7 @@ export class Game {
       this.mixAudio(pos)
       this.car.setNight(this.atmo.night)
       this.present(pos)
-      this.maybeAdapt()
+      this.maybeAdapt(dt)
     } else if (this.photo) {
       this.holdPhoto(pos)
       this.hud.setLetterbox(true)
@@ -471,33 +575,30 @@ export class Game {
       }
       this.wash.update(dt, source, strength)
     }
-    this.envClock += dt
-    if (this.envClock > 45) {
-      this.envClock = 0
-      try {
-        this.picture.refreshEnvironment(this.atmo.sky)
-      } catch (err) {
-        console.warn(err)
-      }
-    }
     const anchorX = this.mode === 'title' ? this.look.x : memory && portals ? portals.holdX : pos.x
     const anchorZ = this.mode === 'title' ? this.look.z : memory && portals ? portals.holdZ : pos.z
     const ground = this.world.height.sample(anchorX, anchorZ)
     const agl = this.mode === 'title' ? this.camera.position.y - ground : pos.agl
     projectSun(this.camera, this.atmo.sunDir)
-    this.meadow?.update(anchorX, anchorZ, agl, this.camera, this.picture.renderer, this.picture.webgpu, dt)
     this.horizon?.update(this.camera)
     const watch = this.townClock?.getObjectByName('watch')
     if (watch) watch.rotation.y = Math.sin(now / 900) * 0.35
-    if (this.portals && this.mode !== 'boot') {
-      const view = this.mode === 'title' ? this.camera.position : pos
-      this.portals.update(dt, view.x, view.y, view.z, this.mode === 'play' || this.mode === 'pause', this.picture.renderer, this.camera, this.quality)
+    if (!this.picture.busy) {
+      this.meadow?.update(anchorX, anchorZ, agl, this.camera, this.picture.renderer, this.picture.webgpu, dt)
+      if (this.portals && this.mode !== 'boot') {
+        const view = this.mode === 'title' ? this.camera.position : pos
+        this.portals.update(dt, view.x, view.y, view.z, this.mode === 'play' || this.mode === 'pause', this.picture.renderer, this.camera, this.quality)
+      }
     }
     this.picture.syncBloom(gradeGolden.value)
     this.world.orientStreetNames(this.camera)
     this.picture.render()
     this.input.endFrame()
-    requestAnimationFrame(this.frame)
+    document.body.dataset.mode = this.mode
+    document.body.dataset.backend = this.picture.webgpu ? 'webgpu' : 'webgl'
+    document.body.dataset.presented = String(this.picture.presented)
+    document.body.dataset.px = pos.x.toFixed(1)
+    document.body.dataset.pz = pos.z.toFixed(1)
   }
 
   private hudHidden(): boolean {
@@ -889,9 +990,26 @@ export class Game {
       return
     }
     if (this.mode === 'pause') this.resume()
+    void this.arrive(x, z)
+  }
+
+  /** Keep the veil up until the destination tile exists, then set the walker down. */
+  private async arrive(x: number, z: number): Promise<void> {
+    if (!this.world.resident(x, z)) {
+      this.hud.loading('Coming in over the hills…')
+      try {
+        await this.world.preload(x, z, 1)
+      } finally {
+        this.hud.loading(null)
+      }
+    }
     const y = this.world.surface(x, z, null)
     this.walker.place(x, y, z, this.walker.heading)
-    this.cam.cut(this.walker.heading)
+    if (this.pendingFace) {
+      const look = this.pendingFace
+      this.pendingFace = null
+      this.face(look.x, look.z)
+    } else this.cam.cut(this.walker.heading)
     this.meadow?.bump()
     this.hud.toggleMap(false)
     if (this.mode === 'title') this.play()
@@ -975,7 +1093,7 @@ export class Game {
       prompt,
       hint,
       speed,
-      fps: this.hud.debugOpen ? `${Math.round(this.fps)} fps` : '',
+      fps: this.hud.debugOpen ? `${Math.round(this.fps)} fps · ${this.picture.gpuLine}` : '',
       x: pos.x,
       z: pos.z,
       heading: pos.heading,
@@ -986,15 +1104,33 @@ export class Game {
     })
   }
 
-  private maybeAdapt(): void {
-    if (this.adapted) return
-    this.fpsWarm += 1
-    if (this.fpsWarm < 240) return
-    if (this.fps < 34 && this.quality !== 'low') {
-      this.adapted = true
+  private maybeAdapt(dt: number): void {
+    if (this.photo || this.qualityLock || !this.picture) return
+    const presented = this.picture.presented
+    if (presented === this.sawPresent) return
+    this.sawPresent = presented
+    if (presented < 120) return
+    const ms = Math.min(80, Math.max(1, dt * 1000))
+    this.ema = this.ema * 0.9 + ms * 0.1
+    const fps = 1000 / this.ema
+    this.sinceStep += dt
+    if (fps < 34 && this.adaptSteps < 2 && this.quality !== 'low' && this.sinceStep > 1.2) {
+      this.adaptSteps += 1
+      this.sinceStep = 0
+      this.fastFor = 0
       this.applyQuality(this.quality === 'high' ? 'medium' : 'low')
       this.hud.toast('Softened the picture so the town stays smooth.')
-    } else this.adapted = true
+    } else if (fps > 55 && this.adaptSteps > 0 && this.quality !== 'high') {
+      this.fastFor += dt
+      if (this.fastFor > 5) {
+        this.adaptSteps -= 1
+        this.fastFor = 0
+        this.sinceStep = 0
+        this.applyQuality(this.quality === 'low' ? 'medium' : 'high')
+      }
+    } else if (fps <= 55) {
+      this.fastFor = 0
+    }
   }
 
   private chooseKid(id: KidId): void {
@@ -1149,18 +1285,15 @@ export class Game {
   private stageCast(dt: number): void {
     this.camera.updateMatrixWorld()
     const now = performance.now()
-    const w = window.innerWidth
-    const h = window.innerHeight
     const buttons = document.querySelectorAll<HTMLButtonElement>('#cast [data-kid]')
     buttons.forEach((button) => {
       const id = (button.dataset.kid || 'milo') as KidId
       const kid = id === 'juniper' ? this.juniper : this.milo
-      const rect = button.getBoundingClientRect()
-      const cx = rect.left + rect.width / 2
-      const cy = rect.top + rect.height * 0.4
-      const ndcX = (cx / w) * 2 - 1
-      const ndcY = -((cy / h) * 2 - 1)
-      kid.stand(this.camera, ndcX, ndcY, 5.15)
+      const ndcX = id === 'juniper' ? 0.22 : -0.22
+      const ndcY = 0.08
+      kid.stand(this.camera, ndcX, ndcY, 4.4)
+      const turn = Math.sin((now / 1000) * ((Math.PI * 2) / 8)) * ((3 * Math.PI) / 180)
+      kid.group.rotateY(turn)
       kid.setChosen(id === this.kidId)
       kid.preview(dt, now < this.waveUntil[id])
     })

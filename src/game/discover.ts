@@ -171,6 +171,7 @@ export class Discover {
       },
     ]
     this.ground = world.height
+    this.addHiddenGems(meta.origin)
     this.originX = world.height.originX
     this.originZ = world.height.originZ
     this.cols = Math.ceil(world.height.sizeX / CELL)
@@ -492,17 +493,66 @@ export class Discover {
     return out
   }
 
-  foundPlaces(): { name: string; x: number; z: number }[] {
-    const out: { name: string; x: number; z: number }[] = []
+  foundPlaces(): { name: string; x: number; z: number; line: string }[] {
+    const out: { name: string; x: number; z: number; line: string }[] = []
     const seen = new Set<string>()
     for (const spot of this.places) {
       if (!this.live(spot)) continue
       const id = spot.id === 'reservoir-rim' ? 'reservoir' : spot.id
       if (!this.placeFound.has(id) || seen.has(id)) continue
       seen.add(id)
-      out.push({ name: this.stories.get(id)?.name || spot.name, x: spot.x, z: spot.z })
+      out.push({
+        name: this.stories.get(id)?.name || spot.name,
+        x: spot.x,
+        z: spot.z,
+        line: this.stories.get(id)?.history || spot.line,
+      })
     }
     return out
+  }
+
+  /** Fifteen public spots from the part-2 spec. The license age and the Power Plant name are left out. */
+  private addHiddenGems(origin: { lat: number; lon: number }): void {
+    const mLat = 111320
+    const mLon = 111320 * Math.cos((origin.lat * Math.PI) / 180)
+    const gems: { id: string; name: string; line: string; lat: number; lon: number }[] = [
+      { id: 'gem-betsy', name: 'Old Betsy', line: 'A 1920 Model T fire truck in the library, found again in a barn in 1977.', lat: 37.89194, lon: -122.11575 },
+      { id: 'gem-sun', name: 'Sun Painting', line: 'Peter Erskine’s skylight. Sunlight paints the walls as the day moves.', lat: 37.8917, lon: -122.11569 },
+      { id: 'gem-seaborg', name: 'Glenn Seaborg Garden', line: 'A garden for the Nobel laureate who lived in Lafayette.', lat: 37.89196, lon: -122.11575 },
+      { id: 'gem-deck', name: 'West Reading Deck', line: 'An outdoor deck for reading, over downtown.', lat: 37.89171, lon: -122.11598 },
+      { id: 'gem-columns', name: 'Helen Webber columns', line: '1970s artwork on the station columns, easy to walk past.', lat: 37.89324, lon: -122.12467 },
+      { id: 'gem-play', name: 'Reservoir playground', line: 'A playground beside the lake.', lat: 37.88306, lon: -122.13536 },
+      { id: 'gem-piers', name: 'Reservoir fishing piers', line: 'Little wooden piers to fish from.', lat: 37.88154, lon: -122.13978 },
+      { id: 'gem-pedal', name: 'Pedal-boat dock', line: 'Pedal boats on the lake. An adult rents them.', lat: 37.88422, lon: -122.14231 },
+      { id: 'gem-tower', name: 'Outlet tower', line: 'The tower stands tall because the dam was built 33 feet lower than first planned. Scaffolding is up for the seismic work.', lat: 37.88401, lon: -122.14067 },
+      { id: 'gem-rim', name: 'Rim Trail high point', line: 'The ridge loop is in full sun, through brush and oaks, with the lake below.', lat: 37.8762, lon: -122.14384 },
+      { id: 'gem-garden', name: 'Lafayette Community Garden', line: 'Vegetable plots near the reservoir.', lat: 37.8894, lon: -122.14181 },
+      { id: 'gem-steps', name: 'John Kiefer Trail steps', line: 'A staircase up toward the Lafayette Ridge Trail.', lat: 37.9074, lon: -122.11553 },
+      { id: 'gem-jakovina', name: 'Petar Jakovina Trail footbridge', line: 'A footbridge on a neighborhood trail.', lat: 37.90115, lon: -122.11671 },
+      { id: 'gem-trail-bridge', name: 'Lafayette-Moraga Trail footbridge', line: 'A footbridge by Stanley on the electric railway line that ran from 1913 to 1957.', lat: 37.88793, lon: -122.11291 },
+      { id: 'gem-leigh', name: 'Leigh Creekside Park', line: 'A small park on the creek, off the main road.', lat: 37.89118, lon: -122.11169 },
+    ]
+    for (const gem of gems) {
+      let x = (gem.lon - origin.lon) * mLon
+      let z = -(gem.lat - origin.lat) * mLat
+      if ((this.ground.flag(x, z) & 1) !== 0) {
+        let found = false
+        for (let r = 8; r <= 96 && !found; r += 8) {
+          for (let a = 0; a < 10; a++) {
+            const nx = x + Math.cos((a / 10) * Math.PI * 2) * r
+            const nz = z + Math.sin((a / 10) * Math.PI * 2) * r
+            if ((this.ground.flag(nx, nz) & 1) === 0) {
+              x = nx
+              z = nz
+              found = true
+              break
+            }
+          }
+        }
+      }
+      this.places.push({ id: gem.id, name: gem.name, line: gem.line, x, z, radius: 20 })
+      this.stories.set(gem.id, { name: gem.name, lat: gem.lat, lon: gem.lon, history: gem.line, people: [] })
+    }
   }
 
   hall(): HallCredit[] {

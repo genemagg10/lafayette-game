@@ -4,17 +4,17 @@
  * OSM `building:colour` / `roof:colour` still override a single building when the tag exists.
  */
 export const town = {
-  asphalt: 0x3c434e,
-  asphaltAlt: 0x4a5260,
-  curb: 0xc9bfb0,
-  sidewalk: 0xd7d0c4,
-  laneWhite: 0xf5f7fb,
-  laneYellow: 0xf0c42a,
-  crosswalk: 0xf7f8f6,
+  asphalt: 0x5b5a57,
+  asphaltAlt: 0x66645f,
+  curb: 0xbdb4a4,
+  sidewalk: 0xd9cfbd,
+  laneWhite: 0xece7dc,
+  laneYellow: 0xd9b54a,
+  crosswalk: 0xece7dc,
   dirt: 0xc6a36a,
-  paper: [0xe7e0d4, 0xddd4c6, 0xf0e8dc, 0xd5cfc4],
-  roof: 0x6e5848,
-  roofAlt: 0x8a6a52,
+  paper: [0xe6dccb, 0xddd4c6, 0xe7e0d4, 0xd8cbb8],
+  roof: 0xb56a4a,
+  roofAlt: 0xb8b1a4,
 }
 
 const NAMED: Record<string, number> = {

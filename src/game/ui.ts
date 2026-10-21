@@ -10,6 +10,7 @@ export class Hud {
   mapOpen = false
   debugOpen = false
   onPlay = () => {}
+  onTitle = () => {}
   onTravel = (_x: number, _z: number) => {}
   onWeather = (_id: WeatherId | 'auto') => {}
   onSeason = () => {}
@@ -44,12 +45,14 @@ export class Hud {
   private marks: { name: string; x: number; z: number }[] = []
 
   constructor() {
-    const armPlay = (event: Event) => {
+    document.getElementById('play')?.addEventListener('pointerdown', (event) => {
+      event.preventDefault()
+      this.onTitle()
+    })
+    document.getElementById('cast-go')?.addEventListener('pointerdown', (event) => {
       event.preventDefault()
       this.onPlay()
-    }
-    document.getElementById('play')?.addEventListener('pointerdown', armPlay)
-    document.getElementById('cast-go')?.addEventListener('pointerdown', armPlay)
+    })
     document.getElementById('pause-btn')?.addEventListener('click', () => this.onPause())
     document.getElementById('photo-btn')?.addEventListener('click', () => this.onPhoto())
     document.getElementById('card')?.addEventListener('click', () => this.hideCard())
@@ -147,7 +150,13 @@ export class Hud {
   showTitle(): void {
     const title = document.getElementById('title')
     if (title) title.hidden = false
-    this.showCast('title')
+    this.hideCast()
+  }
+
+  openPicker(): void {
+    const title = document.getElementById('title')
+    if (title) title.hidden = true
+    this.showCast('pick')
   }
 
   beginPlay(): void {
@@ -158,7 +167,7 @@ export class Hud {
     this.hideCast()
   }
 
-  showCast(mode: 'title' | 'pause'): void {
+  showCast(mode: 'pick' | 'pause'): void {
     const cast = document.getElementById('cast')
     const go = document.getElementById('cast-go')
     const kicker = document.getElementById('cast-kicker')
@@ -167,8 +176,8 @@ export class Hud {
       cast.classList.toggle('is-pause', mode === 'pause')
     }
     if (go) {
-      go.hidden = mode !== 'pause'
-      go.textContent = 'Back to the boulevard'
+      go.hidden = false
+      go.textContent = mode === 'pause' ? 'Back to the boulevard' : 'Start downtown'
     }
     if (kicker) kicker.textContent = mode === 'pause' ? 'Swap ramblers' : 'Pick a rambler'
   }
@@ -197,12 +206,12 @@ export class Hud {
 
   setRoam(
     reveal: (x: number, z: number) => boolean,
-    marks: { name: string; x: number; z: number }[],
+    marks: { name: string; x: number; z: number; line?: string }[],
     hall: HallCredit[] = [],
   ): void {
     this.reveal = reveal
     this.marks = marks
-    this.setPlaceList(marks.map((mark) => mark.name))
+    this.setPlaceList(marks)
     this.setTravelList(marks)
     this.setHall(hall)
     if (this.mapOpen) this.paintMap()
@@ -413,19 +422,26 @@ export class Hud {
     }
   }
 
-  setPlaceList(names: string[]): void {
+  setPlaceList(marks: { name: string; line?: string }[]): void {
     const list = document.getElementById('found-list')
     if (!list) return
     list.replaceChildren()
-    if (names.length === 0) {
+    if (marks.length === 0) {
       const empty = document.createElement('li')
       empty.textContent = 'Nothing pinned yet. Walk somewhere new.'
       list.append(empty)
       return
     }
-    for (const name of names) {
+    for (const mark of marks) {
       const li = document.createElement('li')
-      li.textContent = name
+      const name = document.createElement('strong')
+      name.textContent = mark.name
+      li.append(name)
+      if (mark.line) {
+        const note = document.createElement('p')
+        note.textContent = mark.line
+        li.append(note)
+      }
       list.append(li)
     }
   }
@@ -482,11 +498,24 @@ export class Hud {
     if (!el) return
     el.textContent = text
     el.classList.add('show')
+    el.classList.remove('hold')
+    el.onclick = null
     this.toastTimer = 5.2
   }
 
+  /** Stays up until the click. Used when the picture cannot rebuild itself. */
+  holdToast(text: string, onClick: () => void): void {
+    const el = document.getElementById('toast')
+    if (!el) return
+    el.textContent = text
+    el.classList.add('show', 'hold')
+    this.toastTimer = 0
+    el.onclick = () => onClick()
+  }
+
   tickToast(dt: number, holdCard = false): void {
-    if (this.toastTimer > 0) {
+    const toast = document.getElementById('toast')
+    if (this.toastTimer > 0 && !toast?.classList.contains('hold')) {
       this.toastTimer -= dt
       if (this.toastTimer <= 0) document.getElementById('toast')?.classList.remove('show')
     }

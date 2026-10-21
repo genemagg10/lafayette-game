@@ -32,7 +32,7 @@ function bake(r: number, g: number, b: number): [number, number, number] {
   let G = contrast(curve(g))
   let B = contrast(curve(b * 0.98))
   const l = 0.2126 * R + 0.7152 * G + 0.0722 * B
-  const sat = 1.4
+  const sat = 1.02
   R = l + (R - l) * sat
   G = l + (G - l) * sat
   B = l + (B - l) * sat

@@ -327,7 +327,10 @@ export class Blockers {
 
 export function tint(hex: number, salt: number): THREE.Color {
   const c = new THREE.Color(hex)
-  const k = 0.9 + hash01(salt) * 0.18
+  const k = 0.94 + hash01(salt) * 0.1
   c.multiplyScalar(k)
+  const hsl = { h: 0, s: 0, l: 0 }
+  c.getHSL(hsl)
+  if (hsl.s > 0.45) c.setHSL(hsl.h, 0.45, hsl.l)
   return c
 }

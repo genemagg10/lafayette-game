@@ -130,12 +130,18 @@ button { cursor: pointer; }
   pointer-events: none;
 }
 #loading { justify-content: center; background: #f4efe4; pointer-events: auto; z-index: 30; }
-#title { pointer-events: none; z-index: 8; }
+#title {
+  pointer-events: none; z-index: 8;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 8vh 7vw 7vh;
+}
 #loading[hidden], #title[hidden] { display: none !important; }
 #title .card, #title .credit, #loading * { pointer-events: auto; }
 .card, #loading {
   max-width: 34rem;
 }
+#title .card { max-width: 440px; }
 .eyebrow {
   letter-spacing: 0.16em; text-transform: uppercase;
   font-size: 0.72rem; margin: 0 0 0.4rem; color: #2f5d34;
@@ -248,41 +254,68 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 
 #cast {
-  position: fixed; left: 50%; top: 5vh; transform: translateX(-50%);
+  position: fixed; left: 50%; bottom: max(1.1rem, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
   z-index: 9; display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
-  pointer-events: none; width: min(640px, 94vw);
+  pointer-events: none; width: min(420px, 94vw);
+}
+.cast-ground {
+  position: fixed; left: 50%; top: 64%; transform: translateX(-50%);
+  display: flex; gap: 8rem; pointer-events: none; z-index: 8;
+}
+.cast-ground span {
+  width: 150px; height: 28px; border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(28, 36, 48, 0.38), rgba(28, 36, 48, 0) 70%);
 }
 #cast[hidden] { display: none !important; }
 #cast.is-pause { top: 8vh; }
 .cast-picks { display: flex; gap: clamp(0.7rem, 3vw, 1.6rem); width: 100%; justify-content: center; }
 .kid {
   pointer-events: auto;
-  width: min(250px, 44vw);
-  height: min(360px, 48vh);
+  width: 160px;
+  height: 88px;
   display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
-  gap: 0.2rem;
-  padding: 0.9rem 1rem 0.85rem;
-  border-radius: 28px;
-  border: 3px solid transparent;
-  background: rgba(244, 239, 228, 0.38);
+  gap: 0.15rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  background: rgba(244, 239, 228, 0.78);
   color: #1c2430;
   text-align: left;
-  box-shadow: 0 18px 40px rgba(28, 36, 48, 0.14);
+  box-shadow: 0 10px 24px rgba(28, 36, 48, 0.14);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
-.kid:hover { background: rgba(255, 250, 242, 0.72); }
+.kid:hover { background: rgba(255, 250, 242, 0.92); }
 .kid.on {
   border-color: #e7c36a;
-  background: rgba(255, 250, 242, 0.58);
-  box-shadow: 0 18px 40px rgba(28, 36, 48, 0.18), 0 0 0 6px rgba(231, 195, 106, 0.28);
+  background: rgba(255, 250, 242, 0.92);
+  transform: scale(1.04);
+  box-shadow: 0 12px 28px rgba(28, 36, 48, 0.16);
 }
-.kid-name { font-family: Fraunces, Georgia, serif; font-size: 1.8rem; line-height: 1; }
-.kid-line { font-size: 0.92rem; color: #243044; font-weight: 500; }
+.kid-name { font-family: Fraunces, Georgia, serif; font-size: 1.15rem; line-height: 1; }
+.kid-line { font-size: 0.72rem; color: #243044; font-weight: 500; }
+#cast.is-pause .kid {
+  width: min(250px, 44vw);
+  height: min(220px, 28vh);
+  border-radius: 22px;
+  padding: 0.8rem 0.9rem;
+}
+#cast.is-pause .kid-name { font-size: 1.6rem; }
+#cast.is-pause .kid-line { font-size: 0.88rem; }
+#cast.is-pause { top: 8vh; bottom: auto; width: min(640px, 94vw); }
 #cast-go { pointer-events: auto; }
 #cast-kicker {
   background: rgba(244, 239, 228, 0.88);
   padding: 0.28rem 0.6rem; border-radius: 999px;
 }
 #toast.show { opacity: 1; }
+#toast.hold { opacity: 1; pointer-events: auto; cursor: pointer; z-index: 40; }
+@media (pointer: coarse) {
+  #place-card {
+    backdrop-filter: none;
+    background: rgba(255, 252, 247, 0.92);
+  }
+}
 
 #card {
   position: fixed; left: 50%; top: 8vh; transform: translateX(-50%); z-index: 9;
@@ -370,7 +403,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .check { justify-content: flex-start !important; }
 #fps { font-variant-numeric: tabular-nums; color: #526070; }
 
-#touch { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
+#touch { position: fixed; inset: 0; pointer-events: none; z-index: 3; touch-action: none; }
 /* Menus own the screen. The stick stays hidden until a ramble is actually underway. */
 body:has(#loading:not([hidden])) #touch,
 body:has(#title:not([hidden])) #touch,
@@ -379,6 +412,7 @@ body:has(#cast:not([hidden])) #touch { display: none !important; }
   pointer-events: auto; position: absolute; left: 1.2rem; bottom: 1.4rem;
   width: 128px; height: 128px; border-radius: 50%;
   background: rgba(244, 239, 228, 0.35); border: 2px solid rgba(28, 36, 48, 0.25);
+  touch-action: none;
 }
 #knob {
   position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; border-radius: 50%;
@@ -431,18 +465,22 @@ body:has(#cast:not([hidden])) #touch { display: none !important; }
   h1 { font-size: 2.35rem; }
   #title {
     justify-content: flex-start;
-    padding: 0.7rem 0.75rem 8.6rem;
+    align-items: stretch;
+    padding: max(0.7rem, env(safe-area-inset-top)) 0.75rem 1rem;
     overflow: auto;
   }
+  #title .card { max-width: none; }
   #title .card { padding: 0.95rem 1rem 0.85rem; }
   #title .lede { font-size: 0.95rem; margin: 0.45rem 0 0.7rem; }
   #title .facts { margin-top: 0.45rem; }
   #cast {
     top: auto;
-    bottom: 0.35rem;
-    gap: 0.3rem;
-    width: min(640px, 96vw);
+    bottom: max(0.55rem, env(safe-area-inset-bottom));
+    gap: 0.35rem;
+    width: min(360px, 96vw);
   }
+  .cast-ground { gap: 2.2rem; top: 62%; }
+  .cast-ground span { width: 110px; }
   #cast.is-pause {
     top: 0.4rem;
     bottom: auto;
@@ -451,14 +489,15 @@ body:has(#cast:not([hidden])) #touch { display: none !important; }
   }
   .cast-picks { gap: 0.45rem; }
   .kid {
-    height: auto;
-    min-height: 0;
-    width: min(46vw, 180px);
-    padding: 0.6rem 0.7rem;
-    border-radius: 18px;
+    width: 160px;
+    height: 88px;
+    padding: 0.5rem 0.6rem;
+    border-radius: 16px;
   }
-  .kid-name { font-size: 1.2rem; }
-  .kid-line { font-size: 0.75rem; }
+  #cast.is-pause .kid {
+    height: auto;
+    width: min(46vw, 180px);
+  }
   #place { font-size: 1rem; }
   #place-card { padding: 0.32rem 0.55rem; max-width: 62vw; }
   #activity { font-size: 0.78rem; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
@@ -478,10 +517,8 @@ body:has(#cast:not([hidden])) #touch { display: none !important; }
   #context-btn { width: 68px; height: 68px; }
   #prompt { bottom: 30%; max-width: 72vw; }
 }
-/* A short window cannot fit a tall cast above a tall title card. */
+/* Pause cards stay on screen when the window is short. The title and the picker are separate stages. */
 @media (max-height: 1040px) and (min-width: 801px) {
-  #cast { top: 2vh; }
-  .kid { height: min(220px, 28vh); }
-  #title { padding-bottom: 2.5vh; }
-  #title .card { max-height: 46vh; overflow: auto; }
+  #cast.is-pause { top: 2vh; }
+  #cast.is-pause .kid { height: min(180px, 26vh); }
 }

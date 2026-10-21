@@ -53,7 +53,10 @@ export class Input {
   private stickY = 0
   private btn = new Set<string>()
 
+  private view: HTMLCanvasElement
+
   constructor(canvas: HTMLCanvasElement) {
+    this.view = canvas
     const typing = (e: Event) => {
       const tag = (e.target as HTMLElement | null)?.tagName
       return tag === 'INPUT' || tag === 'TEXTAREA'
@@ -67,12 +70,9 @@ export class Input {
     })
     window.addEventListener('keyup', (e) => this.keys.delete(e.code))
     window.addEventListener('blur', () => this.keys.clear())
-    canvas.addEventListener('click', () => {
-      if (this.usingTouch || !this.allowLock) return
-      if (!this.pointerLocked) canvas.requestPointerLock?.()
-    })
+    this.bindView(canvas)
     document.addEventListener('pointerlockchange', () => {
-      this.pointerLocked = document.pointerLockElement === canvas
+      this.pointerLocked = document.pointerLockElement === this.view
     })
     window.addEventListener('mousemove', (e) => {
       if (this.pointerLocked || e.buttons === 2) {
@@ -83,7 +83,6 @@ export class Input {
     window.addEventListener('wheel', (e) => {
       this.zoom += e.deltaY
     }, { passive: true })
-    canvas.addEventListener('contextmenu', (e) => e.preventDefault())
 
     const stick = document.getElementById('stick')
     const knob = document.getElementById('knob')
@@ -93,33 +92,59 @@ export class Input {
       this.usingTouch = true
       this.applyTouch()
     }
-    if (matchMedia('(pointer: coarse)').matches) armTouch()
-    window.addEventListener('touchstart', armTouch, { passive: true })
-
-    stick?.addEventListener('touchstart', (e) => {
+    if (matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0) armTouch()
+    const leftSide = (x: number) => x <= window.innerWidth * 0.5
+    const onControl = (target: EventTarget | null) => (target as HTMLElement | null)?.closest?.('button, a, input')
+    const takeStick = (id: number, x: number, y: number) => {
+      if (!stick || !this.touchWanted || !leftSide(x) || this.stickId >= 0 && this.stickId !== id) return
+      this.stickId = id
+      this.moveStickAt(x, y, stick, knob)
+    }
+    window.addEventListener('touchstart', (e) => {
+      armTouch()
       const t = e.changedTouches[0]
-      this.stickId = t.identifier
-      this.moveStick(t, stick, knob, true)
-      e.preventDefault()
+      if (!t || onControl(e.target)) return
+      if (!leftSide(t.clientX) || !this.touchWanted) return
+      takeStick(t.identifier, t.clientX, t.clientY)
     }, { passive: false })
-    stick?.addEventListener('touchmove', (e) => {
+    window.addEventListener('touchmove', (e) => {
+      if (!stick || this.stickId < 0) return
       for (const t of e.changedTouches) {
-        if (t.identifier === this.stickId) this.moveStick(t, stick, knob, false)
+        if (t.identifier === this.stickId || leftSide(t.clientX)) this.moveStickAt(t.clientX, t.clientY, stick, knob)
       }
-      e.preventDefault()
     }, { passive: false })
     const endStick = (e: TouchEvent) => {
-      for (const t of e.changedTouches) {
-        if (t.identifier === this.stickId) {
-          this.stickId = -1
-          this.stickX = 0
-          this.stickY = 0
-          if (knob) knob.style.transform = 'translate(-50%, -50%)'
+      let held = false
+      for (const t of e.touches) if (leftSide(t.clientX)) held = true
+      if (!held) this.releaseStick(knob)
+    }
+    window.addEventListener('touchend', endStick)
+    window.addEventListener('touchcancel', endStick)
+
+    const pointerStick = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse' || !stick || onControl(e.target)) return
+      armTouch()
+      if (e.type === 'pointerdown') {
+        if (!this.touchWanted || !leftSide(e.clientX)) return
+        this.stickId = e.pointerId
+        try {
+          stick.setPointerCapture?.(e.pointerId)
+        } catch {
+          // The pointer started on the road, not the stick. Window moves still track it.
         }
+        this.moveStickAt(e.clientX, e.clientY, stick, knob)
+      } else if (e.pointerId === this.stickId) {
+        this.moveStickAt(e.clientX, e.clientY, stick, knob)
       }
     }
-    stick?.addEventListener('touchend', endStick)
-    stick?.addEventListener('touchcancel', endStick)
+    window.addEventListener('pointerdown', pointerStick)
+    window.addEventListener('pointermove', pointerStick)
+    window.addEventListener('pointerup', (e) => {
+      if (e.pointerId === this.stickId) this.releaseStick(knob)
+    })
+    window.addEventListener('pointercancel', (e) => {
+      if (e.pointerId === this.stickId) this.releaseStick(knob)
+    })
 
     look?.addEventListener('touchstart', (e) => {
       this.lookId = e.changedTouches[0].identifier
@@ -163,27 +188,48 @@ export class Input {
     })
   }
 
+  /** The picture swaps the canvas node after a device loss. Listen on the new one. */
+  retarget(canvas: HTMLCanvasElement): void {
+    this.view = canvas
+    this.bindView(canvas)
+  }
+
+  private bindView(canvas: HTMLCanvasElement): void {
+    canvas.addEventListener('click', () => {
+      if (this.usingTouch || !this.allowLock) return
+      if (navigator.webdriver) return
+      const lock = canvas.requestPointerLock?.()
+      if (lock && typeof (lock as Promise<void>).catch === 'function') void (lock as Promise<void>).catch(() => {})
+    })
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault())
+  }
+
   private prevLookX = 0
   private prevLookY = 0
 
-  private moveStick(t: Touch, stick: HTMLElement, knob: HTMLElement | null, start: boolean): void {
+  private releaseStick(knob: HTMLElement | null): void {
+    this.stickId = -1
+    this.stickX = 0
+    this.stickY = 0
+    if (knob) knob.style.transform = 'translate(-50%, -50%)'
+  }
+
+  private moveStickAt(clientX: number, clientY: number, stick: HTMLElement, knob: HTMLElement | null): void {
     const rect = stick.getBoundingClientRect()
+    const max = rect.width * 0.36
+    if (!(max > 8)) return
     const cx = rect.left + rect.width / 2
     const cy = rect.top + rect.height / 2
-    let dx = t.clientX - cx
-    let dy = t.clientY - cy
-    const max = rect.width * 0.36
-    const len = Math.hypot(dx, dy) || 1
-    if (len > max) {
+    let dx = clientX - cx
+    let dy = clientY - cy
+    const len = Math.hypot(dx, dy)
+    if (len > max && len > 0) {
       dx = (dx / len) * max
       dy = (dy / len) * max
     }
     this.stickX = dx / max
     this.stickY = dy / max
     if (knob) knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`
-    if (start) {
-      this.prevLookX = 0
-    }
   }
 
   private down(code: string): boolean {

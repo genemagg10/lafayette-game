@@ -8,19 +8,21 @@ import {
   MeshToonNodeMaterial,
   RepeatWrapping,
   SRGBColorSpace,
+  Vector2,
 } from 'three/webgpu'
 import { attribute, frameGroup, mix, normalWorld, smoothstep, uniform, vec3, vertexColor } from 'three/tsl'
 import { sunDirShade, swayFromHeight, swayFromTip } from './wind.ts'
 
-/** Leaves stay green in shade. `fade` is per tree so a crown in the lens can disappear. */
+/** Matte crowns. `fade` is per tree so a crown in the lens can disappear. */
 export function townLeafMaterial(): MeshStandardNodeMaterial {
   const mat = new MeshStandardNodeMaterial({
     color: 0xffffff,
-    roughness: 0.78,
+    roughness: 0.95,
     metalness: 0,
-    emissive: 0x1f8a34,
-    emissiveIntensity: 0.72,
-    flatShading: true,
+    emissive: 0x000000,
+    emissiveIntensity: 0,
+    flatShading: false,
+    vertexColors: true,
   })
   mat.transparent = true
   mat.opacityNode = attribute('fade', 'float')
@@ -28,15 +30,16 @@ export function townLeafMaterial(): MeshStandardNodeMaterial {
   return mat
 }
 
-/** Trunks pick up the same fade, and a little bounce so the shaded side stays brown. */
+/** Bark. Instance color picks oak brown or the mottled plane trunk. */
 export function trunkMaterial(): MeshStandardNodeMaterial {
   const mat = new MeshStandardNodeMaterial({
-    color: 0x8d6242,
-    roughness: 0.9,
+    color: 0xffffff,
+    roughness: 0.95,
     metalness: 0,
-    emissive: 0x4a3020,
-    emissiveIntensity: 0.35,
-    flatShading: true,
+    emissive: 0x000000,
+    emissiveIntensity: 0,
+    flatShading: false,
+    vertexColors: true,
   })
   mat.transparent = true
   mat.opacityNode = attribute('fade', 'float')
@@ -73,16 +76,16 @@ function canvasTex(draw: (ctx: CanvasRenderingContext2D, size: number) => void, 
 }
 
 function windows(g: CanvasRenderingContext2D, y: number, h: number, lit: boolean): void {
-  const cols = 4
+  const cols = 3
+  const bay = 78
   for (let i = 0; i < cols; i++) {
-    const x = 18 + i * 58
-    g.fillStyle = lit ? '#ffb15e' : '#1d3344'
-    g.fillRect(x, y, 40, h)
-    g.fillStyle = lit ? 'rgba(255,236,200,0.35)' : '#8eb4c8'
-    g.fillRect(x + 3, y + 3, 15, h * 0.42)
-    g.fillRect(x + 22, y + 3, 15, h * 0.42)
-    g.strokeStyle = 'rgba(40,32,24,0.45)'
-    g.strokeRect(x, y, 40, h)
+    const x = 16 + i * bay
+    g.fillStyle = '#2c2824'
+    g.fillRect(x, y, 64, h)
+    g.fillStyle = lit ? '#ffb15e' : '#3d4a52'
+    g.fillRect(x + 5, y + 5, 54, h - 10)
+    g.fillStyle = lit ? 'rgba(255,236,200,0.28)' : 'rgba(180,196,204,0.28)'
+    g.fillRect(x + 8, y + 8, 22, (h - 16) * 0.45)
   }
 }
 
@@ -103,9 +106,9 @@ export function createTextures() {
     g.fillRect(0, 0, s, s)
     g.fillStyle = '#e7e1d6'
     g.fillRect(0, s - 92, s, 92)
-    g.fillStyle = '#c4553c'
+    g.fillStyle = '#7a4a36'
     g.fillRect(0, s - 96, s, 8)
-    g.fillStyle = '#d5e7ef'
+    g.fillStyle = '#3d4a52'
     g.fillRect(18, s - 78, s - 36, 58)
     g.strokeStyle = 'rgba(28,36,48,0.28)'
     g.lineWidth = 3
@@ -137,9 +140,9 @@ export function createTextures() {
   const oak = canvasTex((g, s) => {
     g.clearRect(0, 0, s, s)
     const grd = g.createRadialGradient(s * 0.5, s * 0.58, s * 0.05, s * 0.5, s * 0.55, s * 0.48)
-    grd.addColorStop(0, '#6ea24a')
-    grd.addColorStop(0.55, '#2f5d34')
-    grd.addColorStop(1, 'rgba(47,93,52,0)')
+    grd.addColorStop(0, '#6f7d4a')
+    grd.addColorStop(0.55, '#5e6b3f')
+    grd.addColorStop(1, 'rgba(94,107,63,0)')
     g.fillStyle = grd
     g.beginPath()
     g.ellipse(s * 0.5, s * 0.56, s * 0.42, s * 0.36, 0, 0, Math.PI * 2)
@@ -222,16 +225,38 @@ export function hillMaterial(): MeshStandardNodeMaterial {
   return material
 }
 
-/** Storefronts keep their color in shade. The sun still brightens the facing side. */
-export function facadeMaterial(roughness = 0.84): MeshStandardNodeMaterial {
+/** Storefronts keep a little color in shade. The sun still models the face. */
+export function facadeMaterial(roughness = 0.9): MeshStandardNodeMaterial {
   const material = new MeshStandardNodeMaterial({
     color: 0xffffff,
     roughness,
     metalness: 0,
     vertexColors: true,
-    flatShading: true,
+    flatShading: false,
   })
-  material.emissiveNode = vertexColor().mul(0.48) as never
+  material.emissiveNode = vertexColor().mul(0.18) as never
+  return material
+}
+
+/** Board-and-batten: a vertical groove every 0.4 m along the wall UV (1 unit = 3.2 m). */
+export function battenMaterial(): MeshStandardNodeMaterial {
+  const material = facadeMaterial(0.9)
+  const canvas = document.createElement('canvas')
+  canvas.width = 64
+  canvas.height = 8
+  const g = canvas.getContext('2d')
+  if (g) {
+    g.fillStyle = 'rgb(128,128,255)'
+    g.fillRect(0, 0, 64, 8)
+    g.fillStyle = 'rgb(96,128,255)'
+    for (let x = 0; x < 64; x += 8) g.fillRect(x, 0, 2, 8)
+  }
+  const tex = new CanvasTexture(canvas)
+  tex.colorSpace = LinearSRGBColorSpace
+  tex.wrapS = RepeatWrapping
+  tex.wrapT = RepeatWrapping
+  material.normalMap = tex
+  material.normalScale = new Vector2(0.55, 0.55)
   return material
 }
 

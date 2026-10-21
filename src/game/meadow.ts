@@ -134,6 +134,18 @@ export class Meadow {
     this.dirty = true
   }
 
+  /** The instanced arrays belonged to a device that is gone. The next update builds them again. */
+  releaseGpu(): void {
+    this.gpu = false
+    this.positions = null
+    this.alive = null
+    this.cull = null
+    this.cullCount = -1
+    const mat = this.blades.material as { positionNode?: unknown }
+    mat.positionNode = undefined
+    this.dirty = true
+  }
+
   /** Rescatter on the next frame. Travel jumps farther than the stream cooldown. */
   bump(): void {
     this.dirty = true

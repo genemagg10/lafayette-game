@@ -4,22 +4,76 @@ import { MeshBuilder } from './geom.ts'
 import type { Heightfield } from './height.ts'
 import { hash01 } from './math.ts'
 
-/** A few overlapping spheres, so a crown reads as a clump instead of one gem. */
+/**
+ * 3–5 smooth icospheres. Radii sit between 0.55 and 0.9, jittered by ±0.3.
+ * Vertex colors vary lightness by ±6%, and the underside is darker so a crown
+ * has contact shade without a second shadow map.
+ */
 export function clusterCanopy(radius = 1): THREE.BufferGeometry {
   const blobs: THREE.BufferGeometry[] = []
-  blobs.push(new THREE.SphereGeometry(radius, 8, 6))
   const puffs: [number, number, number, number][] = [
-    [0.58, 0.32, 0.1, 0.76],
-    [-0.46, 0.22, 0.4, 0.7],
-    [0.14, 0.46, -0.5, 0.72],
-    [-0.16, -0.08, -0.46, 0.6],
+    [0.0, 0.1, 0.0, 0.88],
+    [0.28, 0.02, 0.14, 0.74],
+    [-0.26, 0.06, -0.12, 0.68],
+    [0.08, 0.24, -0.22, 0.6],
+    [-0.14, -0.06, 0.26, 0.56],
   ]
   for (const [ox, oy, oz, scale] of puffs) {
-    const puff = new THREE.SphereGeometry(radius * scale, 6, 5)
-    puff.translate(ox * radius, oy * radius, oz * radius)
-    blobs.push(puff)
+    const r = radius * Math.min(0.9, Math.max(0.55, scale))
+    const geo = new THREE.IcosahedronGeometry(r, 1)
+    geo.translate(ox * 0.3, oy * 0.3, oz * 0.3)
+    blobs.push(geo)
   }
-  return mergeGeometries(blobs) ?? blobs[0]
+  const merged = mergeGeometries(blobs) ?? blobs[0]
+  paintLightness(merged, true)
+  return merged
+}
+
+/** Bole from radius 0.18 to 0.32, plus two or three limbs. Mottled in vertex color. */
+export function treeTrunk(): THREE.BufferGeometry {
+  const bole = new THREE.CylinderGeometry(0.18, 0.32, 3.15, 6)
+  bole.translate(0, 1.58, 0)
+  const parts: THREE.BufferGeometry[] = [bole]
+  const limbs: [number, number, number][] = [
+    [0.55, 0.62, 2.15],
+    [2.6, 0.5, 1.95],
+    [4.3, 0.58, 2.28],
+  ]
+  for (const [yaw, pitch, y] of limbs) {
+    const limb = new THREE.CylinderGeometry(0.045, 0.085, 0.95, 4)
+    limb.translate(0, 0.48, 0)
+    limb.rotateZ(pitch)
+    limb.rotateY(yaw)
+    limb.translate(0, y, 0)
+    parts.push(limb)
+  }
+  const merged = mergeGeometries(parts) ?? bole
+  paintLightness(merged, false)
+  return merged
+}
+
+function paintLightness(geo: THREE.BufferGeometry, underside: boolean): void {
+  const pos = geo.getAttribute('position')
+  const colors = new Float32Array(pos.count * 3)
+  let minY = Infinity
+  let maxY = -Infinity
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i)
+    if (y < minY) minY = y
+    if (y > maxY) maxY = y
+  }
+  for (let i = 0; i < pos.count; i++) {
+    const n = hash01(i * 17 + Math.round(pos.getY(i) * 40))
+    let lift = 0.94 + n * 0.12
+    if (underside) {
+      const t = (pos.getY(i) - minY) / (maxY - minY || 1)
+      lift *= 0.7 + t * 0.3
+    }
+    colors[i * 3] = lift
+    colors[i * 3 + 1] = lift
+    colors[i * 3 + 2] = lift
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 }
 
 /**
@@ -51,10 +105,12 @@ const HEROES: { id: HeroId; x: number; z: number; r: number }[] = [
   { id: 'library', x: 820, z: -438, r: 48 },
 ]
 
-const STUCCO = [0xf4e6cf, 0xe7d3b4, 0xf7f0e4, 0xdcc7a6]
-const WOOD = [0xc4a06a, 0xa67c4e, 0x8d5a3c, 0xd7b48a]
-const BRICK = [0xa34b3c, 0x8e4038, 0xb85a48]
+const STUCCO = [0xe6dccb, 0xddd4c4, 0xe7e0d4, 0xd8cbb8]
+const BATTEN = [0xcfc6b4]
+const BRICK = [0x9a5a44, 0x8e4e3c, 0xa46652]
 const STONE = [0xc5beb4, 0x9a948c, 0xb7aea2]
+const AWNING = [0x7a4a36, 0x3f5a4a]
+export const BATTEN_HEX = 0xcfc6b4
 
 export function inDowntown(x: number, z: number): boolean {
   return x > 140 && x < 980 && z > -640 && z < -300
@@ -91,23 +147,23 @@ export function facadeFor(x: number, z: number, name: string, salt: number, best
     const d = spot ? Math.hypot(x - spot.x, z - spot.z) : 99
     if (d > (best.get(hero) ?? 0) + 0.8) hero = null
   }
-  if (hero === 'theater') return { wall: 0xf6f1e6, base: 0xe7e0d2, roof: 0x4a4e55, awning: 0x9e2430, hero, stories: 2 }
-  if (hero === 'garrett') return { wall: 0x8e4038, base: 0x6e322c, roof: 0x3a3330, awning: 0x1c2430, hero, stories: 2 }
-  if (hero === 'pioneer') return { wall: 0xc4a06a, base: 0x8d5a3c, roof: 0x6e4a34, awning: 0x2f5d34, hero, stories: 2 }
-  if (hero === 'library') return { wall: 0xb08968, base: 0x9a9186, roof: 0x5c4636, awning: 0x6e5848, hero, stories: 2 }
+  if (hero === 'theater') return { wall: 0xe6dccb, base: 0xd8cbb8, roof: 0xb56a4a, awning: 0x7a4a36, hero, stories: 2 }
+  if (hero === 'garrett') return { wall: 0x9a5a44, base: 0x7a4638, roof: 0xb56a4a, awning: 0x3f5a4a, hero, stories: 2 }
+  if (hero === 'pioneer') return { wall: BATTEN_HEX, base: 0xb7ad9c, roof: 0xb56a4a, awning: 0x7a4a36, hero, stories: 2 }
+  if (hero === 'library') return { wall: 0xe6dccb, base: 0xc5beb4, roof: 0xb8b1a4, awning: 0x3f5a4a, hero, stories: 2 }
   const n = hash01(salt)
   // Mostly two stories [S, DDG]. A few one-story and a few three-story [S].
   const stories = n < 0.16 ? 1 : n < 0.82 ? 2 : 3
   const family = hash01(salt + 5)
-  const upper = family < 0.34 ? STUCCO : family < 0.62 ? WOOD : family < 0.84 ? BRICK : STONE
-  const lower = family < 0.5 ? STONE : family < 0.75 ? BRICK : WOOD
+  const upper = family < 0.4 ? STUCCO : family < 0.62 ? BATTEN : family < 0.86 ? BRICK : STONE
+  const lower = family < 0.5 ? STONE : family < 0.75 ? BRICK : BATTEN
   const wall = upper[Math.abs(salt) % upper.length]
   const base = lower[Math.abs(salt + 2) % lower.length]
   return {
     wall,
     base,
-    roof: hash01(salt + 9) > 0.7 ? 0x6e5848 : 0x5c534c,
-    awning: [0x9e2430, 0x2f5d34, 0x1d4e89, 0xc47a3a, 0xf4efe4][Math.abs(salt) % 5],
+    roof: hash01(salt + 9) > 0.45 ? 0xb56a4a : 0xb8b1a4,
+    awning: AWNING[Math.abs(salt) % AWNING.length],
     hero: null,
     stories,
   }
@@ -161,7 +217,10 @@ export function shopSignTexture(title: string): THREE.CanvasTexture {
   return tex
 }
 
-/** Punched windows and a ground-floor awning. Bays are about 25 ft [E from OBJ]. */
+/**
+ * Window bays at 1.2 m with 1.6 m sills and a 6 cm frame.
+ * A storefront (any awning) gets a 3.2 m ground-floor glass band.
+ */
 export function punchFacade(
   glass: MeshBuilder,
   awnings: MeshBuilder,
@@ -180,9 +239,11 @@ export function punchFacade(
       longI = i
     }
   }
-  const glassColor = new THREE.Color(0x243044)
+  const glassColor = new THREE.Color(0x3d4a52)
+  const frame = new THREE.Color(0x2c2824)
   const warm = new THREE.Color(0xffe1a8)
-  const cloth = new THREE.Color(awning)
+  const cloth = new THREE.Color(awning || 0x7a4a36)
+  const storefront = awning !== 0
   for (let i = 0; i < n; i++) {
     const x1 = poly[i * 2]
     const z1 = poly[i * 2 + 1]
@@ -194,48 +255,88 @@ export function punchFacade(
     if (len < 2.2) continue
     const ux = dx / len
     const uz = dz / len
-    const ox = uz * 0.16
-    const oz = -ux * 0.16
-    const bays = Math.max(1, Math.round(len / 6.4))
+    const ox = uz * 0.08
+    const oz = -ux * 0.08
+    const bays = Math.max(1, Math.round(len / 1.2))
     const floors = height > 8.4 ? 3 : height > 5.2 ? 2 : 1
-    for (let f = 0; f < floors; f++) {
-      const sill = y0 + 1.35 + f * 3.05
-      if (sill > y0 + height - 0.55) continue
-      const band = new THREE.Color(0x1a2330)
-      glass.tri(x1 + ox, sill, z1 + oz, x2 + ox, sill, z2 + oz, x1 + ox, sill + 0.14, z1 + oz, band)
-      glass.tri(x2 + ox, sill, z2 + oz, x2 + ox, sill + 0.14, z2 + oz, x1 + ox, sill + 0.14, z1 + oz, band)
+    const bandTop = storefront ? Math.min(y0 + 3.2, y0 + height - 0.35) : 0
+    if (storefront && bandTop - y0 > 1.4) {
+      const yb = y0 + 0.12
+      const pane = new THREE.Color(0x3d4a52)
+      quad(glass, x1 + ox, yb, z1 + oz, x2 + ox, yb, z2 + oz, x2 + ox, bandTop, z2 + oz, x1 + ox, bandTop, z1 + oz, pane)
+      quad(glass, x1 + ox, bandTop - 0.06, z1 + oz, x2 + ox, bandTop - 0.06, z2 + oz, x2 + ox, bandTop, z2 + oz, x1 + ox, bandTop, z1 + oz, frame)
+      for (let b = 0; b <= bays; b++) {
+        const t = b / bays
+        const cx = x1 + dx * t + ox
+        const cz = z1 + dz * t + oz
+        quad(
+          glass,
+          cx - ux * 0.03, yb, cz - uz * 0.03,
+          cx + ux * 0.03, yb, cz + uz * 0.03,
+          cx + ux * 0.03, bandTop, cz + uz * 0.03,
+          cx - ux * 0.03, bandTop, cz - uz * 0.03,
+          frame,
+        )
+      }
     }
-    for (let b = 0; b < bays; b++) {
-      const t = (b + 0.5) / bays
-      const cx = x1 + dx * t + ox
-      const cz = z1 + dz * t + oz
-      const hw = Math.min(1.7, Math.max(0.95, (len / bays) * 0.32))
-      for (let f = 0; f < floors; f++) {
-        const wy = y0 + 1.55 + f * 3.05
-        const top = wy + 1.85
-        if (top > y0 + height - 0.25) continue
-        const color = f === 0 && hash01((cx * 10 + f) | 0) > 0.72 ? warm : glassColor
-        glass.tri(cx - ux * hw, wy, cz - uz * hw, cx + ux * hw, wy, cz + uz * hw, cx - ux * hw, top, cz - uz * hw, color)
-        glass.tri(cx + ux * hw, wy, cz + uz * hw, cx + ux * hw, top, cz + uz * hw, cx - ux * hw, top, cz - uz * hw, color)
+    const firstFloor = storefront ? 1 : 0
+    for (let f = firstFloor; f < floors; f++) {
+      const sill = y0 + (storefront ? 3.45 : 1.05) + (f - firstFloor) * 2.4
+      const top = sill + 1.6
+      if (top > y0 + height - 0.2) continue
+      for (let b = 0; b < bays; b++) {
+        const t = (b + 0.5) / bays
+        const cx = x1 + dx * t + ox
+        const cz = z1 + dz * t + oz
+        const hw = 0.42
+        const lit = hash01((cx * 10 + f) | 0) > 0.86 ? warm : glassColor
+        quad(
+          glass,
+          cx - ux * (hw + 0.06), sill - 0.06, cz - uz * (hw + 0.06),
+          cx + ux * (hw + 0.06), sill - 0.06, cz + uz * (hw + 0.06),
+          cx + ux * (hw + 0.06), top + 0.06, cz + uz * (hw + 0.06),
+          cx - ux * (hw + 0.06), top + 0.06, cz - uz * (hw + 0.06),
+          frame,
+        )
+        quad(
+          glass,
+          cx - ux * hw, sill, cz - uz * hw,
+          cx + ux * hw, sill, cz + uz * hw,
+          cx + ux * hw, top, cz + uz * hw,
+          cx - ux * hw, top, cz - uz * hw,
+          lit,
+        )
       }
     }
     if (awning && i === longI && len > 4) {
-      const y = y0 + Math.min(3.15, height * 0.42)
-      const reach = 1.15
+      const y = storefront ? y0 + 3.2 : y0 + Math.min(3.15, height * 0.42)
+      const reach = 1.05
       awnings.tri(
         x1, y, z1,
         x2, y, z2,
-        x1 + ox * reach * 12, y + 0.08, z1 + oz * reach * 12,
+        x1 + ox * reach * 14, y + 0.08, z1 + oz * reach * 14,
         cloth,
       )
       awnings.tri(
         x2, y, z2,
-        x2 + ox * reach * 12, y + 0.08, z2 + oz * reach * 12,
-        x1 + ox * reach * 12, y + 0.08, z1 + oz * reach * 12,
+        x2 + ox * reach * 14, y + 0.08, z2 + oz * reach * 14,
+        x1 + ox * reach * 14, y + 0.08, z1 + oz * reach * 14,
         cloth,
       )
     }
   }
+}
+
+function quad(
+  b: MeshBuilder,
+  x1: number, y1: number, z1: number,
+  x2: number, y2: number, z2: number,
+  x3: number, y3: number, z3: number,
+  x4: number, y4: number, z4: number,
+  color: THREE.Color,
+): void {
+  b.tri(x1, y1, z1, x2, y2, z2, x3, y3, z3, color)
+  b.tri(x1, y1, z1, x3, y3, z3, x4, y4, z4, color)
 }
 
 /** +1 when the boulevard (about z = -432) lies south of the building. */
@@ -324,8 +425,7 @@ export function plantBoulevard(
 ): { planted: PlantedTree[]; trunkFade: THREE.InstancedBufferAttribute; canopyFade: THREE.InstancedBufferAttribute } | null {
   if (!lines.length) return null
   const count = lines.length
-  const trunkGeo = new THREE.CylinderGeometry(0.16, 0.24, 2.8, 6)
-  trunkGeo.translate(0, 1.4, 0)
+  const trunkGeo = treeTrunk()
   const canopyGeo = clusterCanopy(1)
   const trunkFade = new THREE.InstancedBufferAttribute(new Float32Array(count).fill(1), 1)
   const canopyFade = new THREE.InstancedBufferAttribute(new Float32Array(count).fill(1), 1)
@@ -334,34 +434,33 @@ export function plantBoulevard(
   const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, count)
   const canopy = new THREE.InstancedMesh(canopyGeo, canopyMat, count)
   canopy.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
+  trunks.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
   const dummy = new THREE.Object3D()
   const color = new THREE.Color()
+  const bark = new THREE.Color()
   const planted: PlantedTree[] = []
   for (let i = 0; i < count; i++) {
     const p = lines[i]
     const y = height.sample(p.x, p.z)
     const plane = p.kind === 'plane'
-    const pear = p.kind === 'pear'
-    const trunkH = plane ? 1.05 : pear ? 0.85 : 0.95
     dummy.position.set(p.x, y, p.z)
     dummy.rotation.set(0, hash01(i) * Math.PI, 0)
-    dummy.scale.set(1, trunkH, 1)
+    dummy.scale.set(1, 1, 1)
     dummy.updateMatrix()
     trunks.setMatrixAt(i, dummy.matrix)
-    const jitter = 0.72 + hash01(i * 9 + 2) * 0.62
-    const crown = (plane ? 1.45 : pear ? 0.98 : 1.16) * jitter
-    const lift = 3.85 + crown * 1.55
+    const n = hash01(i * 5 + 3)
+    bark.setHex(plane ? 0xa49a86 : 0x5a4a3a)
+    bark.multiplyScalar(0.94 + n * 0.1)
+    trunks.setColorAt(i, bark)
+    const jitter = 0.82 + hash01(i * 9 + 2) * 0.36
+    const crown = (plane ? 1.25 : 1.35) * jitter
+    const lift = plane ? 3.55 + crown * 0.28 : 2.45 + crown * 0.18
     dummy.position.set(p.x, y + lift, p.z)
-    dummy.scale.set(crown, crown * 0.92, crown)
+    dummy.scale.set(crown * (plane ? 0.92 : 1.15), crown * (plane ? 1.3 : 0.7), crown * (plane ? 0.92 : 1.15))
     dummy.updateMatrix()
     canopy.setMatrixAt(i, dummy.matrix)
-    // Planes are the broad green crowns. Sweetgums carry a little red [E, species]. Pears stay pale.
-    const n = hash01(i * 5 + 3)
-    const hex = plane
-      ? n > 0.66 ? 0x7ed34a : n > 0.33 ? 0x2f9a3c : 0x1d6e32
-      : pear
-        ? n > 0.5 ? 0xd5e7b0 : 0xb7d07a
-        : n > 0.82 ? 0xd06a30 : n > 0.45 ? 0x3aaa44 : 0x8fce3a
+    // London planes are the tall olive crowns. Other boulevard trees are valley oaks.
+    const hex = plane ? 0x7c8a55 : n > 0.5 ? 0x6f7d4a : 0x5e6b3f
     color.setHex(hex)
     canopy.setColorAt(i, color)
     planted.push({

@@ -109,7 +109,10 @@ export class Walker {
     this.group.position.copy(camera.position).addScaledVector(dir, dist)
     this.group.quaternion.copy(camera.quaternion)
     this.group.rotateY(Math.PI)
-    this.group.scale.setScalar(1.28)
+    const fov = (camera.fov * Math.PI) / 180
+    const viewH = 2 * dist * Math.tan(fov / 2)
+    const scale = Math.min(2.5, Math.max(1.2, (viewH * 0.6) / 1.65))
+    this.group.scale.setScalar(scale)
     this.group.visible = true
   }
 

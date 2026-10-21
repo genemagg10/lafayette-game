@@ -5,13 +5,14 @@ import { WaterMesh } from 'three/addons/objects/WaterMesh.js'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { Blockers, MeshBuilder, appendRibbon, tint } from './geom.ts'
 import { Heightfield, F_BUILDING, F_PARK, F_ROAD, F_URBAN, F_WATER, F_WOOD } from './height.ts'
-import { badgeTexture, facadeMaterial, foliageMaterial, hillMaterial, impostorMaterial, makeSignTexture, pillTexture, poiAccent, shared, streetNameTexture, townLeafMaterial, trunkMaterial, type Textures } from './materials.ts'
+import { badgeTexture, battenMaterial, facadeMaterial, foliageMaterial, hillMaterial, impostorMaterial, makeSignTexture, pillTexture, poiAccent, shared, streetNameTexture, townLeafMaterial, trunkMaterial, type Textures } from './materials.ts'
 import { dressTown } from './dress.ts'
+import { addClassroomRows, dressDistricts, footprintSize, schoolDress } from './districts.ts'
 import { spanVisible } from './eras.ts'
 import { dressFifties } from './period.ts'
 import { hash01 } from './math.ts'
 import { parseOsmColor, town } from './palette.ts'
-import { addHeroAccent, clusterCanopy, coreBoulevard, facadeFor, greyIntersection, inDowntown, noteHero, plantBoulevard, punchFacade, shopSignTexture, storyHeight, type BlvdTree, type Facade, type HeroId } from './downtown.ts'
+import { BATTEN_HEX, addHeroAccent, clusterCanopy, coreBoulevard, facadeFor, greyIntersection, inDowntown, noteHero, plantBoulevard, punchFacade, shopSignTexture, storyHeight, treeTrunk, type BlvdTree, type Facade, type HeroId } from './downtown.ts'
 import { tileKey, tileOf, type TileSet, type VectorTile } from './tiles.ts'
 import type { Meta, Road, Season, WaterFile } from './types.ts'
 
@@ -78,7 +79,7 @@ export class World {
   private readonly cardMats: THREE.MeshStandardMaterial[] = []
   private segCell = 40
   private readonly tmpColor = new THREE.Color()
-  private trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 2.1, 5)
+  private trunkGeo = treeTrunk()
   private canopyGeo = clusterCanopy(1)
   private reedGeo = new THREE.ConeGeometry(0.12, 1.05, 4)
   private trunkMat: THREE.Material
@@ -90,6 +91,7 @@ export class World {
   private reflective: WaterMesh | null = null
   private readonly sunDir = new THREE.Vector3(0.2, 0.8, 0.3)
   private readonly paperMat: THREE.Material
+  private readonly battenMat: THREE.Material
   private readonly roofMat: THREE.Material
   private readonly parkMat: THREE.MeshStandardMaterial
   private readonly lineMat: THREE.MeshBasicMaterial
@@ -117,20 +119,18 @@ export class World {
       emissiveMap: textures.windows,
       emissive: 0xffc98a,
       emissiveIntensity: 0,
-      roughness: 0.78,
-      metalness: 0.02,
+      roughness: 0.9,
+      metalness: 0,
       vertexColors: true,
-      flatShading: true,
     })
     this.storeMat = new THREE.MeshStandardMaterial({
       map: textures.store,
       emissiveMap: textures.windows,
       emissive: 0xffe1b0,
       emissiveIntensity: 0,
-      roughness: 0.62,
-      metalness: 0.04,
+      roughness: 0.9,
+      metalness: 0,
       vertexColors: true,
-      flatShading: true,
     })
     this.lampMat = new THREE.MeshStandardMaterial({
       color: 0xfff4d2,
@@ -138,15 +138,16 @@ export class World {
       emissiveIntensity: 0,
       roughness: 0.35,
     })
-    this.paperMat = facadeMaterial(0.84)
+    this.paperMat = facadeMaterial(0.9)
+    this.battenMat = battenMaterial()
     this.townGlassMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       emissive: 0xffc98a,
       emissiveIntensity: 0,
-      roughness: 0.25,
-      metalness: 0.05,
+      roughness: 0.2,
+      metalness: 0.15,
+      envMapIntensity: 0.15,
       vertexColors: true,
-      flatShading: true,
     })
     this.roofMat = facadeMaterial(0.9)
     this.parkMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, vertexColors: true })
@@ -162,7 +163,6 @@ export class World {
     this.roadMat.polygonOffset = true
     this.roadMat.polygonOffsetFactor = -1
     this.roadMat.polygonOffsetUnits = -1
-    this.trunkGeo.translate(0, 1.15, 0)
     this.reedGeo.translate(0, 0.5, 0)
     this.trunkMat = trunkMaterial()
     this.canopyMat = townLeafMaterial()
@@ -179,6 +179,7 @@ export class World {
     this.addLamps()
     this.signalColor = this.addSignals()
     this.addMemorial()
+    dressDistricts(this.root, this.height, water, this.roads)
     dressTown(this.root, this.roads, this.height, meta.spawn)
     dressFifties(this)
   }
@@ -375,7 +376,11 @@ export class World {
 
   useReflections(normals: THREE.Texture, scale: number): void {
     const mesh = this.reservoir
-    if (!mesh || this.reflective) return
+    if (!mesh) return
+    if (this.reflective) {
+      this.reflective.resolutionScale = scale
+      return
+    }
     const water = new WaterMesh(mesh.geometry, {
       waterNormals: normals,
       sunColor: 0xfff1dd,
@@ -390,6 +395,27 @@ export class World {
     mesh.parent?.add(water)
     mesh.removeFromParent()
     this.reflective = water
+  }
+
+  /** Drop the reservoir reflector and put the flat water mesh back. */
+  clearReflections(): void {
+    const water = this.reflective
+    const mesh = this.reservoir
+    if (!water || !mesh) return
+    water.parent?.add(mesh)
+    mesh.position.copy(water.position)
+    water.removeFromParent()
+    const material = water.material
+    if (Array.isArray(material)) material.forEach((item) => item.dispose())
+    else material.dispose()
+    this.reflective = null
+  }
+
+  /** True when the tile under this point is already built, or there is no tile to build. */
+  resident(x: number, z: number): boolean {
+    const [tx, tz] = tileOf(x, z, this.tileset.originX, this.tileset.originZ, this.tileset.tileMeters)
+    const key = tileKey(tx, tz)
+    return this.built.has(key) || this.empty.has(key)
   }
 
   placeName(x: number, z: number): string {
@@ -704,7 +730,7 @@ export class World {
     const mat = hillMaterial()
     const mesh = new THREE.Mesh(geo, mat)
     mesh.name = 'terrain'
-    mesh.receiveShadow = false
+    mesh.receiveShadow = true
     return mesh
   }
 
@@ -745,9 +771,10 @@ export class World {
         else if (elev < h.waterLevel + 36) hex = season === 'winter' ? 0x3d8a42 : season === 'spring' ? 0x62b04e : 0xc4a04a
         if (!inDowntown(x, z) && season === 'spring' && n > 0.86 && (f & (F_ROAD | F_URBAN | F_WATER)) === 0) hex = n > 0.93 ? 0xe7a0b8 : 0xf2d36b
         c.setHex(hex)
-        colors[k++] = c.r * vary
-        colors[k++] = c.g * vary
-        colors[k++] = c.b * vary
+        const shade = this.vertexShade(ii, jj, f)
+        colors[k++] = c.r * vary * shade
+        colors[k++] = c.g * vary * shade
+        colors[k++] = c.b * vary * shade
       }
     }
   }
@@ -927,7 +954,7 @@ export class World {
 
   private addMemorial(): void {
     const m = this.meta.memorial
-    const count = 70
+    const count = 64
     const upright = new THREE.BoxGeometry(0.1, 1.15, 0.05)
     upright.translate(0, 0.7, 0)
     const arm = new THREE.BoxGeometry(0.58, 0.08, 0.05)
@@ -936,28 +963,34 @@ export class World {
     const a = new THREE.InstancedMesh(upright, mat, count)
     const b = new THREE.InstancedMesh(arm, mat, count)
     const dummy = new THREE.Object3D()
+    const along = new THREE.Vector2(0.964, -0.264)
+    const north = new THREE.Vector2(-0.264, -0.964)
+    const curb = new THREE.Vector2(m.x, -746)
     let n = 0
-    for (let i = 0; i < count * 3 && n < count; i++) {
-      const x = m.x + (hash01(i * 3) - 0.5) * 78
-      const z = m.z + 8 + hash01(i * 5) * 62
-      if (this.height.flag(x, z) & (F_ROAD | F_WATER)) continue
-      const y = this.height.sample(x, z)
-      dummy.position.set(x, y, z)
-      dummy.rotation.set(0, hash01(i) * 0.6, 0)
-      dummy.scale.set(1, 0.75 + hash01(i * 9) * 0.5, 1)
-      dummy.updateMatrix()
-      a.setMatrixAt(n, dummy.matrix)
-      b.setMatrixAt(n, dummy.matrix)
-      n++
+    for (let row = 0; row < 8 && n < count; row++) {
+      for (let col = -4; col < 4 && n < count; col++) {
+        const x = curb.x + along.x * col * 6.5 + north.x * (6 + row * 7.2)
+        const z = curb.y + along.y * col * 6.5 + north.y * (6 + row * 7.2)
+        if (this.height.flag(x, z) & (F_ROAD | F_WATER)) continue
+        const y = this.height.sample(x, z)
+        dummy.position.set(x, y, z)
+        dummy.rotation.set(0, hash01(n * 3) * 0.4, 0)
+        dummy.scale.set(1, 0.8 + hash01(n * 5) * 0.45, 1)
+        dummy.updateMatrix()
+        a.setMatrixAt(n, dummy.matrix)
+        b.setMatrixAt(n, dummy.matrix)
+        n++
+      }
     }
     a.count = n
     b.count = n
     this.root.add(a, b)
-    const tex = makeSignTexture('Hillside overlook')
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.95), new THREE.MeshBasicMaterial({ map: tex, transparent: true }))
-    const sx = m.x
-    const sz = m.z + 36
-    sign.position.set(sx, this.height.sample(sx, sz) + 1.6, sz)
+    const tex = makeSignTexture('Remember')
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.85), new THREE.MeshBasicMaterial({ map: tex, transparent: true }))
+    const sx = curb.x + north.x * 4
+    const sz = curb.y + north.y * 4
+    sign.position.set(sx, this.height.sample(sx, sz) + 1.7, sz)
+    sign.lookAt(sx, sign.position.y, sz + 8)
     this.root.add(sign)
     this.signs.push(sign)
   }
@@ -975,10 +1008,12 @@ export class World {
     const walls = new MeshBuilder()
     const shops = new MeshBuilder()
     const paper = new MeshBuilder()
+    const battens = new MeshBuilder()
     const roofs = new MeshBuilder()
     const bartWalls = new MeshBuilder()
     const bartShops = new MeshBuilder()
     const bartPaper = new MeshBuilder()
+    const bartBattens = new MeshBuilder()
     const bartRoofs = new MeshBuilder()
     const glass = new MeshBuilder()
     const awnings = new MeshBuilder()
@@ -1021,12 +1056,26 @@ export class World {
       // Lafayette Station opened May 21, 1973. Hide that block before then.
       const later = Math.hypot(sx - bart.x, sz - bart.z) < 90
       const facade = facadeFor(sx, sz, name, (sx * 10 + sz) | 0, heroBest)
-      const builtHeight = facade ? storyHeight(facade.stories) : height
+      const dress = schoolDress(name, sx, sz, footprintSize(poly), height)
+      if (dress?.rows) {
+        addClassroomRows(paper, later ? bartRoofs : roofs, poly, (x, z) => this.height.sample(x, z))
+        this.blockers.add(key, poly, this.roofOf(poly, dress.height), null)
+        continue
+      }
+      let builtHeight = facade ? storyHeight(facade.stories) : height
+      let wallPaint = facade ? facade.wall : wallHex
+      let roofPaint = facade ? facade.roof : roofHex
+      if (dress) {
+        builtHeight = dress.height
+        wallPaint = dress.wall
+        roofPaint = dress.roof
+      }
       const roofWanted = facade?.hero === 'pioneer' || (facade && !facade.hero && hash01((sx * 4) | 0) > 0.78) ? roofShape || 'gabled' : roofShape
       this.blockers.add(key, poly, this.roofOf(poly, builtHeight), later ? 1973 : null)
       const shop = kind === 'c' || kind === 's' || (name.length > 2 && height > 4)
-      const target = facade ? (later ? bartPaper : paper) : later ? (rich ? (shop ? bartShops : bartWalls) : bartPaper) : rich ? (shop ? shops : walls) : paper
-      this.extrude(poly, builtHeight, kind, target, later ? bartRoofs : roofs, rich, roofWanted, facade ? facade.wall : wallHex, facade ? facade.roof : roofHex, facade)
+      let target = dress ? paper : facade ? (later ? bartPaper : paper) : later ? (rich ? (shop ? bartShops : bartWalls) : bartPaper) : rich ? (shop ? shops : walls) : paper
+      if (wallPaint === BATTEN_HEX) target = later ? bartBattens : battens
+      this.extrude(poly, builtHeight, kind, target, later ? bartRoofs : roofs, rich, roofWanted, wallPaint, roofPaint, facade)
       let minY = Infinity
       for (let i = 0; i < n; i++) {
         const sample = this.height.sample(poly[i * 2], poly[i * 2 + 1])
@@ -1041,6 +1090,7 @@ export class World {
     this.addMesh(group, walls, this.windowMat, true)
     this.addMesh(group, shops, this.storeMat, true)
     this.addMesh(group, paper, this.paperMat, true)
+    this.addMesh(group, battens, this.battenMat, true)
     this.addMesh(group, roofs, this.roofMat, true)
     this.addMesh(group, glass, this.townGlassMat, false)
     const awningMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.75, vertexColors: true, flatShading: true })
@@ -1050,6 +1100,7 @@ export class World {
     this.addMesh(station, bartWalls, this.windowMat, true)
     this.addMesh(station, bartShops, this.storeMat, true)
     this.addMesh(station, bartPaper, this.paperMat, true)
+    this.addMesh(station, bartBattens, this.battenMat, true)
     this.addMesh(station, bartRoofs, this.roofMat, true)
     if (station.children.length > 0) {
       group.add(station)
@@ -1072,12 +1123,12 @@ export class World {
     this.built.set(key, group)
   }
 
-  private addMesh(group: THREE.Group, builder: MeshBuilder, material: THREE.Material, shadow: boolean): void {
+  private addMesh(group: THREE.Group, builder: MeshBuilder, material: THREE.Material, shadow: boolean, receive = shadow): void {
     const geo = builder.geometry()
     if (!geo) return
     const mesh = new THREE.Mesh(geo, material)
     mesh.castShadow = shadow
-    mesh.receiveShadow = shadow
+    mesh.receiveShadow = receive
     mesh.userData.unique = true
     group.add(mesh)
   }
@@ -1117,17 +1168,39 @@ export class World {
         pts.push({ x: Number(raw[i]), y: Number(raw[i + 1]), z: Number(raw[i + 2]) })
       }
       if (pts.length < 2 || !Number.isFinite(width)) continue
-      const dirt = (flags & 2) !== 0
-      const sidewalk = (flags & 1) !== 0 && !dirt
+      const shorePath = /lakeside nature trail|dock trail/i.test(name)
+      const dirt = (flags & 2) !== 0 && !shorePath
+      let sidewalk = (flags & 1) !== 0 && !dirt
       const oneway = (flags & 8) !== 0
       const big = /^(motorway|trunk|primary|secondary)/.test(cls)
       const freeway = /^(motorway|trunk)/.test(cls)
       const boulevard = coreBoulevard(name, pts[0].x, pts[0].z)
       const salt = ((pts[0].x * 3 + pts[0].z) | 0) & 1
       const asphaltColor = salt ? pavedAlt : paved
-      const trailWidth = dirt ? Math.max(width, cls === 'steps' ? 2.05 : 2.65) : width
-      const laneCount = lanes > 0 ? lanes : dirt ? 0 : Math.max(1, Math.round(width / 3.3))
-      if (dirt) appendRibbon(trail, pts, trailWidth, trailColor, 0.05)
+      const moragaFour = /^moraga road$/i.test(name) && pts.some((p) => p.x > 420 && p.z < 760 && p.z > -520)
+      const deerWalk = /^deer hill road$/i.test(name) && pts.some((p) => p.x < 500 && p.z < -640 && p.z > -900)
+      const deerEast = /^deer hill road$/i.test(name) && pts.some((p) => p.x > 900)
+      const hillCampus = /^pleasant hill road$/i.test(name) && pts.some((p) => p.x > 2100 && p.z < -1500)
+      let drawWidth = width
+      let laneCount = lanes > 0 ? lanes : dirt ? 0 : Math.max(1, Math.round(width / 3.3))
+      if (moragaFour) {
+        drawWidth = 14.6
+        laneCount = 4
+        sidewalk = true
+      } else if (deerEast) {
+        drawWidth = Math.max(width, 12.4)
+        laneCount = Math.max(laneCount, 3)
+        sidewalk = true
+      } else if (deerWalk) {
+        sidewalk = true
+      } else if (hillCampus) {
+        drawWidth = Math.max(width, 16.2)
+        laneCount = 4
+        sidewalk = true
+      }
+      const trailWidth = dirt ? Math.max(width, cls === 'steps' ? 2.05 : 2.65) : drawWidth
+      if (shorePath) appendRibbon(asphalt, pts, 3.6, asphaltColor, 0.08)
+      else if (dirt) appendRibbon(trail, pts, trailWidth, trailColor, 0.05)
       else if (boulevard) {
         const paver = new THREE.Color(0xb08972)
         const band = new THREE.Color(0xcbbba8)
@@ -1146,10 +1219,11 @@ export class World {
         appendRibbon(freewayAsphalt, pts, width, asphaltColor, 0.1)
         this.lanePaint(freewayPaint, pts, width, laneCount, oneway || big, white, yellow)
       } else {
-        if (sidewalk) appendRibbon(walk, pts, width + 3.4, walkColor, 0.04)
-        appendRibbon(casing, pts, width + 0.85, curb, 0.065)
-        appendRibbon(asphalt, pts, width, asphaltColor, 0.1)
-        if (cls !== 'service' && width >= 3.2) this.lanePaint(paint, pts, width, laneCount, oneway, white, yellow)
+        if (sidewalk) appendRibbon(walk, pts, drawWidth + 3.4, walkColor, 0.04)
+        appendRibbon(casing, pts, drawWidth + 0.85, curb, 0.065)
+        appendRibbon(asphalt, pts, drawWidth, asphaltColor, 0.1)
+        if (cls !== 'service' && drawWidth >= 3.2) this.lanePaint(paint, pts, drawWidth, laneCount, oneway, white, yellow)
+        if (/^school street$/i.test(name)) appendRibbon(asphalt, this.shiftLine(pts, drawWidth * 0.5 + 2.8), 3.05, asphaltColor, 0.08)
       }
       if (name.length > 2) {
         let len = 0
@@ -1157,10 +1231,10 @@ export class World {
         named.push({ name, cls, pts, len })
       }
     }
-    this.addMesh(group, walk, this.walkMat, false)
-    this.addMesh(group, casing, this.walkMat, false)
-    this.addMesh(group, asphalt, this.roadMat, false)
-    this.addMesh(group, trail, this.trailMat, false)
+    this.addMesh(group, walk, this.walkMat, false, true)
+    this.addMesh(group, casing, this.walkMat, false, true)
+    this.addMesh(group, asphalt, this.roadMat, false, true)
+    this.addMesh(group, trail, this.trailMat, false, true)
     this.addMesh(group, paint, this.lineMat, false)
     const belt = new THREE.Group()
     belt.name = 'freeway-era'
@@ -1463,7 +1537,7 @@ export class World {
 
   private addCrossings(group: THREE.Group, rows: number[][]): void {
     const stripe = new MeshBuilder()
-    const white = new THREE.Color(0xf7f8f6)
+    const white = new THREE.Color(town.crosswalk)
     for (const cross of rows) {
       if (cross.length < 3) continue
       const ang = cross[2]
@@ -1658,9 +1732,10 @@ export class World {
     const custom = facade ? null : this.shopWall(cx, cz)
     const picked = facade?.wall ?? custom ?? wallHex ?? (rich && (kind === 'c' || kind === 's') ? 0xfff3e4 : town.paper[((salt % town.paper.length) + town.paper.length) % town.paper.length])
     const wallColor = tint(picked, salt)
-    const roofColor = tint(facade?.roof ?? roofHex ?? ((salt & 1) === 0 ? town.roof : town.roofAlt), salt + 2)
-    const aoColor = facade ? tint(facade.base, salt) : wallColor.clone().multiplyScalar(0.46)
-    const cornerColor = wallColor.clone().multiplyScalar(facade ? 0.9 : 0.78)
+    const pitched = Boolean(roofShape) && roofShape !== 'flat'
+    const roofColor = tint(facade?.roof ?? roofHex ?? (pitched ? town.roof : town.roofAlt), salt + 2)
+    const aoColor = (facade ? tint(facade.base, salt) : wallColor).clone().multiplyScalar(0.86)
+    const cornerColor = wallColor.clone().multiplyScalar(0.9)
     let faces: number[][] = []
     try {
       faces = THREE.ShapeUtils.triangulateShape(contour, [])
@@ -1683,7 +1758,7 @@ export class World {
       const len = Math.hypot(x2 - x1, z2 - z1)
       if (len < 0.15) continue
       const u2 = u + len / 3.2
-      const contact = (facade ? aoColor : wallColor).clone().multiplyScalar(0.9)
+      const contact = wallColor.clone().multiplyScalar(0.72)
       const contactTop = Math.min(y0 + 0.45, yTop - 0.3)
       const aoTop = facade ? Math.min(Math.max(contactTop, y0 + 3.2), yTop - 0.35) : contactTop
       const vContact = (contactTop - y0) / 3.2
@@ -1733,16 +1808,27 @@ export class World {
     const spanZ = maxZ - minZ
     const span = Math.max(spanX, spanZ)
     if (span < 2.4) return
-    const lip = color.clone().multiplyScalar(0.78)
-    const cap = y1 + 0.46
+    const lip = color.clone().multiplyScalar(0.86)
+    const chamfer = 0.1
     for (let i = 0; i < n; i++) {
       const x1 = poly[i * 2]
       const z1 = poly[i * 2 + 1]
       const x2 = poly[((i + 1) % n) * 2]
       const z2 = poly[((i + 1) % n) * 2 + 1]
       if (Math.hypot(x2 - x1, z2 - z1) < 0.35) continue
-      roofs.tri(x1, y1, z1, x2, y1, z2, x1, cap, z1, lip)
-      roofs.tri(x2, y1, z2, x2, cap, z2, x1, cap, z1, lip)
+      const mx = (x1 + x2) / 2
+      const mz = (z1 + z2) / 2
+      let px = -(z2 - z1)
+      let pz = x2 - x1
+      if (px * (cx - mx) + pz * (cz - mz) < 0) {
+        px = -px
+        pz = -pz
+      }
+      const plen = Math.hypot(px, pz) || 1
+      px = (px / plen) * chamfer
+      pz = (pz / plen) * chamfer
+      roofs.tri(x1, y1, z1, x2, y1, z2, x1 + px, y1 + chamfer, z1 + pz, lip)
+      roofs.tri(x2, y1, z2, x2 + px, y1 + chamfer, z2 + pz, x1 + px, y1 + chamfer, z1 + pz, lip)
     }
     const alongX = spanX >= spanZ
     const ridge = color.clone().multiplyScalar(0.72)
@@ -1838,8 +1924,10 @@ export class World {
     const trunks = new THREE.InstancedMesh(trunkGeo, this.trunkMat, count)
     const canopy = new THREE.InstancedMesh(canopyGeo, this.canopyMat, count)
     canopy.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
+    trunks.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
     const dummy = new THREE.Object3D()
     const color = new THREE.Color()
+    const bark = new THREE.Color(0x5a4a3a)
     for (let i = 0; i < count; i++) {
       const x = flat[i * 3]
       const z = flat[i * 3 + 1]
@@ -1849,20 +1937,24 @@ export class World {
       const bulk = 0.68 + hash01(i * 17 + 1) * 0.92
       dummy.position.set(x, y, z)
       dummy.rotation.set(0, hash01(i * 11) * Math.PI, 0)
-      dummy.scale.set(0.85 + hash01(i + 2) * 0.4, 0.85 + hash01(i) * 0.4, 0.85 + hash01(i + 2) * 0.4)
+      dummy.scale.set(0.9 + hash01(i + 2) * 0.25, 0.9 + hash01(i) * 0.2, 0.9 + hash01(i + 2) * 0.25)
       dummy.updateMatrix()
       trunks.setMatrixAt(i, dummy.matrix)
-      const crown = (wide ? 1.35 : 1.05) * bulk
-      const lift = 3.7 + crown * 1.55
+      bark.setHex(0x5a4a3a)
+      bark.multiplyScalar(0.94 + hash01(i * 3) * 0.1)
+      trunks.setColorAt(i, bark)
+      const crown = (wide ? 1.45 : 1.15) * bulk
+      const lift = 2.45 + crown * 0.22
       dummy.position.set(x, y + lift, z)
       dummy.rotation.set(0, hash01(i * 13) * Math.PI, 0)
-      dummy.scale.set(crown * (0.9 + hash01(i + 8) * 0.25), crown * 0.95, crown * (0.88 + hash01(i + 9) * 0.28))
+      dummy.scale.set(crown * (1.05 + hash01(i + 8) * 0.2), crown * 0.7, crown * (1.02 + hash01(i + 9) * 0.22))
       dummy.updateMatrix()
       canopy.setMatrixAt(i, dummy.matrix)
       color.setHex(this.canopyHex(x, z))
       canopy.setColorAt(i, color)
       this.noteTree(group, x, z, y, 0.4, crown * 1.45, y + lift, i, trunkFade, canopyFade)
     }
+    trunks.castShadow = true
     canopy.castShadow = false
     canopy.receiveShadow = false
     canopy.userData.canopy = true
@@ -1896,10 +1988,13 @@ export class World {
 
   private canopyHex(x: number, z: number): number {
     const n = hash01(Math.round(x * 3 + z))
-    if (this.season === 'spring') return n > 0.86 ? 0xf0a0c0 : n > 0.45 ? 0x3aaa42 : 0x2f8f38
-    if (this.season === 'winter') return n > 0.5 ? 0x1f6a38 : 0x2f8a48
-    const summer = [0x1e6e30, 0x2f9a40, 0x57d15a, 0x8fce3a, 0x3cb844, 0xc4a24a, 0x246b38, 0x6fbf45]
-    return summer[Math.floor(n * summer.length) % summer.length]
+    const hex = this.season === 'winter' ? (n > 0.5 ? 0x4e5c38 : 0x5e6b3f) : n > 0.5 ? 0x6f7d4a : 0x5e6b3f
+    const color = new THREE.Color(hex)
+    const hsl = { h: 0, s: 0, l: 0 }
+    color.getHSL(hsl)
+    const lift = 0.94 + hash01(Math.round(x + z * 2)) * 0.12
+    color.setHSL(hsl.h, Math.min(0.45, hsl.s), Math.min(0.58, Math.max(0.24, hsl.l * lift)))
+    return color.getHex()
   }
 
   private paintCanopy(mesh: THREE.InstancedMesh): void {
@@ -1935,8 +2030,8 @@ export class World {
   private addParking(group: THREE.Group, lots: number[][]): void {
     const b = new MeshBuilder()
     const lines = new MeshBuilder()
-    const color = new THREE.Color(0x343b46)
-    const paint = new THREE.Color(0xe4e0d6)
+    const color = new THREE.Color(town.asphalt)
+    const paint = new THREE.Color(town.laneWhite)
     const spots: { x: number; z: number }[] = []
     const boxes: number[][] = []
     for (const lot of lots) {
@@ -2011,8 +2106,8 @@ export class World {
     }
     const geo = b.geometry()
     if (!geo) return
-    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.94 }))
-    mesh.receiveShadow = false
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.94, metalness: 0 }))
+    mesh.receiveShadow = true
     mesh.userData.unique = true
     group.add(mesh)
     const stalls = lines.geometry()
@@ -2037,6 +2132,28 @@ export class World {
       this.addPin(group, sx / n, sz / n, poiAccent('parking'))
       pins += 1
     }
+  }
+
+  /** Contact darkening in the vertex color. Lower ground under an eave, and slopes facing away from the afternoon sun. */
+  private vertexShade(i: number, j: number, flag: number): number {
+    let shade = 1
+    if ((flag & F_BUILDING) !== 0 || this.buildingNear(i, j)) shade = 0.78
+    const h = this.height
+    const spanX = h.sizeX / Math.max(1, h.cols - 1)
+    const spanZ = h.sizeZ / Math.max(1, h.rows - 1)
+    const i0 = Math.max(0, i - 1)
+    const i1 = Math.min(h.cols - 1, i + 1)
+    const j0 = Math.max(0, j - 1)
+    const j1 = Math.min(h.rows - 1, j + 1)
+    const dx = (h.heights[j * h.cols + i1] - h.heights[j * h.cols + i0]) / Math.max(0.01, (i1 - i0) * spanX)
+    const dz = (h.heights[j1 * h.cols + i] - h.heights[j0 * h.cols + i]) / Math.max(0.01, (j1 - j0) * spanZ)
+    const nx = -dx
+    const ny = 1
+    const nz = -dz
+    const len = Math.hypot(nx, ny, nz) || 1
+    const sun = (nx * 0.2 + ny * 0.8 + nz * -0.3) / len
+    if (sun < 0.35) shade *= 0.84
+    return Math.min(1, Math.max(0.7, shade))
   }
 
   private buildingNear(i: number, j: number): boolean {
@@ -2188,27 +2305,31 @@ export class World {
     const trunks = new THREE.InstancedMesh(trunkGeo, this.trunkMat, count)
     const canopy = new THREE.InstancedMesh(canopyGeo, this.canopyMat, count)
     canopy.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
+    trunks.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
     const dummy = new THREE.Object3D()
     const color = new THREE.Color()
+    const bark = new THREE.Color(0x5a4a3a)
     for (let i = 0; i < count; i++) {
       const { x, z } = spots[i]
       const y = this.height.sample(x, z)
       const bulk = 0.7 + hash01(i * 19 + x) * 0.7
       dummy.position.set(x, y, z)
       dummy.rotation.set(0, hash01(i * 3) * Math.PI, 0)
-      dummy.scale.set(1, 0.9, 1)
+      dummy.scale.set(1, 0.95, 1)
       dummy.updateMatrix()
       trunks.setMatrixAt(i, dummy.matrix)
-      const crown = 1.05 * bulk
-      const lift = 3.7 + crown * 1.55
+      trunks.setColorAt(i, bark)
+      const crown = 1.2 * bulk
+      const lift = 2.4 + crown * 0.2
       dummy.position.set(x, y + lift, z)
-      dummy.scale.set(crown, crown * 0.94, crown)
+      dummy.scale.set(crown * 1.15, crown * 0.7, crown * 1.15)
       dummy.updateMatrix()
       canopy.setMatrixAt(i, dummy.matrix)
       color.setHex(this.canopyHex(x + 4, z))
       canopy.setColorAt(i, color)
       this.noteTree(group, x, z, y, 0.36, crown * 1.15, y + lift, i, trunkFade, canopyFade)
     }
+    trunks.castShadow = true
     canopy.castShadow = false
     canopy.receiveShadow = false
     trunks.userData.unique = true

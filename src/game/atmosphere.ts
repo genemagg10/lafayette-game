@@ -39,7 +39,9 @@ export class Atmosphere {
   private readonly fill: THREE.DirectionalLight
   private readonly rim: THREE.DirectionalLight
   private readonly dusk = new THREE.Color(0xf0c39a)
-  private readonly dayFog = new THREE.Color(0xc5d7ea)
+  private readonly dayFog = new THREE.Color(0xe4dccb)
+  private readonly sunWarm = new THREE.Color(0xffe2b8)
+  private readonly sunGold = new THREE.Color(0xffd9a8)
   private readonly nightFog = new THREE.Color(0x1b2433)
   private readonly grayFog = new THREE.Color(0xaeb6bf)
   private readonly bankFog = new THREE.Color(0xd5dde4)
@@ -50,32 +52,34 @@ export class Atmosphere {
     this.scene = scene
     this.sky = createSky()
     scene.add(this.sky.mesh)
-    this.sun = new THREE.DirectionalLight(0xfff1dd, 2.4)
+    this.sun = new THREE.DirectionalLight(0xffe2b8, 2.8)
     this.sun.castShadow = true
-    this.sun.shadow.mapSize.set(2048, 2048)
+    this.sun.shadow.mapSize.set(1024, 1024)
     this.sun.shadow.camera.near = 1
-    this.sun.shadow.camera.far = 280
-    this.sun.shadow.camera.left = -90
-    this.sun.shadow.camera.right = 90
-    this.sun.shadow.camera.top = 90
-    this.sun.shadow.camera.bottom = -90
-    this.sun.shadow.bias = -0.0004
+    this.sun.shadow.camera.far = 320
+    this.sun.shadow.camera.left = -40
+    this.sun.shadow.camera.right = 40
+    this.sun.shadow.camera.top = 40
+    this.sun.shadow.camera.bottom = -40
+    this.sun.shadow.bias = -0.0002
+    this.sun.shadow.normalBias = 0.03
+    this.sun.shadow.radius = 4
     scene.add(this.sun, this.sun.target)
     this.moon = new THREE.DirectionalLight(0xb9c7e6, 0)
     scene.add(this.moon, this.moon.target)
-    this.hemi = new THREE.HemisphereLight(0x9ec2ea, 0xc6a15a, 0.7)
+    this.hemi = new THREE.HemisphereLight(0xcfdcea, 0xb89a68, 0.9)
     scene.add(this.hemi)
-    this.fill = new THREE.DirectionalLight(0xc6e2a4, 0.28)
+    this.fill = new THREE.DirectionalLight(0xffe2b8, 0.16)
     this.fill.position.set(-40, 80, 30)
     scene.add(this.fill, this.fill.target)
-    this.rim = new THREE.DirectionalLight(0xffd7a4, 0.22)
+    this.rim = new THREE.DirectionalLight(0xffd7a4, 0)
     this.rim.position.set(30, 40, -80)
     scene.add(this.rim, this.rim.target)
-    // Haze belongs on the far hills, not on the asphalt underfoot.
+    // Streets stay crisp. A faint warm veil starts at 250 m and only settles on the hills.
     const dist = length(positionWorld.sub(cameraPosition))
-    const far = smoothstep(float(2600), float(6400), dist).mul(farHaze)
-    const bank = smoothstep(fogHeight, fogHeight.sub(36), positionWorld.y).mul(valleyFog).mul(0.45)
-    const factor = far.add(bank).clamp(0, 0.55)
+    const horizon = smoothstep(float(250), float(2800), dist).mul(float(0.16))
+    const weather = smoothstep(float(700), float(3200), dist).mul(farHaze).mul(0.45)
+    const factor = horizon.add(weather).clamp(0, 0.4)
     const fogScene = scene as THREE.Scene & { fogNode: unknown }
     fogScene.fog = null
     fogScene.fogNode = fog(fogTint, factor)
@@ -152,48 +156,60 @@ export class Atmosphere {
     this.wet = damp(this.wet, this.rain * 0.85 + this.fog * 0.15, 0.25, dt)
 
     const solar = sunForClock(this.minutes, this.season)
-    this.sunAlt = solar.altitude
-    const cosA = Math.cos(solar.altitude)
-    this.sunDir.set(Math.sin(solar.azimuth) * cosA, Math.sin(solar.altitude), -Math.cos(solar.azimuth) * cosA)
+    let altitude = solar.altitude
+    let azimuth = solar.azimuth
+    const hour = this.minutes / 60
+    const afternoon = this.season === 'summer'
+      ? THREE.MathUtils.smoothstep(hour, 13.2, 14.4) * (1 - THREE.MathUtils.smoothstep(hour, 16.4, 17.5))
+      : 0
+    if (afternoon > 0.001) {
+      const wantAlt = (38 * Math.PI) / 180
+      const wantAz = (225 * Math.PI) / 180
+      altitude = THREE.MathUtils.lerp(altitude, wantAlt, afternoon)
+      let spin = wantAz - azimuth
+      while (spin > Math.PI) spin -= Math.PI * 2
+      while (spin < -Math.PI) spin += Math.PI * 2
+      azimuth += spin * afternoon
+    }
+    this.sunAlt = altitude
+    const cosA = Math.cos(altitude)
+    this.sunDir.set(Math.sin(azimuth) * cosA, Math.sin(altitude), -Math.cos(azimuth) * cosA)
     const day = THREE.MathUtils.smoothstep(this.sunAlt, -0.08, 0.18)
     this.night = 1 - day
     const golden = (1 - THREE.MathUtils.smoothstep(this.sunAlt, 0.02, 0.35)) * THREE.MathUtils.smoothstep(this.sunAlt, -0.08, 0.16)
     const blue = THREE.MathUtils.smoothstep(this.sunAlt, 0.05, -0.02) * THREE.MathUtils.smoothstep(this.sunAlt, -0.22, -0.04)
-    const hour = this.minutes / 60
     this.morning = THREE.MathUtils.smoothstep(hour, 5.4, 7.1) * (1 - THREE.MathUtils.smoothstep(hour, 9.2, 11.4))
     this.sun.position.copy(focus).addScaledVector(this.sunDir, 180)
     this.sun.target.position.copy(focus)
-    this.sun.intensity = (0.85 + day * 1.9) * (1 - this.overcast * 0.45) * (1 - this.fog * 0.3)
-    this.sun.color.set(golden > 0.2 ? 0xffc48a : 0xfff6e8)
+    this.sun.intensity = (0.2 + day * 2.6) * (1 - this.overcast * 0.45) * (1 - this.fog * 0.25)
+    this.sun.color.copy(this.sunWarm)
+    if (golden > 0.2) this.sun.color.lerp(this.sunGold, Math.min(1, golden))
     this.moon.position.copy(focus).addScaledVector(this.sunDir, -140)
     this.moon.target.position.copy(focus)
     this.moon.intensity = this.night * 0.35
-    this.hemi.intensity = 0.72 + day * 0.34
-    this.hemi.color.set(golden > 0.25 ? 0xffd7b0 : 0x8ec8f2)
-    const bounce = this.season === 'summer' ? 0xe4c99a : this.season === 'spring' ? 0x9ed48a : 0x6aaa78
-    this.hemi.groundColor.set(bounce)
+    this.hemi.color.set(0xcfdcea)
+    this.hemi.groundColor.set(0xb89a68)
+    this.hemi.intensity = 0.22 + day * 0.68
+    const bounce = 0xb89a68
     bounceTint.value.set(bounce)
-    this.fill.color.set(golden > 0.25 ? 0xffe0c0 : 0xc5e4ff)
-    this.fill.intensity = (0.34 + day * 0.22) * (1 - this.night * 0.35)
+    this.fill.color.copy(this.sunWarm)
+    this.fill.intensity = 0.16 * day
     this.fill.position.copy(focus).addScaledVector(this.sunDir, -90)
     this.fill.position.y += 50
     this.fill.target.position.copy(focus)
-    const rimSide = new THREE.Vector3(-this.sunDir.z, 0.45, this.sunDir.x).normalize()
-    this.rim.position.copy(focus).addScaledVector(rimSide, 140)
-    this.rim.target.position.copy(focus)
-    this.rim.intensity = 0.12 + golden * 0.55 + blue * 0.42
-    this.rim.color.set(blue > 0.35 ? 0x9ec4ff : golden > 0.2 ? 0xffb06a : 0xfff3dd)
+    this.rim.intensity = 0
     this.sun.castShadow = this.shadows
-    const span = THREE.MathUtils.clamp(78 + (0.45 - Math.max(0.08, this.sunAlt)) * 180, 80, 210)
+    const span = 40
     const shadowCam = this.sun.shadow.camera as THREE.OrthographicCamera
     shadowCam.left = -span
     shadowCam.right = span
     shadowCam.top = span
     shadowCam.bottom = -span
-    shadowCam.far = 420
+    shadowCam.far = 320
     shadowCam.updateProjectionMatrix()
-    this.sun.shadow.bias = -0.00022
-    this.sun.shadow.normalBias = 0.02
+    this.sun.shadow.bias = -0.0002
+    this.sun.shadow.normalBias = 0.03
+    this.sun.shadow.radius = 4
 
     this.sky.mesh.position.copy(focus)
     this.sky.uSun.value.copy(this.sunDir)
@@ -222,7 +238,7 @@ export class Atmosphere {
     if (this.fog > 0.2) this.fogColor.lerp(this.bankFog, this.fog * 0.7)
     if (this.morning > 0.2) this.fogColor.lerp(this.morningFog, this.morning * 0.45)
     fogTint.value.copy(this.fogColor)
-    renderer.toneMappingExposure = 1.02 + golden * 0.08 - this.night * 0.2 - this.overcast * 0.08
+    renderer.toneMappingExposure = 1 + golden * 0.06 - this.night * 0.22 - this.overcast * 0.06
 
     shared.time.value = this.clock
     shared.wind.value = 0.12 + this.wind * 0.55
