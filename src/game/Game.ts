@@ -135,7 +135,7 @@ export class Game {
       this.audio.ensure()
       this.hud.setMuteLabel(this.audio.toggleMute())
     }
-    this.hud.onTravel = (x, z) => this.travel(x, z)
+    this.hud.onTravel = (x, z, name) => this.travel(x, z, name)
     this.hud.onWeather = (id) => this.atmo?.setWeather(id)
     this.hud.onSeason = () => {
       if (!this.atmo || !this.world) return
@@ -239,6 +239,7 @@ export class Game {
       this.hud.loading('Streaming downtown tiles…')
       await this.world.preload(meta.spawn.x, meta.spawn.z, 1)
       this.meadow = new Meadow(this.scene, height, this.quality)
+      this.meadow.keepOff = (x, z) => this.world.paved(x, z)
       this.horizon = new Horizon(this.scene, height, textures.oak)
       addBanners(this.scene, height)
       this.resize()
@@ -552,6 +553,7 @@ export class Game {
       this.hud.setLetterbox(true)
     }
     this.hud.tickToast(dt, this.photo)
+    if (this.hud.mapOpen) this.hud.track(pos.x, pos.z)
     const flying = this.walker?.flying ?? false
     blurAmount.value = this.quality === 'low' ? 0 : Math.min(flying ? 0.085 : 0.05, pos.speed * (flying ? 0.0025 : 0.0018))
     const lines = document.getElementById('speedlines')
@@ -989,7 +991,7 @@ export class Game {
     }
   }
 
-  private travel(x: number, z: number): void {
+  private travel(x: number, z: number, street?: string): void {
     if (this.portals?.inside || this.portals?.locked) this.portals.forceExit()
     if (this.ride !== 'foot') this.dismount()
     if (this.world.isDeep(x, z)) {
@@ -998,11 +1000,11 @@ export class Game {
       return
     }
     if (this.mode === 'pause') this.resume()
-    void this.arrive(x, z)
+    void this.arrive(x, z, street)
   }
 
   /** Keep the veil up until the destination tile exists, then set the walker down. */
-  private async arrive(x: number, z: number): Promise<void> {
+  private async arrive(x: number, z: number, street?: string): Promise<void> {
     if (!this.world.resident(x, z)) {
       this.hud.loading('Coming in over the hills…')
       try {
@@ -1011,13 +1013,9 @@ export class Game {
         this.hud.loading(null)
       }
     }
-    const face = this.world.frontage(x, z)
-    const faceDist = face ? Math.hypot(face.x - x, face.z - z) : 99
-    const onStreet = !!(face && faceDist < 36)
-    const road = onStreet ? face : this.world.nearestRoad(x, z, 16)
-    const limit = onStreet ? 36 : 14
-    const sx = road && Math.hypot(road.x - x, road.z - z) < limit ? road.x : x
-    const sz = road && Math.hypot(road.x - x, road.z - z) < limit ? road.z : z
+    const spot = this.world.landing(x, z, street)
+    const sx = spot?.x ?? x
+    const sz = spot?.z ?? z
     const y = this.world.surface(sx, sz, null)
     const prefer = this.pendingFace ? Math.atan2(this.pendingFace.x - sx, -(this.pendingFace.z - sz)) : this.walker.heading
     this.pendingFace = null
@@ -1375,6 +1373,7 @@ export class Game {
     const now = performance.now()
     const buttons = document.querySelectorAll<HTMLButtonElement>('#cast [data-kid]')
     const pause = this.mode === 'pause'
+    let shown = 0
     buttons.forEach((button) => {
       const id = (button.dataset.kid || 'milo') as KidId
       const kid = id === 'juniper' ? this.juniper : this.milo
@@ -1389,13 +1388,20 @@ export class Game {
         ndcY = 1 - (cy / Math.max(1, window.innerHeight)) * 2
       }
       kid.stand(this.camera, ndcX, ndcY, dist)
+      let show = true
       if (pause) {
         const rect = button.getBoundingClientRect()
         const fov = (this.camera.fov * Math.PI) / 180
         const viewH = 2 * dist * Math.tan(fov / 2)
         const worldPerPx = viewH / Math.max(1, window.innerHeight)
         kid.group.scale.setScalar(Math.max(0.35, (rect.height * 0.5 * worldPerPx) / 1.55))
+        const sheet = document.getElementById('cast')?.getBoundingClientRect()
+        const modelTop = rect.top + rect.height * 0.07
+        const modelBottom = rect.top + rect.height * 0.62
+        show = !!sheet && rect.height > 24 && modelTop >= sheet.top + 2 && modelBottom <= sheet.bottom + 4
       }
+      kid.group.visible = show
+      if (show) shown += 1
       const turn = Math.sin((now / 1000) * ((Math.PI * 2) / 8)) * ((3 * Math.PI) / 180)
       kid.group.rotateY(turn)
       kid.setChosen(id === this.kidId)
@@ -1403,15 +1409,34 @@ export class Game {
     })
     this.castLight.position.copy(this.milo.group.position).lerp(this.juniper.group.position, 0.5)
     this.castLight.position.y += 0.6
-    this.castLight.visible = true
+    this.castLight.visible = shown > 0
+    if (pause) document.body.dataset.cast = String(shown)
   }
 
   private toyTrain(): void {
     if (!this.train) {
       const group = new THREE.Group()
-      const shell = new THREE.MeshStandardMaterial({ color: 0xd8dde6, roughness: 0.45, metalness: 0.25 })
-      const blue = new THREE.MeshStandardMaterial({ color: 0x1d4e89, roughness: 0.5 })
-      const glass = new THREE.MeshStandardMaterial({ color: 0xc5d4e4, roughness: 0.25, metalness: 0.1 })
+      // Emissive so the shell stays silver in shade. A metalness-only paint was disappearing into the sidewalk.
+      const shell = new THREE.MeshStandardMaterial({
+        color: 0xf4f7fb,
+        emissive: 0xb7c3d0,
+        emissiveIntensity: 0.65,
+        roughness: 0.42,
+        metalness: 0.04,
+      })
+      const blue = new THREE.MeshStandardMaterial({
+        color: 0x1d4e89,
+        emissive: 0x143864,
+        emissiveIntensity: 0.45,
+        roughness: 0.45,
+      })
+      const glass = new THREE.MeshStandardMaterial({
+        color: 0xd5e4f2,
+        emissive: 0x8eabc4,
+        emissiveIntensity: 0.4,
+        roughness: 0.22,
+        metalness: 0.04,
+      })
       const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.72, 0.78), shell)
       const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.62, 0.16, 0.8), blue)
       stripe.position.y = 0.08
@@ -1420,6 +1445,7 @@ export class Game {
       const nose = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.36, 0.7), blue)
       nose.position.set(1.28, 0.02, 0)
       group.add(body, stripe, cab, nose)
+      group.scale.setScalar(1.5)
       group.visible = false
       this.scene.add(group)
       this.train = group
@@ -1433,17 +1459,24 @@ export class Game {
   private tickTrain(): void {
     const train = this.train
     if (!train || !train.visible) return
+    const hold = new URLSearchParams(location.search).get('egg') === 'train'
     const left = this.trainUntil - performance.now()
-    if (left <= 0) {
+    if (!hold && left <= 0) {
       train.visible = false
       return
     }
-    const u = 1 - left / 2800
+    const u = hold ? 0.42 : 1 - left / 2800
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion)
     const ahead = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion)
+    ahead.y = 0
+    right.y = 0
+    if (ahead.lengthSq() > 1e-6) ahead.normalize()
+    if (right.lengthSq() > 1e-6) right.normalize()
     train.position.copy(this.camera.position).addScaledVector(ahead, 9).addScaledVector(right, -8 + u * 16)
-    train.position.y -= 1.15
-    train.quaternion.copy(this.camera.quaternion)
+    // Sit the shell on the pavement. Dropping from the camera buried the body and left only the stripe.
+    train.position.y = this.world.surface(train.position.x, train.position.z, null) + 0.72
+    const yaw = new THREE.Euler().setFromQuaternion(this.camera.quaternion, 'YXZ')
+    train.rotation.set(0, yaw.y, 0)
   }
 
   private fly(t: number): void {

@@ -211,11 +211,11 @@ export class Picture {
     const low = this.quality === 'low' || this.economy
     const vivid = this.quality === 'high' && this.webgpu && !this.isMobile() && !this.economy
     if (!vivid) this.clearCascades()
-    const size = low ? 256 : vivid ? 1024 : 512
+    const size = low ? 256 : 1024
     this.sun.shadow.mapSize.set(size, size)
-    this.sun.shadow.radius = 4
+    this.sun.shadow.radius = 6
     this.sun.shadow.bias = -0.0002
-    this.sun.shadow.normalBias = 0.03
+    this.sun.shadow.normalBias = 0.045
     this.sun.shadow.intensity = 0.35
     this.renderer.shadowMap.enabled = !low
     this.renderer.shadowMap.type = PCFSoftShadowMap

@@ -233,11 +233,13 @@ export function foliageMaterial(hex: number, roughness = 0.86, flex = 0.2): Mesh
   return material
 }
 
-/** Hills keep real lighting, with a soft wrap so the shadowed side stays the bounce color. */
+/** Hills keep real lighting. A little of the vertex color stays lit so a shaded slope reads golden, not rust. */
 export function hillMaterial(): MeshStandardNodeMaterial {
   const material = new MeshStandardNodeMaterial({ roughness: 0.94, metalness: 0, vertexColors: true })
   const wrap = mix(vec3(0.94, 0.96, 0.92), vec3(1, 1, 1), smoothstep(-0.25, 0.8, normalWorld.dot(sunDirShade)))
-  material.colorNode = vertexColor().mul(wrap) as never
+  const albedo = vertexColor().mul(wrap)
+  material.colorNode = albedo as never
+  material.emissiveNode = vertexColor().mul(0.4) as never
   return material
 }
 

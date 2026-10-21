@@ -622,13 +622,19 @@ button:disabled { opacity: 0.45; cursor: default; }
 #map-zoom button {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  background: #fff;
+  border-radius: 14px;
+  background: #f7f3ea;
   color: #1c2430;
-  font-weight: 700;
+  font-family: Fraunces, Georgia, serif;
+  font-weight: 600;
   font-size: 1.35rem;
   line-height: 1;
-  box-shadow: 0 8px 18px rgba(28, 36, 48, 0.12);
+  border: 2px solid #b8924a;
+  box-shadow: inset 0 0 0 1px #e6d3a4, 0 8px 18px rgba(28, 36, 48, 0.12);
+}
+#map-zoom button:hover {
+  background: #fffaf2;
+  color: #1c2430;
 }
 .map-side { padding: 1.4rem 1.2rem; display: flex; flex-direction: column; gap: 0.7rem; }
 .map-side h2 { font-size: 2.2rem; }

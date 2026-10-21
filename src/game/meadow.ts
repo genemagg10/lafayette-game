@@ -50,16 +50,21 @@ function crossGeo(height: number, width: number, painted: boolean): BufferGeomet
   return geo
 }
 
+function grass(n: number, a: number, b: number): number {
+  const i = n % 7
+  if (i === 0) return 0xc4b07a
+  return i < 4 ? a : b
+}
+
 function palette(season: Season, kind: 'blade' | 'flower', n: number): number {
-  const lawn = [0xb6e86c, 0xd4f59a]
   if (kind === 'flower') {
-    if (season !== 'spring') return lawn[n % 2]
+    if (season !== 'spring') return grass(n, 0x7d9a52, 0x6e8a46)
     const spring = [0xf4f1ea, 0xf2d36b, 0xe07aa8, 0xcfe7ff]
     return spring[n % spring.length]
   }
-  if (season === 'winter') return [0x2f7a3c, 0x3d8f48, 0x4aa05a, 0x26703a][n % 4]
-  if (season === 'spring') return [0x5cb648, 0x7ec85a, 0x3f9a40, 0x8ed36a][n % 4]
-  return lawn[n % 2]
+  if (season === 'winter') return grass(n, 0x7f9a5a, 0x6d8a48)
+  if (season === 'spring') return grass(n, 0x6f9a48, 0x5e8a40)
+  return grass(n, 0x7d9a52, 0x6e8a46)
 }
 
 /**
@@ -86,6 +91,8 @@ export class Meadow {
   private readonly dummy = new Object3D()
   private readonly color = new Color()
   private readonly height: Heightfield
+  /** Driveways and asphalt. Tufts and blades stay on soil. */
+  keepOff: ((x: number, z: number) => boolean) | null = null
 
   constructor(scene: Scene, height: Heightfield, quality: 'low' | 'medium' | 'high') {
     this.height = height
@@ -322,6 +329,7 @@ export class Meadow {
     const f = this.height.flag(x, z)
     if (f & (F_ROAD | F_WATER | F_BUILDING | F_PARKING)) return false
     if (f & F_URBAN && (f & F_PARK) === 0) return false
+    if (this.keepOff?.(x, z)) return false
     return true
   }
 }

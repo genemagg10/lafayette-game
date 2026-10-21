@@ -53,9 +53,9 @@ export function crownLift(trunkScaleY: number, canopyScaleY: number, tuck = 0.45
 const BARK_LO = [0x6a / 255, 0x4e / 255, 0x3c / 255]
 const BARK_HI = [0x8a / 255, 0x6a / 255, 0x50 / 255]
 
-/** Bole about 40% thinner than the salmon poles. Short limbs stay inside the crown. */
+/** Another 30% off the last bole. Short limbs stay inside the crown. */
 export function treeTrunk(): THREE.BufferGeometry {
-  const bole = new THREE.CylinderGeometry(0.132, 0.204, 3.15, 7)
+  const bole = new THREE.CylinderGeometry(0.092, 0.143, 3.15, 7)
   bole.translate(0, 1.58, 0)
   const parts: THREE.BufferGeometry[] = [bole]
   const limbs: [number, number, number][] = [
@@ -64,7 +64,7 @@ export function treeTrunk(): THREE.BufferGeometry {
     [4.4, 0.36, 2.88],
   ]
   for (const [yaw, pitch, y] of limbs) {
-    const limb = new THREE.CylinderGeometry(0.03, 0.054, 0.62, 4)
+    const limb = new THREE.CylinderGeometry(0.021, 0.038, 0.62, 4)
     limb.translate(0, 0.31, 0)
     limb.rotateZ(pitch)
     limb.rotateY(yaw)
@@ -512,7 +512,7 @@ export function plantBoulevard(
       x: p.x,
       z: p.z,
       y,
-      trunkR: 0.34,
+      trunkR: 0.24,
       canopyR: crown,
       canopyY: y + lift,
       index: i,

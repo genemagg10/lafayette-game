@@ -12,7 +12,7 @@ export class Hud {
   debugOpen = false
   onPlay = () => {}
   onTitle = () => {}
-  onTravel = (_x: number, _z: number) => {}
+  onTravel = (_x: number, _z: number, _name?: string) => {}
   onWeather = (_id: WeatherId | 'auto') => {}
   onSeason = () => {}
   onHour = (_h: number) => {}
@@ -107,7 +107,7 @@ export class Hud {
     document.getElementById('map-close')?.addEventListener('click', () => this.toggleMap(false))
     document.getElementById('mini')?.addEventListener('click', () => this.toggleMap(true))
     document.getElementById('travel')?.addEventListener('click', () => {
-      if (this.pin) this.onTravel(this.pin.x, this.pin.z)
+      if (this.pin) this.onTravel(this.pin.x, this.pin.z, this.pinName)
     })
     document.getElementById('tour')?.addEventListener('click', () => this.onTour())
     document.getElementById('open-travel')?.addEventListener('click', () => this.toggleMap(true))
@@ -562,7 +562,7 @@ export class Hud {
       const button = document.createElement('button')
       button.type = 'button'
       button.textContent = mark.name
-      button.addEventListener('click', () => this.onTravel(mark.x, mark.z))
+      button.addEventListener('click', () => this.onTravel(mark.x, mark.z, mark.name))
       li.append(button)
       list.append(li)
     }
@@ -655,6 +655,13 @@ export class Hud {
     if (!quail) return
     quail.hidden = false
     quail.classList.remove('run')
+    if (new URLSearchParams(location.search).get('egg') === 'quail') {
+      quail.style.animation = 'none'
+      quail.style.transform = 'translateX(54px)'
+      return
+    }
+    quail.style.animation = ''
+    quail.style.transform = ''
     void quail.offsetWidth
     quail.classList.add('run')
     window.setTimeout(() => {
@@ -778,6 +785,14 @@ export class Hud {
     this.hereZ = state.z
     this.miniSpan = state.miniSpan
     this.drawMini(state.x, state.z, state.heading)
+    if (this.mapOpen) this.paintMap()
+  }
+
+  /** Keep the you-are-here pulse moving while the sheet is open and the walk is paused. */
+  track(x: number, z: number): void {
+    this.hereX = x
+    this.hereZ = z
+    if (this.mapOpen) this.paintMap()
   }
 
   private layout(w: number, h: number): void {
@@ -1055,6 +1070,12 @@ export class Hud {
     })
     if (px != null && pz != null) {
       const [sx, sy] = this.project(px, pz)
+      const pulse = (Math.sin(now / 320) + 1) / 2
+      ctx.beginPath()
+      ctx.arc(sx, sy, 8 + pulse * 7, 0, Math.PI * 2)
+      ctx.strokeStyle = `rgba(214, 69, 69, ${0.28 + (1 - pulse) * 0.45})`
+      ctx.lineWidth = 2
+      ctx.stroke()
       ctx.fillStyle = '#d64545'
       ctx.beginPath()
       ctx.arc(sx, sy, 6, 0, Math.PI * 2)

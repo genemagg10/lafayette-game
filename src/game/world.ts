@@ -3,8 +3,8 @@ import { MeshBasicNodeMaterial } from 'three/webgpu'
 import { uniform } from 'three/tsl'
 import { WaterMesh } from 'three/addons/objects/WaterMesh.js'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { Blockers, MeshBuilder, appendRibbon, tint } from './geom.ts'
-import { Heightfield, F_BUILDING, F_PARK, F_ROAD, F_URBAN, F_WATER, F_WOOD } from './height.ts'
+import { Blockers, MeshBuilder, appendRibbon, drapePath, pointInPoly, tint } from './geom.ts'
+import { Heightfield, F_BUILDING, F_PARK, F_PARKING, F_ROAD, F_URBAN, F_WATER, F_WOOD } from './height.ts'
 import { badgeTexture, battenMaterial, facadeMaterial, foliageMaterial, hillMaterial, impostorMaterial, makeSignTexture, pillTexture, poiAccent, shared, streetNameTexture, townLeafMaterial, trunkMaterial, type Textures } from './materials.ts'
 import { dressTown } from './dress.ts'
 import { addClassroomRows, dressDistricts, footprintSize, schoolDress } from './districts.ts'
@@ -81,6 +81,8 @@ export class World {
   private readonly cardMats: THREE.MeshStandardMaterial[] = []
   private segCell = 40
   private readonly poles: { x: number; z: number; r: number }[] = []
+  private readonly drivePolys: number[][] = []
+  private readonly driveGrid = new Map<string, number[]>()
   private readonly tmpColor = new THREE.Color()
   private trunkGeo = treeTrunk()
   private canopyGeo = clusterCanopy(1)
@@ -333,7 +335,8 @@ export class World {
       const sx = seg.ax + abx * t
       const sz = seg.az + abz * t
       if (Math.hypot(x - sx, z - sz) > seg.w * 0.5 + 0.3) continue
-      const y = seg.ay + (seg.by - seg.ay) * t
+      const authored = seg.ay + (seg.by - seg.ay) * t
+      const y = authored > ground + 6 ? authored : ground + 0.12
       const close = refY == null ? y <= ground + 2.4 : Math.abs(y - refY) < 2.1
       if (close && y > bestScore) {
         bestScore = y
@@ -354,7 +357,9 @@ export class World {
       const sx = seg.ax + abx * t
       const sz = seg.az + abz * t
       if (Math.hypot(x - sx, z - sz) > seg.w * 0.55) continue
-      const sy = seg.ay + (seg.by - seg.ay) * t
+      const ground = this.height.sample(sx, sz)
+      const authored = seg.ay + (seg.by - seg.ay) * t
+      const sy = authored > ground + 6 ? authored : ground + 0.12
       if (Math.abs(sy - y) < 2.2) return true
     }
     return false
@@ -424,6 +429,122 @@ export class World {
       if (!d || d.dist >= best) continue
       best = d.dist
       hit = d.hit
+    }
+    return hit
+  }
+
+  /**
+   * Where a map click should put the walker: on the paved centerline, preferring
+   * the street they tapped, then slid along it until a house footprint is clear.
+   */
+  landing(x: number, z: number, name?: string): { x: number; z: number } | null {
+    const want = name && name !== 'Selected street' ? name : ''
+    const named = want ? this.closestSeg(x, z, 48, (seg) => seg.paved && seg.name === want) : null
+    const hit = named ?? this.closestSeg(x, z, 48, (seg) => seg.paved)
+    if (!hit) return null
+    if (this.roadClear(hit.x, hit.z)) return { x: hit.x, z: hit.z }
+    const nameKey = hit.seg.name
+    let bestX = hit.x
+    let bestZ = hit.z
+    let bestD = Infinity
+    const pool = this.segsAround(x, z, 2).filter((seg) => seg.paved && !seg.trail && (nameKey ? seg.name === nameKey : seg === hit.seg))
+    for (const seg of pool) {
+      const len = Math.hypot(seg.bx - seg.ax, seg.bz - seg.az)
+      const steps = Math.max(1, Math.ceil(len / 2))
+      for (let i = 0; i <= steps; i++) {
+        const u = i / steps
+        const sx = seg.ax + (seg.bx - seg.ax) * u
+        const sz = seg.az + (seg.bz - seg.az) * u
+        if (!this.roadClear(sx, sz)) continue
+        const d = Math.hypot(sx - x, sz - z)
+        if (d < bestD) {
+          bestD = d
+          bestX = sx
+          bestZ = sz
+        }
+      }
+    }
+    if (bestD < 56) return { x: bestX, z: bestZ }
+    return { x: hit.x, z: hit.z }
+  }
+
+  /** Asphalt, a parking lot, or a house driveway. Grass tufts stay off these. */
+  paved(x: number, z: number): boolean {
+    if (this.height.flag(x, z) & (F_ROAD | F_PARKING)) return true
+    if (this.onDrive(x, z)) return true
+    const road = this.nearestRoad(x, z, 14)
+    return !!road && Math.hypot(road.x - x, road.z - z) <= road.w * 0.5 + 1.6
+  }
+
+  noteDrives(polys: number[][]): void {
+    for (const poly of polys) {
+      if (poly.length < 6) continue
+      const index = this.drivePolys.length
+      this.drivePolys.push(poly)
+      let minX = Infinity
+      let maxX = -Infinity
+      let minZ = Infinity
+      let maxZ = -Infinity
+      for (let i = 0; i < poly.length; i += 2) {
+        minX = Math.min(minX, poly[i])
+        maxX = Math.max(maxX, poly[i])
+        minZ = Math.min(minZ, poly[i + 1])
+        maxZ = Math.max(maxZ, poly[i + 1])
+      }
+      const i0 = Math.floor(minX / 24)
+      const i1 = Math.floor(maxX / 24)
+      const j0 = Math.floor(minZ / 24)
+      const j1 = Math.floor(maxZ / 24)
+      for (let j = j0; j <= j1; j++) {
+        for (let i = i0; i <= i1; i++) {
+          const id = `${i},${j}`
+          let list = this.driveGrid.get(id)
+          if (!list) {
+            list = []
+            this.driveGrid.set(id, list)
+          }
+          list.push(index)
+        }
+      }
+    }
+  }
+
+  private onDrive(x: number, z: number): boolean {
+    const list = this.driveGrid.get(`${Math.floor(x / 24)},${Math.floor(z / 24)}`)
+    if (!list) return false
+    for (const index of list) {
+      if (pointInPoly(x, z, this.drivePolys[index])) return true
+    }
+    return false
+  }
+
+  private roadClear(x: number, z: number): boolean {
+    if (this.blockers.roofAt(x, z) != null) return false
+    const pushed = this.blockers.resolve(x, z, 0.45)
+    return Math.hypot(pushed.x - x, pushed.z - z) < 0.2
+  }
+
+  private closestSeg(
+    x: number,
+    z: number,
+    max: number,
+    accept: (seg: Seg) => boolean,
+  ): { seg: Seg; t: number; x: number; z: number } | null {
+    let best = max
+    let hit: { seg: Seg; t: number; x: number; z: number } | null = null
+    for (const seg of this.segsAround(x, z, 2)) {
+      if (seg.trail || seg.w < 2.2 || !accept(seg)) continue
+      const abx = seg.bx - seg.ax
+      const abz = seg.bz - seg.az
+      const ab2 = abx * abx + abz * abz || 1
+      let t = ((x - seg.ax) * abx + (z - seg.az) * abz) / ab2
+      t = Math.max(0, Math.min(1, t))
+      const sx = seg.ax + abx * t
+      const sz = seg.az + abz * t
+      const dist = Math.hypot(x - sx, z - sz)
+      if (dist >= best) continue
+      best = dist
+      hit = { seg, t, x: sx, z: sz }
     }
     return hit
   }
@@ -903,6 +1024,13 @@ export class World {
     const cols = Math.floor((h.cols - 1) / step) + 1
     const rows = Math.floor((h.rows - 1) / step) + 1
     const c = new THREE.Color()
+    const hillShadow = new THREE.Color(0x9c7f4c)
+    const lawn = (n: number, winter: number, spring: number) => {
+      if (season === 'winter') return n > 0.86 ? 0xc4b07a : winter
+      if (season === 'spring') return n > 0.86 ? 0xc4b07a : spring
+      if (n > 0.88) return 0xc4b07a
+      return n > 0.5 ? 0x6e8a46 : 0x7d9a52
+    }
     let k = 0
     for (let j = 0; j < rows; j++) {
       const jj = Math.min(h.rows - 1, j * step)
@@ -914,27 +1042,30 @@ export class World {
         const n = hash01(ii * 13 + jj * 9)
         const x = h.originX + (ii / (h.cols - 1)) * h.sizeX
         const z = h.originZ + (jj / (h.rows - 1)) * h.sizeZ
-        let hex = season === 'winter' ? 0x3f8f45 : season === 'spring' ? 0x67b34a : 0xd4a24a
-        let vary = 0.9 + n * 0.18
+        let hex = season === 'winter' ? 0x7f9a5a : season === 'spring' ? 0x8aa35c : 0xc9a86a
+        let vary = 0.97 + n * 0.06
         if (inDowntown(x, z) && (f & F_WATER) === 0) {
           // One flat fill. Road and lot meshes carry the asphalt, so a building
           // cell does not pick up a lawn-green or road-black neighbour.
           const nearBuilding = this.buildingNear(ii, jj)
-          hex = (f & F_PARK) && (f & F_BUILDING) === 0 && !nearBuilding ? 0x6fbf4a : 0xd9d0c2
+          hex = (f & F_PARK) && (f & F_BUILDING) === 0 && !nearBuilding ? 0x7d9a52 : 0xd9d0c2
           vary = 1
         } else if (f & F_WATER) hex = 0x8a7a58
         else if (f & F_ROAD) hex = 0x454c58
-        else if (f & F_PARK) hex = season === 'winter' ? 0x3f8a48 : season === 'spring' ? 0x67b34a : 0xc6ee78
+        else if (f & F_PARK) hex = lawn(n, 0x6d8a48, 0x6f9a48)
         else if (f & F_WOOD) hex = season === 'summer' ? 0x6a8a3c : 0x2f6a38
         else if (f & F_URBAN) {
           const n2 = hash01(ii * 3 + jj * 17)
-          hex = n2 > 0.78 ? 0xb6e270 : n2 > 0.46 ? 0xd4c8a4 : 0xe4dcc8
+          hex = n2 > 0.9 ? 0x6e8a46 : n2 > 0.78 ? 0x7d9a52 : n2 > 0.46 ? 0xd4c8a4 : 0xe4dcc8
         }
-        else if (elev < h.waterLevel + 18) hex = season === 'winter' ? 0x2f7a38 : season === 'spring' ? 0x4e9a40 : 0xc6ee78
-        else if (elev < h.waterLevel + 36) hex = season === 'winter' ? 0x3d8a42 : season === 'spring' ? 0x62b04e : 0xc4a04a
+        else if (elev < h.waterLevel + 18) hex = lawn(n, 0x6d8a48, 0x6f9a48)
         if (!inDowntown(x, z) && season === 'spring' && n > 0.86 && (f & (F_ROAD | F_URBAN | F_WATER)) === 0) hex = n > 0.93 ? 0xe7a0b8 : 0xf2d36b
         c.setHex(hex)
-        const shade = this.vertexShade(ii, jj, f)
+        let shade = this.vertexShade(ii, jj, f)
+        if ((hex === 0xc9a86a || hex === 0x7f9a5a || hex === 0x8aa35c) && shade < 0.86) {
+          c.lerp(hillShadow, 0.28)
+          shade = 1
+        }
         colors[k++] = c.r * vary * shade
         colors[k++] = c.g * vary * shade
         colors[k++] = c.b * vary * shade
@@ -1284,6 +1415,7 @@ export class World {
           this.noteTree(group, tree.x, tree.z, tree.y, tree.trunkR, tree.canopyR, tree.canopyY, tree.index, placed.trunkFade, placed.canopyFade)
         }
         if (placed.canopy) this.canopies.push(placed.canopy)
+        if (placed.driveways.length) this.noteDrives(placed.driveways)
       }
     }
     this.addMesh(group, walls, this.windowMat, true)
@@ -1362,11 +1494,12 @@ export class World {
         lanes = laneField
         coordAt = 5
       }
-      const pts: { x: number; y: number; z: number }[] = []
+      const rawPts: { x: number; y: number; z: number }[] = []
       for (let i = coordAt; i + 2 < raw.length; i += 3) {
-        pts.push({ x: Number(raw[i]), y: Number(raw[i + 1]), z: Number(raw[i + 2]) })
+        rawPts.push({ x: Number(raw[i]), y: Number(raw[i + 1]), z: Number(raw[i + 2]) })
       }
-      if (pts.length < 2 || !Number.isFinite(width)) continue
+      if (rawPts.length < 2 || !Number.isFinite(width)) continue
+      const pts = drapePath(rawPts, (x, z) => this.height.sample(x, z))
       const shorePath = /lakeside nature trail|dock trail/i.test(name)
       const dirt = (flags & 2) !== 0 && !shorePath
       let sidewalk = (flags & 1) !== 0 && !dirt
@@ -2165,7 +2298,7 @@ export class World {
       canopy.setMatrixAt(i, dummy.matrix)
       color.setRGB(1, 1, 1)
       canopy.setColorAt(i, color)
-      this.noteTree(group, x, z, y, 0.4, crown * 1.45, y + lift, i, trunkFade, canopyFade)
+      this.noteTree(group, x, z, y, 0.28, crown * 1.45, y + lift, i, trunkFade, canopyFade)
     }
     trunks.castShadow = true
     canopy.castShadow = false
@@ -2525,7 +2658,7 @@ export class World {
       canopy.setMatrixAt(i, dummy.matrix)
       color.setRGB(1, 1, 1)
       canopy.setColorAt(i, color)
-      this.noteTree(group, x, z, y, 0.36, crown * 1.15, y + lift, i, trunkFade, canopyFade)
+      this.noteTree(group, x, z, y, 0.25, crown * 1.15, y + lift, i, trunkFade, canopyFade)
     }
     trunks.castShadow = true
     canopy.castShadow = false

@@ -36,6 +36,7 @@ export interface YardTree {
 export interface HouseLots {
   blocks: HouseBlock[]
   trees: YardTree[]
+  driveways: number[][]
   trunkFade: InstancedBufferAttribute
   canopyFade: InstancedBufferAttribute
   canopy: InstancedMesh | null
@@ -79,7 +80,7 @@ const doorMat = new MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 })
 const garageMat = new MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.62 })
 const porchMat = new MeshStandardMaterial({ color: 0xe4dccb, roughness: 0.82 })
 const driveMat = new MeshStandardMaterial({ color: 0xcfc6b6, roughness: 0.9 })
-const lawnMat = new MeshStandardMaterial({ color: 0xc8f08a, roughness: 0.95 })
+const lawnMat = new MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 })
 lawnMat.polygonOffset = true
 lawnMat.polygonOffsetFactor = -2
 lawnMat.polygonOffsetUnits = -2
@@ -370,6 +371,12 @@ export function addHouseLots(
   const drives = new Bucket()
   const lawns = new Bucket()
   const blocks: HouseBlock[] = []
+  const driveways: number[][] = []
+  const lawnTint = (n: number) => {
+    const pick = (n * 7) | 0
+    if (pick === 0) return 0xc4b07a
+    return pick < 4 ? 0x7d9a52 : 0x6e8a46
+  }
 
   const put = (bucket: Bucket, house: House, lx: number, ly: number, lz: number, sx: number, sy: number, sz: number, hex: number) => {
     const p = worldOf(house, lx, ly, lz)
@@ -433,10 +440,25 @@ export function addHouseLots(
     }
 
     const yard = Math.max(1.6, house.setback)
-    put(lawns, house, 0, 0, house.d / 2 + yard / 2, house.lot * 0.94, 1, yard, 0xffffff)
+    put(lawns, house, 0, 0, house.d / 2 + yard / 2, house.lot * 0.94, 1, yard, lawnTint(hash01((house.x * 3 + house.z) | 0)))
     if (garageW) {
       const driveLen = Math.min(12, yard + 1.4)
-      put(drives, house, garageX, 0.02, house.d / 2 + driveLen / 2, Math.min(3.15, garageW + 0.35), 0.05, driveLen, 0xffffff)
+      const driveW = Math.min(3.15, garageW + 0.35)
+      put(drives, house, garageX, 0.02, house.d / 2 + driveLen / 2, driveW, 0.05, driveLen, 0xffffff)
+      const hw = driveW / 2 + 0.35
+      const z0 = house.d / 2 - 0.2
+      const z1 = house.d / 2 + driveLen + 0.35
+      const poly: number[] = []
+      for (const [lx, lz] of [
+        [garageX - hw, z0],
+        [garageX + hw, z0],
+        [garageX + hw, z1],
+        [garageX - hw, z1],
+      ] as [number, number][]) {
+        const p = worldOf(house, lx, 0, lz)
+        poly.push(p.x, p.z)
+      }
+      driveways.push(poly)
     }
 
   }
@@ -511,7 +533,7 @@ export function addHouseLots(
         x: tree.x,
         z: tree.z,
         y: tree.y,
-        trunkR: 0.28 * tree.scale,
+        trunkR: 0.2 * tree.scale,
         canopyR,
         canopyY: tree.y + lift,
         index: i,
@@ -527,5 +549,5 @@ export function addHouseLots(
     group.add(trunks, canopy)
   }
 
-  return { blocks, trees: yardTrees, trunkFade, canopyFade, canopy }
+  return { blocks, trees: yardTrees, driveways, trunkFade, canopyFade, canopy }
 }

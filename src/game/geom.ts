@@ -125,6 +125,42 @@ export function appendRibbon(
   }
 }
 
+/**
+ * Follow the heightfield every few metres. A long chord whose straight Y
+ * floats above a dip becomes a ribbon in the air and a black smear on the grass.
+ * A real overpass, more than 6 m above the ground, keeps its authored height.
+ */
+export function drapePath(
+  pts: { x: number; y: number; z: number }[],
+  sample: (x: number, z: number) => number,
+  step = 8,
+): { x: number; y: number; z: number }[] {
+  if (pts.length < 2) return pts
+  const out: { x: number; y: number; z: number }[] = []
+  const push = (x: number, z: number, authored: number) => {
+    const ground = sample(x, z)
+    const y = authored > ground + 6 ? authored : ground
+    const last = out[out.length - 1]
+    if (last && Math.hypot(last.x - x, last.z - z) < 0.35) {
+      last.y = y
+      return
+    }
+    out.push({ x, y, z })
+  }
+  push(pts[0].x, pts[0].z, pts[0].y)
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i]
+    const b = pts[i + 1]
+    const len = Math.hypot(b.x - a.x, b.z - a.z)
+    const n = Math.max(1, Math.ceil(len / step))
+    for (let k = 1; k <= n; k++) {
+      const t = k / n
+      push(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t, a.y + (b.y - a.y) * t)
+    }
+  }
+  return out.length >= 2 ? out : pts
+}
+
 export function pointInPoly(x: number, z: number, poly: number[]): boolean {
   let c = false
   const n = poly.length / 2
