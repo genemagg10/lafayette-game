@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f4efe4" />
     <title>Lafayette Days</title>
-    <script type="module" crossorigin src="./assets/index-B-TnCeun.js"></script>
+    <script type="module" crossorigin src="./assets/index-BEqoW_px.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/BufferGeometry-A3t-3UhE.js">
     <link rel="modulepreload" crossorigin href="./assets/Color-B5hqIcKC.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-CoyU2tUJ.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-ScF1f5S7.css">
   </head>
   <body>
     <canvas id="view"></canvas>
@@ -102,6 +102,7 @@
     </div>
 
     <div id="toast"></div>
+    <p id="street-stamp" hidden></p>
     <article id="card" hidden>
       <p id="card-kicker" class="eyebrow">Found</p>
       <h2 id="card-title"></h2>
@@ -123,7 +124,8 @@
       <div class="map-side">
         <p class="eyebrow">Street map</p>
         <h2>Lafayette</h2>
-        <p id="map-note">The map fills in as you roam. Tap a street you know, or a place you’ve found, then Travel.</p>
+        <p id="map-progress">0% of streets walked</p>
+        <p id="map-note">The whole town is penciled in. Streets you walk ink themselves. Tap a street, or a place you’ve found, then Travel.</p>
         <div class="journal-tabs" role="tablist">
           <button id="tab-places" type="button" role="tab" aria-selected="true" class="on">Places</button>
           <button id="tab-hall" type="button" role="tab" aria-selected="false">Hall of Builders</button>
@@ -145,36 +147,47 @@
 
     <aside id="debug" hidden>
       <h2>Daybook</h2>
-      <label>Hour <input id="time" type="range" min="0" max="24" step="0.01" value="18.8" /></label>
-      <label>Time speed <input id="tscale" type="range" min="0" max="8" step="0.05" value="0.55" /></label>
-      <div class="row">
-        <button type="button" data-quality="high">Vivid</button>
-        <button type="button" data-quality="medium">Balanced</button>
-        <button type="button" data-quality="low">Soft</button>
+      <div id="dev-tools" hidden>
+        <label>Hour <input id="time" type="range" min="0" max="24" step="0.01" value="14.67" /></label>
+        <label>Time speed <input id="tscale" type="range" min="0" max="8" step="0.05" value="0.55" /></label>
+        <label class="check"><input id="bloom" type="checkbox" checked /> Bloom</label>
+        <p id="fps"></p>
       </div>
-      <div class="row">
-        <button type="button" data-hour="14.67">Afternoon</button>
-        <button type="button" data-hour="18.7">Golden hour</button>
-        <button type="button" data-hour="20.15">Blue hour</button>
-      </div>
-      <div class="row">
-        <button type="button" data-weather="clear">Clear</button>
-        <button type="button" data-weather="fog">Fog</button>
-        <button type="button" data-weather="overcast">Clouds</button>
-        <button type="button" data-weather="rain">Rain</button>
-        <button type="button" data-weather="auto">Auto</button>
-      </div>
+      <fieldset class="seg">
+        <legend>Light</legend>
+        <div class="seg-row" role="group" aria-label="Light">
+          <button type="button" data-quality="high">Vivid</button>
+          <button type="button" data-quality="medium">Balanced</button>
+          <button type="button" data-quality="low">Soft</button>
+        </div>
+      </fieldset>
+      <fieldset class="seg">
+        <legend>Time</legend>
+        <div class="seg-row" role="group" aria-label="Time">
+          <button type="button" data-hour="14.67" class="on">Afternoon</button>
+          <button type="button" data-hour="18.7">Golden</button>
+          <button type="button" data-hour="20.15">Blue hour</button>
+        </div>
+      </fieldset>
+      <fieldset class="seg">
+        <legend>Weather</legend>
+        <div class="seg-row" role="group" aria-label="Weather">
+          <button type="button" data-weather="clear">Clear</button>
+          <button type="button" data-weather="fog">Fog</button>
+          <button type="button" data-weather="overcast">Clouds</button>
+          <button type="button" data-weather="rain">Rain</button>
+          <button type="button" data-weather="auto" class="on">Auto</button>
+        </div>
+      </fieldset>
       <button id="season" type="button">Winter hills</button>
-      <div class="row">
-        <button type="button" data-tp="downtown">Downtown</button>
-        <button type="button" data-tp="plaza">Plaza</button>
-        <button type="button" data-tp="reservoir">Reservoir</button>
-        <button type="button" data-tp="bart">Station</button>
-        <button type="button" data-tp="overlook">Overlook</button>
-        <button type="button" data-tp="rim">Rim trail</button>
-      </div>
-      <label class="check"><input id="bloom" type="checkbox" checked /> Bloom</label>
-      <p id="fps"></p>
+      <ul id="place-rows">
+        <li><button type="button" data-tp="downtown">Downtown</button></li>
+        <li><button type="button" data-tp="plaza">Plaza</button></li>
+        <li><button type="button" data-tp="reservoir">Reservoir</button></li>
+        <li><button type="button" data-tp="bart">Station</button></li>
+        <li><button type="button" data-tp="overlook">Overlook</button></li>
+        <li><button type="button" data-tp="rim">Rim trail</button></li>
+      </ul>
       <p class="credit">F3 closes this. Weather drifts back on its own unless you pin it.</p>
     </aside>
 
