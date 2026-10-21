@@ -1,8 +1,10 @@
 name: Deploy to GitHub Pages
 
+# The live site is published by pushing prebuilt output to the gh-pages
+# branch (Pages source: gh-pages). Running this workflow on every push to
+# main raced that publish ("in progress deployment" 400s), so it is now
+# manual-only as a fallback.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
