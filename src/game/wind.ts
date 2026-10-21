@@ -5,7 +5,9 @@ import {
   float,
   modelWorldMatrix,
   modelWorldMatrixInverse,
+  positionGeometry,
   positionLocal,
+  cos,
   sin,
   uniform,
   vec3,
@@ -39,6 +41,28 @@ export function swayFromTip() {
 
 export function swayFromHeight(scale = 0.5) {
   return sway(positionLocal.y.max(0).mul(scale))
+}
+
+/**
+ * 0.8° over 4s. `phase` is per tree so a row does not bow together.
+ * Instancing has already written the world vertex into `positionLocal`
+ * by the time a positionNode runs. Rotating that vector spins the crown
+ * around the world origin and lifts it off the trunk. Sway the raw
+ * geometry instead, and add the few centimetres back on.
+ */
+export function canopySway() {
+  const amp = (0.8 * Math.PI) / 180
+  return Fn(() => {
+    const phase = attribute('phase', 'float')
+    const ang = sin(windTime.mul(Math.PI / 2).add(phase)).mul(amp)
+    const c = cos(ang)
+    const s = sin(ang)
+    const x = positionGeometry.x
+    const y = positionGeometry.y
+    const rx = x.mul(c).sub(y.mul(s))
+    const ry = x.mul(s).add(y.mul(c))
+    return positionLocal.add(vec3(rx.sub(x), ry.sub(y), float(0)))
+  })()
 }
 
 export function clothMaterial(hex: number): MeshStandardNodeMaterial {

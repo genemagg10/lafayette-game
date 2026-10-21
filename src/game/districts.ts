@@ -2,8 +2,9 @@ import * as THREE from 'three'
 import { MeshBuilder } from './geom.ts'
 import type { Heightfield } from './height.ts'
 import { F_ROAD, F_WATER } from './height.ts'
-import { clusterCanopy, treeTrunk } from './downtown.ts'
-import { makeSignTexture } from './materials.ts'
+import { hash01 } from './math.ts'
+import { clusterCanopy, crownLift, treeTrunk } from './downtown.ts'
+import { makeSignTexture, solidCanopyMaterial } from './materials.ts'
 import type { Road, WaterFile } from './types.ts'
 
 /**
@@ -26,7 +27,6 @@ const CEDAR = 0x8d5e3c
 const OFFWHITE = 0xddd4c4
 const ROOF = 0xb7b2a8
 const WOOD = 0x8a6844
-const OAK = 0x6f7d4a
 
 export interface Footprint {
   w: number
@@ -329,8 +329,8 @@ function nudgeLand(height: Heightfield, x: number, z: number): { x: number; z: n
 }
 
 function plantOaks(group: THREE.Group, height: Heightfield, roads: Road[]): void {
-  const trunk = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.95, metalness: 0 })
-  const leaf = new THREE.MeshStandardMaterial({ color: OAK, roughness: 0.95, metalness: 0 })
+  const trunk = new THREE.MeshStandardMaterial({ color: 0x8d5a38, roughness: 0.95, metalness: 0 })
+  const leaf = solidCanopyMaterial()
   const stemGeo = treeTrunk()
   const crownGeo = clusterCanopy(1)
   let n = 0
@@ -360,9 +360,16 @@ function plantOaks(group: THREE.Group, height: Heightfield, roads: Road[]): void
           const stem = new THREE.Mesh(stemGeo, trunk)
           stem.position.set(x, y, z)
           stem.castShadow = true
-          const crown = new THREE.Mesh(crownGeo, leaf)
-          crown.position.set(x, y + 2.55, z)
-          crown.scale.set(2.15, 2.15 * 0.7, 2.15)
+          const crownMesh = crownGeo.clone()
+          const verts = crownMesh.getAttribute('position').count
+          const phase = new Float32Array(verts)
+          phase.fill(hash01(n * 17) * Math.PI * 2)
+          crownMesh.setAttribute('phase', new THREE.BufferAttribute(phase, 1))
+          const crown = new THREE.Mesh(crownMesh, leaf)
+          const canopySY = 2.15 / 1.6
+          crown.position.set(x, y + crownLift(1, canopySY), z)
+          crown.scale.set(2.15, canopySY, 2.15)
+          crown.castShadow = false
           group.add(stem, crown)
           n += 1
         }

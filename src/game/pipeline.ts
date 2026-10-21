@@ -70,6 +70,8 @@ export class Picture {
   quality: Quality
   webgpu = false
   bloomOn = true
+  /** First adapt step: shadows and bloom off, pixel ratio 0.75. Geometry stays. */
+  economy = false
   /** Frames that actually presented. Compile hitches before the first one do not count. */
   presented = 0
   /** Stop the frame loop. The backend is not safe to render. */
@@ -206,14 +208,15 @@ export class Picture {
   }
 
   private applyShadowBudget(): void {
-    const low = this.quality === 'low'
-    const vivid = this.quality === 'high' && this.webgpu && !this.isMobile()
+    const low = this.quality === 'low' || this.economy
+    const vivid = this.quality === 'high' && this.webgpu && !this.isMobile() && !this.economy
     if (!vivid) this.clearCascades()
     const size = low ? 256 : vivid ? 1024 : 512
     this.sun.shadow.mapSize.set(size, size)
     this.sun.shadow.radius = 4
     this.sun.shadow.bias = -0.0002
     this.sun.shadow.normalBias = 0.03
+    this.sun.shadow.intensity = 0.22
     this.renderer.shadowMap.enabled = !low
     this.renderer.shadowMap.type = PCFSoftShadowMap
     if (vivid && !this.csm) {
@@ -402,6 +405,14 @@ export class Picture {
     this.compose()
   }
 
+  /** Drop shadows and bloom before any mesh is swapped out. */
+  setEconomy(on: boolean): void {
+    if (this.economy === on) return
+    this.economy = on
+    this.applyShadowBudget()
+    this.compose()
+  }
+
   /** Recompose only when fog or night shafts actually have a term. */
   syncShafts(fog: number, gain: number): void {
     const on = fog > 0.005 || gain > 0.005
@@ -490,7 +501,7 @@ export class Picture {
     }
 
     this.bloomNode = null
-    if (this.quality !== 'low' && this.bloomOn) {
+    if (this.quality !== 'low' && this.bloomOn && !this.economy) {
       const glow = bloom(color, this.quality === 'high' ? 0.04 : 0.025, 0.18, 0.985)
       glow.setResolutionScale(this.quality === 'high' ? 0.5 : 0.35)
       this.bloomNode = glow

@@ -151,6 +151,33 @@ export class AudioBus {
     osc.stop(t + dur + 0.02)
   }
 
+  /** A short pencil scratch when a street finishes inking. */
+  scratch(): void {
+    this.ensure()
+    if (!this.ctx || !this.master) return
+    const t = this.ctx.currentTime
+    const src = this.ctx.createBufferSource()
+    const len = Math.floor(this.ctx.sampleRate * 0.16)
+    const buffer = this.ctx.createBuffer(1, len, this.ctx.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < len; i++) {
+      const env = 1 - i / len
+      data[i] = (Math.random() * 2 - 1) * env * env
+    }
+    src.buffer = buffer
+    const filter = this.ctx.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.value = 1600
+    filter.Q.value = 0.6
+    const gain = this.ctx.createGain()
+    gain.gain.setValueAtTime(0.045, t)
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16)
+    src.connect(filter)
+    filter.connect(gain)
+    gain.connect(this.master)
+    src.start(t)
+  }
+
   bell(): void {
     this.ensure()
     this.tone(1568, 0.45, 'sine', 0.22)

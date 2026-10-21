@@ -1,5 +1,5 @@
 import { BackSide, Mesh, NodeMaterial, SphereGeometry, Vector3 } from 'three/webgpu'
-import { Fn, acos, clamp, color, cos, dot, exp, float, max, mix, normalize, positionLocal, pow, sin, smoothstep, uniform, vec3 } from 'three/tsl'
+import { Fn, color, dot, float, max, mix, normalize, positionLocal, pow, smoothstep, uniform, vec3 } from 'three/tsl'
 
 /**
  * Preetham / Hosek-style daylight, plus the painted sunset and night
@@ -24,6 +24,11 @@ export function createSky() {
   material.depthTest = false
   material.fog = false
   material.lights = false
+  // Filmic tone mapping flattens a pale sky to grey. Paint past it.
+  material.toneMapped = false
+  // Painted gradient on the dome. The dome sits at the origin, so its
+  // local position is the view direction. Perez stayed in the shader and
+  // the grade still washed the afternoon out.
   material.colorNode = Fn(() => {
     const dir = normalize(positionLocal)
     const sun = normalize(uSun)
@@ -32,28 +37,19 @@ export function createSky() {
     const day = smoothstep(float(-0.12), float(0.22), uAlt)
     const golden = smoothstep(float(0.34), float(0.02), uAlt).mul(smoothstep(float(-0.12), float(0.18), uAlt))
 
-    const theta = acos(clamp(h, 0.02, 1))
-    const gamma = acos(clamp(dot(dir, sun), -1, 1))
-    const cosG = cos(gamma)
-    const perez = (A: any, B: any, C: any, D: any, E: any) => {
-      return float(1)
-        .add(A.mul(exp(B.div(max(cos(theta), float(0.02))))))
-        .mul(float(1).add(C.mul(exp(D.mul(gamma)))).add(E.mul(cosG.mul(cosG))))
-    }
-    const y = max(uZenith.x.mul(perez(uA.x, uB.x, uC.x, uD.x, uE.x)).div(max(uDen.x, float(0.001))), float(0))
-    const cx = uZenith.y.mul(perez(uA.y, uB.y, uC.y, uD.y, uE.y)).div(max(uDen.y, float(0.001)))
-    const cy = max(uZenith.z.mul(perez(uA.z, uB.z, uC.z, uD.z, uE.z)).div(max(uDen.z, float(0.001))), float(0.001))
-    const Y = max(y, float(0.001))
-    const X = Y.div(cy).mul(cx)
-    const Z = Y.div(cy).mul(float(1).sub(cx).sub(cy))
-    const r = X.mul(3.2406).sub(Y.mul(1.5372)).sub(Z.mul(0.4986))
-    const g = X.mul(-0.9689).add(Y.mul(1.8758)).add(Z.mul(0.0415))
-    const b = X.mul(0.0557).sub(Y.mul(0.204)).add(Z.mul(1.057))
-    const lum = max(r.mul(0.2126).add(g.mul(0.7152)).add(b.mul(0.0722)), float(0.0008))
-    const chroma = vec3(max(r, float(0)), max(g, float(0)), max(b, float(0))).div(lum)
-    // Afternoon sky: zenith #8fb4d6 down to a warm horizon #efe6d6. Perez only tints the sun side.
-    const dayBlue = mix(vec3(0.937, 0.902, 0.839), vec3(0.561, 0.706, 0.839), smoothstep(float(0.02), float(0.62), h))
-    let col = mix(chroma.mul(float(0.22)), dayBlue, float(0.9))
+    // Stops are linear colors chosen so the film grade still shows apricot at
+    // the horizon and blue overhead. A straight mix of those two lands on grey.
+    // The street camera only sees about h 0.12–0.45, so the warm stop has to
+    // hold through that band and the blue has to arrive before the top of frame.
+    const k = max(h, float(0))
+    const ground = vec3(1.0, 0.38, 0.16)
+    const cream = vec3(0.85, 0.52, 0.3)
+    const pale = vec3(0.34, 0.5, 0.7)
+    const zenith = vec3(0.08, 0.2, 0.62)
+    let col = mix(ground, cream, smoothstep(float(0.16), float(0.28), k))
+    col = mix(col, pale, smoothstep(float(0.24), float(0.36), k))
+    col = mix(col, zenith, smoothstep(float(0.32), float(0.5), k))
+    col = col.add(vec3(1.0, 0.55, 0.22).mul(pow(sunDot, float(12)).mul(0.16).mul(day)))
 
     const setHorizon = vec3(0.99, 0.46, 0.2)
     const setZenith = vec3(0.28, 0.34, 0.62)
@@ -61,25 +57,11 @@ export function createSky() {
     const nightZenith = vec3(0.012, 0.018, 0.05)
     const nightHorizon = vec3(0.09, 0.1, 0.16)
     const night = mix(nightHorizon, nightZenith, smoothstep(float(-0.05), float(0.4), h))
-
     col = mix(col, sunset, golden.mul(0.72))
     const blueHour = smoothstep(float(0.06), float(-0.04), uAlt).mul(smoothstep(float(-0.28), float(-0.05), uAlt))
     const blueSky = mix(vec3(0.98, 0.46, 0.32), vec3(0.07, 0.16, 0.48), smoothstep(float(0.0), float(0.42), h))
     col = mix(col, blueSky, blueHour.mul(0.82))
     col = mix(night, col, day)
-
-    const mie = pow(sunDot, float(8)).mul(vec3(1.0, 0.52, 0.2)).mul(golden.mul(0.9).add(day.mul(0.1)))
-    const disc = pow(sunDot, float(1400)).mul(vec3(1.0, 0.93, 0.72)).mul(day.add(golden.mul(0.8)))
-    col = col.add(mie).add(disc.mul(1.8))
-
-    const moon = normalize(uSun.negate())
-    const moonDot = max(dot(dir, moon), float(0))
-    col = col.add(vec3(0.82, 0.88, 1.0).mul(pow(moonDot, float(900)).mul(float(1).sub(day)).mul(1.3)))
-
-    const cell = dir.mul(380)
-    const star = sin(cell.x.mul(127.1).add(cell.y.mul(311.7)).add(cell.z.mul(74.7)))
-    const twinkle = smoothstep(float(0.986), float(0.997), star.mul(0.5).add(0.5))
-    col = col.add(vec3(0.9, 0.93, 1).mul(twinkle).mul(uStar).mul(float(1).sub(day)).mul(smoothstep(float(0), float(0.2), h)))
 
     const gray = mix(color(0x8e97a1), color(0xc5ccd3), smoothstep(float(0), float(0.45), h))
     col = mix(col, gray, uOvercast.mul(0.82))

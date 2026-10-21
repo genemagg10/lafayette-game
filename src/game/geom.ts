@@ -94,7 +94,7 @@ export function appendRibbon(
       const pl = Math.hypot(px, pz) || 1
       px /= pl
       pz /= pl
-      const miter = Math.min(2.4, 1 / Math.max(0.4, n1x * px + n1z * pz))
+      const miter = Math.min(1.35, 1 / Math.max(0.55, n1x * px + n1z * pz))
       px *= miter
       pz *= miter
     }

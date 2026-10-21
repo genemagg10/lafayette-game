@@ -218,8 +218,6 @@ export class Meadow {
     const aloft = agl > 48
     const bladeR = aloft ? (high ? 26 : 14) : high ? 50 : mid ? 36 : 22
     const bladeStep = high ? 0.85 : mid ? 1.15 : 1.6
-    const carpetR = aloft ? (high ? 420 : mid ? 300 : 180) : high ? 220 : mid ? 160 : 110
-    const carpetStep = aloft ? (high ? 7.2 : 9) : high ? 4.2 : mid ? 6 : 8.5
     const flowerR = Math.min(bladeR, this.season === 'winter' ? 0 : high ? 42 : 28)
     const flowerStep = this.season === 'spring' ? 1.65 : 4.6
     let blades = 0
@@ -270,7 +268,7 @@ export class Meadow {
 
     grid(bladeR, bladeStep, 'blade')
     if (flowerR > 4) grid(flowerR, flowerStep, 'flower')
-    grid(carpetR, carpetStep, 'carpet', bladeR * 0.55)
+    // Carpet crosses were the flat squares at low quality. Blades stay at every tier.
 
     let tufts = 0
     const tuftR = Math.min(bladeR, 34)

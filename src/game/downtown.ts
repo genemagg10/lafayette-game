@@ -4,55 +4,80 @@ import { MeshBuilder } from './geom.ts'
 import type { Heightfield } from './height.ts'
 import { hash01 } from './math.ts'
 
+const LEAF_LO = [0x5e / 255, 0x6b / 255, 0x3f / 255]
+const LEAF_HI = [0x7c / 255, 0x8a / 255, 0x55 / 255]
+
 /**
- * 3–5 smooth icospheres. Radii sit between 0.55 and 0.9, jittered by ±0.3.
- * Vertex colors vary lightness by ±6%, and the underside is darker so a crown
- * has contact shade without a second shadow map.
+ * Five lobes, each offset by up to 0.4 of the crown radius.
+ * Vertex color sits between #5e6b3f and #7c8a55, then ±6%.
  */
 export function clusterCanopy(radius = 1): THREE.BufferGeometry {
   const blobs: THREE.BufferGeometry[] = []
-  const puffs: [number, number, number, number][] = [
-    [0.0, 0.1, 0.0, 0.88],
-    [0.28, 0.02, 0.14, 0.74],
-    [-0.26, 0.06, -0.12, 0.68],
-    [0.08, 0.24, -0.22, 0.6],
-    [-0.14, -0.06, 0.26, 0.56],
+  const lobes: [number, number, number, number][] = [
+    [0, 0.08, 0, 0.86],
+    [0.4, -0.02, 0.12, 0.72],
+    [-0.36, 0.04, -0.18, 0.64],
+    [0.14, 0.12, -0.4, 0.58],
+    [-0.22, -0.08, 0.38, 0.55],
   ]
-  for (const [ox, oy, oz, scale] of puffs) {
+  for (const [ox, oy, oz, scale] of lobes) {
     const r = radius * Math.min(0.9, Math.max(0.55, scale))
     const geo = new THREE.IcosahedronGeometry(r, 1)
-    geo.translate(ox * 0.3, oy * 0.3, oz * 0.3)
+    geo.translate(ox * radius, oy * radius * 0.35, oz * radius)
     blobs.push(geo)
   }
   const merged = mergeGeometries(blobs) ?? blobs[0]
-  paintLightness(merged, true)
+  paintFoliage(merged)
+  const phase = new Float32Array(merged.getAttribute('position').count)
+  merged.setAttribute('phase', new THREE.BufferAttribute(phase, 1))
   return merged
 }
 
-/** Bole from radius 0.18 to 0.32, plus two or three limbs. Mottled in vertex color. */
+/** Per-instance phase so the 4s sway does not lock a whole row. */
+export function assignPhase(geo: THREE.BufferGeometry, count: number, seed: number): void {
+  const phase = new THREE.InstancedBufferAttribute(new Float32Array(count), 1)
+  for (let i = 0; i < count; i++) phase.setX(i, hash01(seed + i * 17) * Math.PI * 2)
+  geo.setAttribute('phase', phase)
+}
+
+/** Top of the bole in local space. Crowns seat on this, not above it. */
+export const TRUNK_TOP = 3.15
+/** Lowest vertex of `clusterCanopy(1)`, with a little slack so the crown overlaps the bole. */
+export const CANOPY_BOTTOM = -0.9
+
+/** Lift for an instanced crown so its bottom rests on the bole and tucks `tuck` meters over the limbs. */
+export function crownLift(trunkScaleY: number, canopyScaleY: number, tuck = 0.45): number {
+  return TRUNK_TOP * trunkScaleY - tuck - CANOPY_BOTTOM * canopyScaleY
+}
+
+const BARK_LO = [0x6b / 255, 0x3e / 255, 0x28 / 255]
+const BARK_HI = [0xa6 / 255, 0x6a / 255, 0x42 / 255]
+
+/** Bole from radius 0.18 to 0.32. Short limbs stay inside the crown. */
 export function treeTrunk(): THREE.BufferGeometry {
-  const bole = new THREE.CylinderGeometry(0.18, 0.32, 3.15, 6)
+  const bole = new THREE.CylinderGeometry(0.22, 0.34, 3.15, 7)
   bole.translate(0, 1.58, 0)
   const parts: THREE.BufferGeometry[] = [bole]
   const limbs: [number, number, number][] = [
-    [0.55, 0.62, 2.15],
-    [2.6, 0.5, 1.95],
-    [4.3, 0.58, 2.28],
+    [0.6, 0.38, 2.78],
+    [2.7, 0.34, 2.62],
+    [4.4, 0.36, 2.88],
   ]
   for (const [yaw, pitch, y] of limbs) {
-    const limb = new THREE.CylinderGeometry(0.045, 0.085, 0.95, 4)
-    limb.translate(0, 0.48, 0)
+    const limb = new THREE.CylinderGeometry(0.05, 0.09, 0.62, 4)
+    limb.translate(0, 0.31, 0)
     limb.rotateZ(pitch)
     limb.rotateY(yaw)
     limb.translate(0, y, 0)
     parts.push(limb)
   }
   const merged = mergeGeometries(parts) ?? bole
-  paintLightness(merged, false)
+  paintBark(merged)
   return merged
 }
 
-function paintLightness(geo: THREE.BufferGeometry, underside: boolean): void {
+/** Warm brown in the vertex color. Instance color stays near white so it is not multiplied down to black. */
+function paintBark(geo: THREE.BufferGeometry): void {
   const pos = geo.getAttribute('position')
   const colors = new Float32Array(pos.count * 3)
   let minY = Infinity
@@ -64,14 +89,33 @@ function paintLightness(geo: THREE.BufferGeometry, underside: boolean): void {
   }
   for (let i = 0; i < pos.count; i++) {
     const n = hash01(i * 17 + Math.round(pos.getY(i) * 40))
-    let lift = 0.94 + n * 0.12
-    if (underside) {
-      const t = (pos.getY(i) - minY) / (maxY - minY || 1)
-      lift *= 0.7 + t * 0.3
-    }
-    colors[i * 3] = lift
-    colors[i * 3 + 1] = lift
-    colors[i * 3 + 2] = lift
+    const t = (pos.getY(i) - minY) / (maxY - minY || 1)
+    const mix = Math.min(1, Math.max(0, n * 0.72 + (1 - t) * 0.18))
+    colors[i * 3] = BARK_LO[0] + (BARK_HI[0] - BARK_LO[0]) * mix
+    colors[i * 3 + 1] = BARK_LO[1] + (BARK_HI[1] - BARK_LO[1]) * mix
+    colors[i * 3 + 2] = BARK_LO[2] + (BARK_HI[2] - BARK_LO[2]) * mix
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+}
+
+function paintFoliage(geo: THREE.BufferGeometry): void {
+  const pos = geo.getAttribute('position')
+  const colors = new Float32Array(pos.count * 3)
+  let minY = Infinity
+  let maxY = -Infinity
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i)
+    if (y < minY) minY = y
+    if (y > maxY) maxY = y
+  }
+  for (let i = 0; i < pos.count; i++) {
+    const n = hash01(i * 17 + Math.round(pos.getY(i) * 40))
+    const t = (pos.getY(i) - minY) / (maxY - minY || 1)
+    const mix = Math.min(1, Math.max(0, n * 0.65 + t * 0.35))
+    const lift = 0.94 + n * 0.12
+    colors[i * 3] = (LEAF_LO[0] + (LEAF_HI[0] - LEAF_LO[0]) * mix) * lift
+    colors[i * 3 + 1] = (LEAF_LO[1] + (LEAF_HI[1] - LEAF_LO[1]) * mix) * lift
+    colors[i * 3 + 2] = (LEAF_LO[2] + (LEAF_HI[2] - LEAF_LO[2]) * mix) * lift
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 }
@@ -152,8 +196,8 @@ export function facadeFor(x: number, z: number, name: string, salt: number, best
   if (hero === 'pioneer') return { wall: BATTEN_HEX, base: 0xb7ad9c, roof: 0xb56a4a, awning: 0x7a4a36, hero, stories: 2 }
   if (hero === 'library') return { wall: 0xe6dccb, base: 0xc5beb4, roof: 0xb8b1a4, awning: 0x3f5a4a, hero, stories: 2 }
   const n = hash01(salt)
-  // Mostly two stories [S, DDG]. A few one-story and a few three-story [S].
-  const stories = n < 0.16 ? 1 : n < 0.82 ? 2 : 3
+  // Mt Diablo Blvd is one and two storeys. Taller blocks stay near BART.
+  const stories = n < 0.28 ? 1 : 2
   const family = hash01(salt + 5)
   const upper = family < 0.4 ? STUCCO : family < 0.62 ? BATTEN : family < 0.86 ? BRICK : STONE
   const lower = family < 0.5 ? STONE : family < 0.75 ? BRICK : BATTEN
@@ -170,9 +214,9 @@ export function facadeFor(x: number, z: number, name: string, salt: number, best
 }
 
 export function storyHeight(stories: number): number {
-  if (stories <= 1) return 4.6
+  if (stories <= 1) return 3.6
   if (stories >= 3) return 10.1
-  return 7.3
+  return 6.4
 }
 
 function heroNear(name: string, x: number, z: number): HeroId | null {
@@ -431,6 +475,7 @@ export function plantBoulevard(
   const canopyFade = new THREE.InstancedBufferAttribute(new Float32Array(count).fill(1), 1)
   trunkGeo.setAttribute('fade', trunkFade)
   canopyGeo.setAttribute('fade', canopyFade)
+  assignPhase(canopyGeo, count, 11)
   const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, count)
   const canopy = new THREE.InstancedMesh(canopyGeo, canopyMat, count)
   canopy.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
@@ -449,19 +494,19 @@ export function plantBoulevard(
     dummy.updateMatrix()
     trunks.setMatrixAt(i, dummy.matrix)
     const n = hash01(i * 5 + 3)
-    bark.setHex(plane ? 0xa49a86 : 0x5a4a3a)
+    bark.setRGB(1, 1, 1)
     bark.multiplyScalar(0.94 + n * 0.1)
     trunks.setColorAt(i, bark)
     const jitter = 0.82 + hash01(i * 9 + 2) * 0.36
     const crown = (plane ? 1.25 : 1.35) * jitter
-    const lift = plane ? 3.55 + crown * 0.28 : 2.45 + crown * 0.18
+    const canopyScaleY = plane ? crown * 1.35 : crown * 0.78
+    const lift = crownLift(1, canopyScaleY)
     dummy.position.set(p.x, y + lift, p.z)
-    dummy.scale.set(crown * (plane ? 0.92 : 1.15), crown * (plane ? 1.3 : 0.7), crown * (plane ? 0.92 : 1.15))
+    if (plane) dummy.scale.set(crown * 0.86, canopyScaleY, crown * 0.86)
+    else dummy.scale.set(canopyScaleY * 1.6, canopyScaleY, canopyScaleY * 1.6)
     dummy.updateMatrix()
     canopy.setMatrixAt(i, dummy.matrix)
-    // London planes are the tall olive crowns. Other boulevard trees are valley oaks.
-    const hex = plane ? 0x7c8a55 : n > 0.5 ? 0x6f7d4a : 0x5e6b3f
-    color.setHex(hex)
+    color.setRGB(1, 1, 1)
     canopy.setColorAt(i, color)
     planted.push({
       x: p.x,

@@ -5,6 +5,7 @@ import type { Road, StoryPerson, WaterFile, WeatherId } from './types.ts'
 import type { Heightfield } from './height.ts'
 import type { KidId } from './kids.ts'
 import { ERAS, type EraId } from './eras.ts'
+import type { StreetAtlas } from './streets.ts'
 
 export class Hud {
   mapOpen = false
@@ -30,11 +31,14 @@ export class Hud {
   onTour = () => {}
 
   private roads: Road[] = []
+  private atlas: StreetAtlas | null = null
   private water: WaterFile | null = null
   private minX = 0
   private maxX = 1
   private minZ = 0
   private maxZ = 1
+  private mapFit = { ox: 0, oy: 0, scale: 1 }
+  private readonly dev: boolean
   private pin: { x: number; z: number } | null = null
   private toastTimer = 0
   private cardTimer = 0
@@ -43,8 +47,12 @@ export class Hud {
   private miniSpan = 220
   private reveal: ((x: number, z: number) => boolean) | null = null
   private marks: { name: string; x: number; z: number }[] = []
+  private seals: { name: string; x: number; z: number; found: boolean }[] = []
 
   constructor() {
+    this.dev = new URLSearchParams(location.search).has('debug')
+    const devTools = document.getElementById('dev-tools')
+    if (devTools) devTools.hidden = !this.dev
     document.getElementById('play')?.addEventListener('pointerdown', (event) => {
       event.preventDefault()
       this.onTitle()
@@ -77,7 +85,10 @@ export class Hud {
       button.addEventListener('click', () => this.onTravelKind(button.dataset.travel || 'walk'))
     })
     document.querySelectorAll<HTMLButtonElement>('[data-hour]').forEach((button) => {
-      button.addEventListener('click', () => this.onHour(Number(button.dataset.hour || '14.67')))
+      button.addEventListener('click', () => {
+        document.querySelectorAll<HTMLButtonElement>('[data-hour]').forEach((other) => other.classList.toggle('on', other === button))
+        this.onHour(Number(button.dataset.hour || '14.67'))
+      })
     })
     document.getElementById('mute')?.addEventListener('click', () => this.onMute())
     document.getElementById('map-btn')?.addEventListener('click', () => {
@@ -96,7 +107,10 @@ export class Hud {
       button.addEventListener('click', () => this.onQuality((button.dataset.quality || 'high') as Quality))
     })
     document.querySelectorAll<HTMLButtonElement>('[data-weather]').forEach((button) => {
-      button.addEventListener('click', () => this.onWeather((button.dataset.weather || 'auto') as WeatherId | 'auto'))
+      button.addEventListener('click', () => {
+        document.querySelectorAll<HTMLButtonElement>('[data-weather]').forEach((other) => other.classList.toggle('on', other === button))
+        this.onWeather((button.dataset.weather || 'auto') as WeatherId | 'auto')
+      })
     })
     document.querySelectorAll<HTMLButtonElement>('[data-tp]').forEach((button) => {
       button.addEventListener('click', () => this.onTeleport(button.dataset.tp || 'downtown'))
@@ -108,36 +122,96 @@ export class Hud {
     const bloom = document.getElementById('bloom') as HTMLInputElement | null
     bloom?.addEventListener('change', () => this.onBloom(bloom.checked))
     const eras = document.getElementById('era-list')
-    for (const era of ERAS) {
-      const button = document.createElement('button')
-      button.type = 'button'
-      button.className = 'era-chip'
-      button.dataset.era = era.id
-      button.textContent = era.short
-      button.title = era.playable ? era.label : era.note
-      if (!era.playable) button.classList.add('locked')
-      button.addEventListener('click', () => this.onEra(era.id))
-      eras?.append(button)
+    if (eras) {
+      eras.replaceChildren()
+      eras.className = ''
+      const dial = document.createElement('div')
+      dial.id = 'era-dial'
+      const face = document.createElement('div')
+      face.className = 'dial-face'
+      const hand = document.createElement('div')
+      hand.className = 'dial-hand'
+      hand.id = 'era-hand'
+      const cap = document.createElement('div')
+      cap.className = 'dial-cap'
+      face.append(hand, cap)
+      const step = 360 / ERAS.length
+      ERAS.forEach((era, index) => {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'era-tick'
+        button.dataset.era = era.id
+        button.style.setProperty('--ang', `${index * step}deg`)
+        button.title = era.playable ? era.label : era.note
+        if (!era.playable) {
+          button.classList.add('locked')
+          const lock = document.createElement('span')
+          lock.className = 'lock'
+          lock.setAttribute('aria-hidden', 'true')
+          button.append(lock)
+        }
+        const label = document.createElement('span')
+        label.textContent = era.short
+        button.append(label)
+        button.addEventListener('click', () => this.onEra(era.id))
+        face.append(button)
+      })
+      dial.append(face)
+      eras.append(dial)
     }
     const mapc = document.getElementById('mapc') as HTMLCanvasElement | null
     mapc?.addEventListener('click', (event) => {
       const rect = mapc.getBoundingClientRect()
-      const u = (event.clientX - rect.left) / rect.width
-      const v = (event.clientY - rect.top) / rect.height
-      this.pin = { x: this.minX + u * (this.maxX - this.minX), z: this.minZ + v * (this.maxZ - this.minZ) }
+      const sx = ((event.clientX - rect.left) / rect.width) * mapc.width
+      const sy = ((event.clientY - rect.top) / rect.height) * mapc.height
+      const scale = this.mapFit.scale || 1
+      this.pin = {
+        x: this.minX + (sx - this.mapFit.ox) / scale,
+        z: this.minZ + (sy - this.mapFit.oy) / scale,
+      }
       const travel = document.getElementById('travel') as HTMLButtonElement | null
       if (travel) travel.disabled = false
       this.paintMap()
     })
   }
 
-  setMap(roads: Road[], water: WaterFile, height: Heightfield): void {
+  setMap(roads: Road[], water: WaterFile, height: Heightfield, atlas: StreetAtlas | null = null): void {
     this.roads = roads
+    this.atlas = atlas
     this.water = water
-    this.minX = height.originX
-    this.maxX = height.originX + height.sizeX
-    this.minZ = height.originZ
-    this.maxZ = height.originZ + height.sizeZ
+    if (atlas && atlas.count > 0) {
+      this.minX = atlas.minX
+      this.maxX = atlas.maxX
+      this.minZ = atlas.minZ
+      this.maxZ = atlas.maxZ
+    } else {
+      this.minX = height.originX
+      this.maxX = height.originX + height.sizeX
+      this.minZ = height.originZ
+      this.maxZ = height.originZ + height.sizeZ
+    }
+  }
+
+  setStreetProgress(share: number): void {
+    const el = document.getElementById('map-progress')
+    const pct = share * 100
+    const shown = pct > 0 && pct < 1 ? '<1' : String(Math.round(pct))
+    const text = `${shown}% of streets walked`
+    if (el && el.textContent !== text) el.textContent = text
+  }
+
+  stamp(name: string): void {
+    const el = document.getElementById('street-stamp')
+    if (!el) return
+    el.hidden = false
+    el.textContent = name
+    el.classList.remove('show')
+    void el.offsetWidth
+    el.classList.add('show')
+    window.setTimeout(() => {
+      el.classList.remove('show')
+      el.hidden = true
+    }, 950)
   }
 
   loading(message: string | null): void {
@@ -208,9 +282,11 @@ export class Hud {
     reveal: (x: number, z: number) => boolean,
     marks: { name: string; x: number; z: number; line?: string }[],
     hall: HallCredit[] = [],
+    seals: { name: string; x: number; z: number; found: boolean }[] = [],
   ): void {
     this.reveal = reveal
     this.marks = marks
+    this.seals = seals
     this.setPlaceList(marks)
     this.setTravelList(marks)
     this.setHall(hall)
@@ -251,7 +327,10 @@ export class Hud {
   }
 
   setEra(id: EraId, label: string): void {
-    document.querySelectorAll<HTMLButtonElement>('.era-chip').forEach((button) => {
+    const index = Math.max(0, ERAS.findIndex((era) => era.id === id))
+    const hand = document.getElementById('era-hand')
+    hand?.style.setProperty('--hand', `${index * (360 / ERAS.length)}deg`)
+    document.querySelectorAll<HTMLButtonElement>('.era-tick').forEach((button) => {
       const on = button.dataset.era === id
       button.classList.toggle('on', on)
       button.setAttribute('aria-pressed', on ? 'true' : 'false')
@@ -407,7 +486,11 @@ export class Hud {
     list.replaceChildren()
     if (marks.length === 0) {
       const empty = document.createElement('li')
-      empty.textContent = 'Places you find show up here.'
+      empty.className = 'travel-empty'
+      const compass = document.createElement('span')
+      compass.className = 'compass'
+      compass.setAttribute('aria-hidden', 'true')
+      empty.append(compass, document.createTextNode('Find a place on the boulevard to unlock Travel'))
       list.append(empty)
       return
     }
@@ -493,14 +576,14 @@ export class Hud {
     }
   }
 
-  toast(text: string): void {
+  toast(text: string, seconds = 5.2): void {
     const el = document.getElementById('toast')
     if (!el) return
     el.textContent = text
     el.classList.add('show')
     el.classList.remove('hold')
     el.onclick = null
-    this.toastTimer = 5.2
+    this.toastTimer = seconds
   }
 
   /** Stays up until the click. Used when the picture cannot rebuild itself. */
@@ -575,7 +658,7 @@ export class Hud {
     set('prompt', state.prompt)
     set('hint', state.hint)
     set('speed', state.speed)
-    set('fps', state.fps)
+    if (this.dev) set('fps', state.fps)
     set('gems', state.gems)
     set('distance', state.distance)
     const activity = document.getElementById('activity')
@@ -589,10 +672,16 @@ export class Hud {
     this.drawMini(state.x, state.z, state.heading)
   }
 
-  private project(x: number, z: number, w: number, h: number): [number, number] {
-    const u = (x - this.minX) / (this.maxX - this.minX)
-    const v = (z - this.minZ) / (this.maxZ - this.minZ)
-    return [u * w, v * h]
+  private layout(w: number, h: number): void {
+    const pad = 24
+    const spanX = Math.max(1, this.maxX - this.minX)
+    const spanZ = Math.max(1, this.maxZ - this.minZ)
+    const scale = Math.min(Math.max(1, w - pad * 2) / spanX, Math.max(1, h - pad * 2) / spanZ)
+    this.mapFit = { scale, ox: (w - spanX * scale) / 2, oy: (h - spanZ * scale) / 2 }
+  }
+
+  private project(x: number, z: number): [number, number] {
+    return [this.mapFit.ox + (x - this.minX) * this.mapFit.scale, this.mapFit.oy + (z - this.minZ) * this.mapFit.scale]
   }
 
   private drawRoads(
@@ -623,7 +712,7 @@ export class Hud {
         }
         const pt = near
           ? [w / 2 + ((x - near.x) / near.span) * (w / 2), h / 2 + ((z - near.z) / near.span) * (h / 2)]
-          : this.project(x, z, w, h)
+          : this.project(x, z)
         if (!started) {
           ctx.moveTo(pt[0], pt[1])
           started = true
@@ -681,8 +770,8 @@ export class Hud {
   drawMap(
     px?: number,
     pz?: number,
-    reveal?: (x: number, z: number) => boolean,
-    pins?: { name: string; x: number; z: number }[],
+    _reveal?: (x: number, z: number) => boolean,
+    _pins?: { name: string; x: number; z: number }[],
   ): void {
     const canvas = document.getElementById('mapc') as HTMLCanvasElement | null
     if (!canvas) return
@@ -691,57 +780,100 @@ export class Hud {
     canvas.height = Math.max(2, Math.floor(rect.height))
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+    this.layout(canvas.width, canvas.height)
     ctx.fillStyle = '#f6f1e6'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
     if (this.water) {
-      ctx.fillStyle = '#8fd0cf'
+      ctx.fillStyle = 'rgba(143, 208, 207, 0.85)'
       for (const body of this.water.bodies) {
-        let known = !reveal
-        if (reveal) {
-          const n = body.p.length / 2
-          for (let i = 0; i < n; i++) {
-            if (reveal(body.p[i * 2], body.p[i * 2 + 1])) {
-              known = true
-              break
-            }
-          }
-        }
-        if (!known) continue
         ctx.beginPath()
         const n = body.p.length / 2
         for (let i = 0; i < n; i++) {
-          const [sx, sy] = this.project(body.p[i * 2], body.p[i * 2 + 1], canvas.width, canvas.height)
+          const [sx, sy] = this.project(body.p[i * 2], body.p[i * 2 + 1])
           if (i === 0) ctx.moveTo(sx, sy)
           else ctx.lineTo(sx, sy)
         }
         ctx.fill()
       }
     }
-    this.drawRoads(ctx, canvas.width, canvas.height, null, reveal ?? null)
-    if (pins) {
-      ctx.fillStyle = '#2f5d34'
-      ctx.font = '600 13px Outfit, sans-serif'
-      ctx.textAlign = 'left'
-      for (const pin of pins) {
-        const [sx, sy] = this.project(pin.x, pin.z, canvas.width, canvas.height)
+    const now = performance.now()
+    if (this.atlas) this.drawAtlas(ctx, now)
+    else this.drawRoads(ctx, canvas.width, canvas.height, null, null)
+    const pins = this.seals.length ? this.seals : this.marks.map((mark) => ({ ...mark, found: true }))
+    const colors = ['#2f5d34', '#1d4e89', '#9e2430', '#b8924a', '#7a4a36']
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.font = '600 12px Outfit, sans-serif'
+    pins.forEach((pin, index) => {
+      const [sx, sy] = this.project(pin.x, pin.z)
+      if (!pin.found) {
+        ctx.save()
+        ctx.setLineDash([3, 2])
+        ctx.strokeStyle = '#2a3340'
+        ctx.lineWidth = 1.25
         ctx.beginPath()
-        ctx.arc(sx, sy, 5, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.fillText(pin.name, sx + 8, sy + 4)
+        ctx.arc(sx, sy, 9, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.restore()
+        ctx.fillStyle = '#2a3340'
+        ctx.fillText('?', sx, sy + 0.5)
+        return
       }
-    }
+      ctx.fillStyle = colors[index % colors.length]
+      ctx.beginPath()
+      ctx.arc(sx, sy, 5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.textAlign = 'left'
+      ctx.fillText(pin.name, sx + 8, sy + 4)
+      ctx.textAlign = 'center'
+    })
     if (px != null && pz != null) {
-      const [sx, sy] = this.project(px, pz, canvas.width, canvas.height)
+      const [sx, sy] = this.project(px, pz)
       ctx.fillStyle = '#d64545'
       ctx.beginPath()
       ctx.arc(sx, sy, 6, 0, Math.PI * 2)
       ctx.fill()
     }
     if (this.pin) {
-      const [sx, sy] = this.project(this.pin.x, this.pin.z, canvas.width, canvas.height)
+      const [sx, sy] = this.project(this.pin.x, this.pin.z)
       ctx.strokeStyle = '#2f5d34'
       ctx.lineWidth = 2
       ctx.strokeRect(sx - 6, sy - 6, 12, 12)
     }
+  }
+
+  private drawAtlas(ctx: CanvasRenderingContext2D, now: number): void {
+    const atlas = this.atlas
+    if (!atlas) return
+    ctx.beginPath()
+    for (let i = 0; i < atlas.count; i++) {
+      const seg = atlas.segment(i)
+      const [ax, ay] = this.project(seg.ax, seg.az)
+      const [bx, by] = this.project(seg.bx, seg.bz)
+      ctx.moveTo(ax, ay)
+      ctx.lineTo(bx, by)
+    }
+    ctx.globalAlpha = 0.6
+    ctx.strokeStyle = '#d9d1c1'
+    ctx.lineWidth = 1
+    ctx.stroke()
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = '#2a3340'
+    ctx.lineWidth = 2.5
+    ctx.beginPath()
+    let inked = false
+    for (let i = 0; i < atlas.count; i++) {
+      const t = atlas.ink(i, now)
+      if (t <= 0) continue
+      const seg = atlas.segment(i)
+      const [ax, ay] = this.project(seg.ax, seg.az)
+      const [bx, by] = this.project(seg.bx, seg.bz)
+      ctx.moveTo(ax, ay)
+      ctx.lineTo(ax + (bx - ax) * t, ay + (by - ay) * t)
+      inked = true
+    }
+    if (inked) ctx.stroke()
   }
 }

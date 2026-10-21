@@ -12,7 +12,7 @@ import { spanVisible } from './eras.ts'
 import { dressFifties } from './period.ts'
 import { hash01 } from './math.ts'
 import { parseOsmColor, town } from './palette.ts'
-import { BATTEN_HEX, addHeroAccent, clusterCanopy, coreBoulevard, facadeFor, greyIntersection, inDowntown, noteHero, plantBoulevard, punchFacade, shopSignTexture, storyHeight, treeTrunk, type BlvdTree, type Facade, type HeroId } from './downtown.ts'
+import { BATTEN_HEX, addHeroAccent, assignPhase, clusterCanopy, coreBoulevard, crownLift, facadeFor, greyIntersection, inDowntown, noteHero, plantBoulevard, punchFacade, shopSignTexture, storyHeight, treeTrunk, type BlvdTree, type Facade, type HeroId } from './downtown.ts'
 import { tileKey, tileOf, type TileSet, type VectorTile } from './tiles.ts'
 import type { Meta, Road, Season, WaterFile } from './types.ts'
 
@@ -549,12 +549,8 @@ export class World {
         | { detail: THREE.Object3D[]; far: THREE.Object3D; mat?: THREE.MeshStandardMaterial }
         | undefined
       if (lod) {
-        const center = group.userData.center as { x: number; z: number }
-        const dist = Math.hypot(center.x - x, center.z - z)
-        const fade = THREE.MathUtils.smoothstep(dist, 340, 520)
-        if (lod.mat) lod.mat.opacity = THREE.MathUtils.clamp(fade * 1.35, 0, 1)
-        lod.far.visible = (lod.mat?.opacity ?? 0) > 0.04
-        for (const mesh of lod.detail) mesh.visible = fade < 0.82
+        lod.far.visible = false
+        for (const mesh of lod.detail) mesh.visible = true
       }
       if (Math.abs(ix - cx) > radius + 1 || Math.abs(iz - cz) > radius + 1) this.unloadTile(key, group)
     }
@@ -1055,14 +1051,17 @@ export class World {
       sz /= n
       // Lafayette Station opened May 21, 1973. Hide that block before then.
       const later = Math.hypot(sx - bart.x, sz - bart.z) < 90
-      const facade = facadeFor(sx, sz, name, (sx * 10 + sz) | 0, heroBest)
+      let facade = facadeFor(sx, sz, name, (sx * 10 + sz) | 0, heroBest)
       const dress = schoolDress(name, sx, sz, footprintSize(poly), height)
       if (dress?.rows) {
         addClassroomRows(paper, later ? bartRoofs : roofs, poly, (x, z) => this.height.sample(x, z))
         this.blockers.add(key, poly, this.roofOf(poly, dress.height), null)
         continue
       }
+      if (facade && inDowntown(sx, sz) && !later && facade.stories > 2) facade = { ...facade, stories: 2 }
       let builtHeight = facade ? storyHeight(facade.stories) : height
+      if (inDowntown(sx, sz) && !later) builtHeight = Math.min(builtHeight, storyHeight(2))
+      else if (later) builtHeight = Math.min(16, Math.max(builtHeight, height))
       let wallPaint = facade ? facade.wall : wallHex
       let roofPaint = facade ? facade.roof : roofHex
       if (dress) {
@@ -1204,13 +1203,13 @@ export class World {
       else if (boulevard) {
         const paver = new THREE.Color(0xb08972)
         const band = new THREE.Color(0xcbbba8)
-        const median = new THREE.Color(0x1e4d32)
+        const median = new THREE.Color(0x7d9a52)
         const half = 6.4
         appendRibbon(walk, pts, half * 2 + 7.2, paver, 0.04)
         appendRibbon(casing, pts, half * 2 + 4.4, band, 0.055)
         appendRibbon(asphalt, this.shiftLine(pts, half * 0.55), half - 0.3, asphaltColor, 0.1)
         appendRibbon(asphalt, this.shiftLine(pts, -half * 0.55), half - 0.3, salt ? paved : pavedAlt, 0.1)
-        appendRibbon(walk, pts, 3.1, median, 0.12)
+        appendRibbon(walk, pts, 2.2, median, 0.12)
         this.lanePaint(paint, this.shiftLine(pts, half * 0.55), half - 0.5, 2, false, white, yellow)
         this.lanePaint(paint, this.shiftLine(pts, -half * 0.55), half - 0.5, 2, false, white, yellow)
         this.scatterTrees(blvdTrees, pts)
@@ -1921,6 +1920,7 @@ export class World {
     const canopyGeo = this.canopyGeo.clone()
     const trunkFade = this.fadeBuffer(trunkGeo, count)
     const canopyFade = this.fadeBuffer(canopyGeo, count)
+    assignPhase(canopyGeo, count, 29)
     const trunks = new THREE.InstancedMesh(trunkGeo, this.trunkMat, count)
     const canopy = new THREE.InstancedMesh(canopyGeo, this.canopyMat, count)
     canopy.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
@@ -1932,25 +1932,28 @@ export class World {
       const x = flat[i * 3]
       const z = flat[i * 3 + 1]
       const variant = flat[i * 3 + 2]
-      const y = this.height.sample(x, z)
       const wide = variant === 1
+      const y = this.height.sample(x, z)
       const bulk = 0.68 + hash01(i * 17 + 1) * 0.92
+      const trunkSY = 0.9 + hash01(i) * 0.2
       dummy.position.set(x, y, z)
       dummy.rotation.set(0, hash01(i * 11) * Math.PI, 0)
-      dummy.scale.set(0.9 + hash01(i + 2) * 0.25, 0.9 + hash01(i) * 0.2, 0.9 + hash01(i + 2) * 0.25)
+      dummy.scale.set(0.9 + hash01(i + 2) * 0.25, trunkSY, 0.9 + hash01(i + 2) * 0.25)
       dummy.updateMatrix()
       trunks.setMatrixAt(i, dummy.matrix)
-      bark.setHex(0x5a4a3a)
+      bark.setRGB(1, 1, 1)
       bark.multiplyScalar(0.94 + hash01(i * 3) * 0.1)
       trunks.setColorAt(i, bark)
       const crown = (wide ? 1.45 : 1.15) * bulk
-      const lift = 2.45 + crown * 0.22
+      const canopySY = wide ? crown * 0.72 : crown * 1.2
+      const lift = crownLift(trunkSY, canopySY)
       dummy.position.set(x, y + lift, z)
       dummy.rotation.set(0, hash01(i * 13) * Math.PI, 0)
-      dummy.scale.set(crown * (1.05 + hash01(i + 8) * 0.2), crown * 0.7, crown * (1.02 + hash01(i + 9) * 0.22))
+      if (wide) dummy.scale.set(canopySY * 1.6, canopySY, canopySY * 1.6)
+      else dummy.scale.set(crown * 0.9, canopySY, crown * 0.9)
       dummy.updateMatrix()
       canopy.setMatrixAt(i, dummy.matrix)
-      color.setHex(this.canopyHex(x, z))
+      color.setRGB(1, 1, 1)
       canopy.setColorAt(i, color)
       this.noteTree(group, x, z, y, 0.4, crown * 1.45, y + lift, i, trunkFade, canopyFade)
     }
@@ -1986,27 +1989,9 @@ export class World {
     group.userData.lod = lod
   }
 
-  private canopyHex(x: number, z: number): number {
-    const n = hash01(Math.round(x * 3 + z))
-    const hex = this.season === 'winter' ? (n > 0.5 ? 0x4e5c38 : 0x5e6b3f) : n > 0.5 ? 0x6f7d4a : 0x5e6b3f
-    const color = new THREE.Color(hex)
-    const hsl = { h: 0, s: 0, l: 0 }
-    color.getHSL(hsl)
-    const lift = 0.94 + hash01(Math.round(x + z * 2)) * 0.12
-    color.setHSL(hsl.h, Math.min(0.45, hsl.s), Math.min(0.58, Math.max(0.24, hsl.l * lift)))
-    return color.getHex()
-  }
-
   private paintCanopy(mesh: THREE.InstancedMesh): void {
-    const color = new THREE.Color()
-    const dummy = new THREE.Matrix4()
-    const pos = new THREE.Vector3()
-    for (let i = 0; i < mesh.count; i++) {
-      mesh.getMatrixAt(i, dummy)
-      pos.setFromMatrixPosition(dummy)
-      color.setHex(this.canopyHex(pos.x, pos.z))
-      mesh.setColorAt(i, color)
-    }
+    const color = new THREE.Color(1, 1, 1)
+    for (let i = 0; i < mesh.count; i++) mesh.setColorAt(i, color)
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
   }
 
@@ -2302,6 +2287,7 @@ export class World {
     const canopyGeo = this.canopyGeo.clone()
     const trunkFade = this.fadeBuffer(trunkGeo, count)
     const canopyFade = this.fadeBuffer(canopyGeo, count)
+    assignPhase(canopyGeo, count, 47)
     const trunks = new THREE.InstancedMesh(trunkGeo, this.trunkMat, count)
     const canopy = new THREE.InstancedMesh(canopyGeo, this.canopyMat, count)
     canopy.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
@@ -2318,14 +2304,16 @@ export class World {
       dummy.scale.set(1, 0.95, 1)
       dummy.updateMatrix()
       trunks.setMatrixAt(i, dummy.matrix)
+      bark.setRGB(1, 1, 1)
       trunks.setColorAt(i, bark)
       const crown = 1.2 * bulk
-      const lift = 2.4 + crown * 0.2
+      const canopySY = crown * 0.72
+      const lift = crownLift(0.95, canopySY)
       dummy.position.set(x, y + lift, z)
-      dummy.scale.set(crown * 1.15, crown * 0.7, crown * 1.15)
+      dummy.scale.set(canopySY * 1.6, canopySY, canopySY * 1.6)
       dummy.updateMatrix()
       canopy.setMatrixAt(i, dummy.matrix)
-      color.setHex(this.canopyHex(x + 4, z))
+      color.setRGB(1, 1, 1)
       canopy.setColorAt(i, color)
       this.noteTree(group, x, z, y, 0.36, crown * 1.15, y + lift, i, trunkFade, canopyFade)
     }

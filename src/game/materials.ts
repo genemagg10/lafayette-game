@@ -10,8 +10,8 @@ import {
   SRGBColorSpace,
   Vector2,
 } from 'three/webgpu'
-import { attribute, frameGroup, mix, normalWorld, smoothstep, uniform, vec3, vertexColor } from 'three/tsl'
-import { sunDirShade, swayFromHeight, swayFromTip } from './wind.ts'
+import { attribute, frameGroup, mix, normalWorld, positionLocal, smoothstep, uniform, vec3, vertexColor } from 'three/tsl'
+import { canopySway, sunDirShade, swayFromHeight, swayFromTip } from './wind.ts'
 
 /** Matte crowns. `fade` is per tree so a crown in the lens can disappear. */
 export function townLeafMaterial(): MeshStandardNodeMaterial {
@@ -27,6 +27,21 @@ export function townLeafMaterial(): MeshStandardNodeMaterial {
   mat.transparent = true
   mat.opacityNode = attribute('fade', 'float')
   mat.depthWrite = true
+  // Sway the raw geometry by a few centimetres. Rotating positionLocal
+  // spins the crown around the world origin and paints it across the road.
+  mat.positionNode = canopySway()
+  return mat
+}
+
+/** Same crown, for a mesh that is not instanced and has no fade attribute. */
+export function solidCanopyMaterial(): MeshStandardNodeMaterial {
+  const mat = new MeshStandardNodeMaterial({
+    color: 0xffffff,
+    roughness: 0.95,
+    metalness: 0,
+    vertexColors: true,
+  })
+  mat.positionNode = canopySway()
   return mat
 }
 
@@ -44,6 +59,7 @@ export function trunkMaterial(): MeshStandardNodeMaterial {
   mat.transparent = true
   mat.opacityNode = attribute('fade', 'float')
   mat.depthWrite = true
+  mat.emissiveNode = vertexColor().mul(0.16) as never
   return mat
 }
 
@@ -203,7 +219,7 @@ function softRamp(): CanvasTexture {
 /** Gentle toon band over a lit leaf. Blades use a tip attribute; canopies flex with height. */
 export function leafMaterial(mode: 'blade' | 'canopy'): MeshToonNodeMaterial {
   const material = new MeshToonNodeMaterial({ color: 0xffffff, gradientMap: softRamp(), side: DoubleSide })
-  material.positionNode = mode === 'blade' ? swayFromTip() : swayFromHeight(0.55)
+  material.positionNode = positionLocal.add((mode === 'blade' ? swayFromTip() : swayFromHeight(0.55)) as never)
   if (mode === 'blade') material.vertexColors = true
   material.polygonOffset = true
   material.polygonOffsetFactor = -1
@@ -213,7 +229,7 @@ export function leafMaterial(mode: 'blade' | 'canopy'): MeshToonNodeMaterial {
 
 export function foliageMaterial(hex: number, roughness = 0.86, flex = 0.2): MeshStandardNodeMaterial {
   const material = new MeshStandardNodeMaterial({ color: hex, roughness })
-  material.positionNode = swayFromHeight(flex)
+  material.positionNode = positionLocal.add(swayFromHeight(flex) as never)
   return material
 }
 
@@ -269,7 +285,7 @@ export function impostorMaterial(map: CanvasTexture): MeshStandardNodeMaterial {
     alphaTest: 0.28,
     depthWrite: true,
   })
-  material.positionNode = swayFromHeight(0.4)
+  material.positionNode = positionLocal.add(swayFromHeight(0.4) as never)
   return material
 }
 

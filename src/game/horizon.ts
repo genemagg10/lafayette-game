@@ -6,7 +6,6 @@ import type { Heightfield } from './height.ts'
 import { hash01 } from './math.ts'
 import { impostorMaterial } from './materials.ts'
 import type { Season } from './types.ts'
-import { swayFromHeight } from './wind.ts'
 
 /**
  * Mt. Diablo and a ring of ridge impostors past the heightfield,
@@ -29,18 +28,6 @@ export class Horizon {
     this.peak = this.mass(980, 1560, this.peakTint)
     this.peak.position.set(east, 60, midZ)
     group.add(this.peak)
-    // North of the roofs, not on the boulevard. A wide cone here swallows the street.
-    const close: [number, number, number, number][] = [
-      [240, -780, 170, 78],
-      [470, -840, 220, 96],
-      [700, -800, 190, 86],
-      [940, -860, 165, 74],
-    ]
-    for (const [x, z, h, r] of close) {
-      const hill = this.mass(r, h, this.ridgeTint)
-      hill.position.set(x, 90 + h * 0.05, z)
-      group.add(hill)
-    }
     const shoulder = this.mass(980, 680, this.ridgeTint)
     shoulder.position.set(east - 280, 20, midZ - 980)
     const shoulderB = this.mass(1120, 760, this.ridgeTint)
@@ -67,25 +54,31 @@ export class Horizon {
       group.add(ridge)
     }
 
+    // Low ridges west of the boulevard, far enough to sit on the horizon
+    // instead of standing in the sky like the old poles.
+    const west: [number, number, number, number][] = [
+      [-2800, -500, 980, 300],
+      [-2600, -1600, 860, 260],
+      [-3000, 500, 900, 280],
+    ]
+    for (const [x, z, radius, heightM] of west) {
+      const ridge = this.mass(radius, heightM, this.ridgeTint)
+      ridge.position.set(x, 70, z)
+      group.add(ridge)
+    }
+
     const cardMat = impostorMaterial(oak)
-    cardMat.positionNode = swayFromHeight(0.35)
+    // null, not undefined: NodeMaterial only skips a position node when it is null.
+    ;(cardMat as { positionNode: unknown }).positionNode = null
     const count = 160
     this.cards = new InstancedMesh(forestCard(), cardMat, count)
     const dummy = new Object3D()
     const tint = new Color()
     for (let i = 0; i < count; i++) {
-      const closeHill = i < 48
-      const around = i >= 48 && i < 96
-      const hills = [
-        [240, -780],
-        [470, -840],
-        [700, -800],
-        [940, -860],
-      ]
-      const hill = hills[i % hills.length]
-      const x = closeHill ? hill[0] + (hash01(i) - 0.5) * 60 : around ? east + (hash01(i) - 0.5) * 1600 : ring[i % ring.length][0] + (hash01(i + 4) - 0.5) * 700
-      const z = closeHill ? hill[1] + (hash01(i + 2) - 0.5) * 40 : around ? midZ + (hash01(i + 2) - 0.5) * 1800 : ring[i % ring.length][1] + (hash01(i + 9) - 0.5) * 600
-      const y = closeHill ? 130 + hash01(i + 1) * 80 : around ? 220 + hash01(i + 1) * 380 : 40 + hash01(i + 6) * 180
+      const around = i < 96
+      const x = around ? east + (hash01(i) - 0.5) * 1600 : ring[i % ring.length][0] + (hash01(i + 4) - 0.5) * 700
+      const z = around ? midZ + (hash01(i + 2) - 0.5) * 1800 : ring[i % ring.length][1] + (hash01(i + 9) - 0.5) * 600
+      const y = 6 + hash01(i + 6) * 18
       dummy.position.set(x, y, z)
       dummy.rotation.set(0, hash01(i * 3) * Math.PI, 0)
       const s = 2.4 + hash01(i + 8) * 2.2
@@ -109,14 +102,14 @@ export class Horizon {
   }
 
   setSeason(season: Season): void {
-    this.peakTint.value.setHex(0x8a97a8)
+    this.peakTint.value.setHex(0xc4b49a)
     this.ridgeTint.value.setHex(season === 'summer' ? 0xc6a15a : season === 'spring' ? 0x7eae58 : 0x3f7a46)
     const tint = this.cards.instanceColor
     if (!tint) return
     const color = new Color()
     for (let i = 0; i < this.cards.count; i++) {
       const springBlossom = season === 'spring' && hash01(i + 5) > 0.78
-      const hex = springBlossom ? 0xe7a0b8 : season === 'winter' ? 0x2f6a40 : season === 'spring' ? 0x3e8f42 : i < 48 ? 0x2a6b34 : hash01(i) > 0.5 ? 0x6a8a32 : 0xc2a85a
+      const hex = springBlossom ? 0xe7a0b8 : season === 'winter' ? 0x2f6a40 : season === 'spring' ? 0x3e8f42 : hash01(i) > 0.5 ? 0x6a8a32 : 0xc2a85a
       color.setHex(hex)
       this.cards.setColorAt(i, color)
     }

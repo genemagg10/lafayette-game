@@ -29,6 +29,7 @@ import { loadHistory } from './history.ts'
 import { Juice, Rewards } from './arcade.ts'
 import { Activities } from './beams.ts'
 import { createTownClock } from './period.ts'
+import { StreetAtlas } from './streets.ts'
 import type { CamKind, CamMode, Meta, RideKind, Road, WaterFile } from './types.ts'
 
 type Mount = Bike | Car | Wagon | Helicopter
@@ -103,6 +104,11 @@ export class Game {
   private bird = 2
   private readonly coarse = matchMedia('(pointer: coarse)').matches
   private quality: Quality = prefersMobile() ? 'medium' : 'high'
+  private streets: StreetAtlas | null = null
+  private readonly dev = new URLSearchParams(location.search).has('debug')
+  private filmFrom = 0
+  private filmTo = 0
+  private filmClock = 1
   constructor() {
     const canvas = document.querySelector('#view') as HTMLCanvasElement
     this.camera = new THREE.PerspectiveCamera(58, 1, 0.25, 9000)
@@ -167,6 +173,7 @@ export class Game {
     this.hud.onBloom = (on) => this.picture?.setBloom(on)
     this.hud.onQuality = (quality) => {
       this.qualityLock = true
+      this.picture?.setEconomy(false)
       this.applyQuality(quality)
     }
     this.hud.onPhoto = () => this.togglePhoto()
@@ -295,7 +302,10 @@ export class Game {
         (x, z) => this.world.surface(x, z, null),
         (x, z) => (this.world.height.flag(x, z) & (F_BUILDING | F_WATER)) !== 0,
       )
-      this.hud.setMap(roads, water, height)
+      this.streets = new StreetAtlas(roads)
+      this.hud.setMap(roads, water, height, this.streets)
+      this.hud.setStreetProgress(this.streets.share())
+      this.hud.setQualityLabel(this.quality)
       this.parkOnShore(this.heli)
       this.applyEra(loadEra(), false)
       this.hud.loading(null)
@@ -380,9 +390,10 @@ export class Game {
     const w = window.innerWidth
     const h = window.innerHeight
     const long = Math.max(w, h)
-    const cap = this.quality === 'low' ? 1 : this.quality === 'medium' ? 1.25 : 1.5
-    const limit = this.quality === 'high' ? 1600 : this.quality === 'medium' ? 1280 : long
-    const pr = Math.min(window.devicePixelRatio || 1, cap, limit / Math.max(1, long))
+    const trimmed = this.quality === 'low' || this.picture.economy
+    const cap = trimmed ? 0.75 : this.quality === 'medium' ? 1.25 : 1.5
+    const limit = trimmed ? long : this.quality === 'high' ? 1600 : this.quality === 'medium' ? 1280 : long
+    const pr = Math.min(window.devicePixelRatio || 1, cap, limit / Math.max(1, long), trimmed ? 0.75 : 8)
     this.picture.renderer.setPixelRatio(pr)
     this.picture.renderer.setSize(w, h, false)
     this.camera.aspect = w / Math.max(1, h)
@@ -391,7 +402,7 @@ export class Game {
 
   private applyQuality(quality: Quality): void {
     this.quality = quality
-    this.atmo.shadows = quality !== 'low'
+    this.atmo.shadows = quality !== 'low' && !this.picture.economy
     this.meadow?.setQuality(quality)
     this.picture.setQuality(quality)
     this.syncWater()
@@ -470,6 +481,7 @@ export class Game {
     const dt = Math.min(0.05, raw)
     this.last = now
     this.fps = this.fps * 0.92 + (1 / Math.max(dt, 0.001)) * 0.08
+    this.easeFilm(dt)
     this.input.update()
     if (this.input.pauseEdge) {
       if (this.photo) this.exitPhoto()
@@ -1081,7 +1093,14 @@ export class Game {
     const keeps = this.collect.keepsakes
     const viewHere = this.discover.viewHere(pos.x, pos.z)
     this.hud.setPhotoOffer(viewHere ? 'Keep this view' : null)
-    this.hud.setRoam((x, z) => this.discover.revealed(x, z), this.discover.foundPlaces(), this.discover.hall())
+    if (this.streets && pos.agl < 25) {
+      for (const name of this.streets.walk(pos.x, pos.z, performance.now())) {
+        this.audio.scratch()
+        this.hud.stamp(name)
+      }
+    }
+    if (this.streets) this.hud.setStreetProgress(this.streets.share())
+    this.hud.setRoam((x, z) => this.discover.revealed(x, z), this.discover.foundPlaces(), this.discover.hall(), this.discover.openPlaces())
     const weather = this.atmo.rain > 0.45 ? 'Rain' : this.atmo.fog > 0.45 ? 'Fog on the hills' : this.atmo.overcast > 0.45 ? 'Overcast' : 'Clear'
     const where = this.portals?.label || this.world.placeName(pos.x, pos.z)
     const place = this.eraId === 'today' || this.portals?.label ? where : `${where} · ${ERA_BY_ID[this.eraId].short}`
@@ -1093,7 +1112,7 @@ export class Game {
       prompt,
       hint,
       speed,
-      fps: this.hud.debugOpen ? `${Math.round(this.fps)} fps · ${this.picture.gpuLine}` : '',
+      fps: this.dev && this.hud.debugOpen ? `${Math.round(this.fps)} fps · ${this.picture.gpuLine}` : '',
       x: pos.x,
       z: pos.z,
       heading: pos.heading,
@@ -1114,23 +1133,46 @@ export class Game {
     this.ema = this.ema * 0.9 + ms * 0.1
     const fps = 1000 / this.ema
     this.sinceStep += dt
-    if (fps < 34 && this.adaptSteps < 2 && this.quality !== 'low' && this.sinceStep > 1.2) {
+    const canDrop = !this.picture.economy || this.quality === 'high'
+    if (fps < 34 && this.adaptSteps < 2 && canDrop && this.sinceStep > 1.2) {
       this.adaptSteps += 1
       this.sinceStep = 0
       this.fastFor = 0
-      this.applyQuality(this.quality === 'high' ? 'medium' : 'low')
-      this.hud.toast('Softened the picture so the town stays smooth.')
-    } else if (fps > 55 && this.adaptSteps > 0 && this.quality !== 'high') {
+      if (!this.picture.economy) this.picture.setEconomy(true)
+      else this.applyQuality('medium')
+      this.atmo.shadows = this.quality !== 'low' && !this.picture.economy
+      this.resize()
+      this.noteSoftened()
+    } else if (fps > 55 && this.adaptSteps > 0 && (this.picture.economy || this.quality !== 'high')) {
       this.fastFor += dt
       if (this.fastFor > 5) {
         this.adaptSteps -= 1
         this.fastFor = 0
         this.sinceStep = 0
-        this.applyQuality(this.quality === 'low' ? 'medium' : 'high')
+        if (this.quality !== 'high') this.applyQuality('high')
+        else {
+          this.picture.setEconomy(false)
+          this.atmo.shadows = true
+          this.resize()
+        }
       }
     } else if (fps <= 55) {
       this.fastFor = 0
     }
+  }
+
+  private toldSoft = false
+
+  private noteSoftened(): void {
+    if (this.toldSoft) return
+    this.toldSoft = true
+    try {
+      if (sessionStorage.getItem('ld-soft') === '1') return
+      sessionStorage.setItem('ld-soft', '1')
+    } catch {
+      /* still once this run */
+    }
+    this.hud.toast('Softened the picture so the town stays smooth.', 3)
   }
 
   private chooseKid(id: KidId): void {
@@ -1174,7 +1216,16 @@ export class Game {
     if (!spec.playable) return
     this.eraId = id
     saveEra(id)
-    eraFilm.value = spec.grade
+    if (this.mode === 'play' || this.mode === 'pause') {
+      this.filmFrom = eraFilm.value
+      this.filmTo = spec.grade
+      this.filmClock = 0
+    } else {
+      eraFilm.value = spec.grade
+      this.filmFrom = spec.grade
+      this.filmTo = spec.grade
+      this.filmClock = 1
+    }
     this.discover.setYear(spec.year)
     this.world.setEra(spec.year)
     this.traffic.setPeriod(id === 'fifties' ? 'fifties' : 'today')
@@ -1202,6 +1253,13 @@ export class Game {
     this.audio.eraShift()
     this.hud.setEraVeil(spec.year)
     this.eraAnim = { t: 0, phase: 'in', next: id, told: false }
+  }
+
+  private easeFilm(dt: number): void {
+    if (this.filmClock >= 1) return
+    this.filmClock = Math.min(1, this.filmClock + dt / 0.8)
+    const u = 1 - (1 - this.filmClock) * (1 - this.filmClock)
+    eraFilm.value = this.filmFrom + (this.filmTo - this.filmFrom) * u
   }
 
   private tickEra(dt: number): void {
@@ -1286,12 +1344,28 @@ export class Game {
     this.camera.updateMatrixWorld()
     const now = performance.now()
     const buttons = document.querySelectorAll<HTMLButtonElement>('#cast [data-kid]')
+    const pause = this.mode === 'pause'
     buttons.forEach((button) => {
       const id = (button.dataset.kid || 'milo') as KidId
       const kid = id === 'juniper' ? this.juniper : this.milo
-      const ndcX = id === 'juniper' ? 0.22 : -0.22
-      const ndcY = 0.08
-      kid.stand(this.camera, ndcX, ndcY, 4.4)
+      let ndcX = id === 'juniper' ? 0.22 : -0.22
+      let ndcY = 0.08
+      const dist = pause ? 3.4 : 4.4
+      if (pause) {
+        const rect = button.getBoundingClientRect()
+        const cx = rect.left + rect.width / 2
+        const cy = rect.top + rect.height * 0.32
+        ndcX = (cx / Math.max(1, window.innerWidth)) * 2 - 1
+        ndcY = 1 - (cy / Math.max(1, window.innerHeight)) * 2
+      }
+      kid.stand(this.camera, ndcX, ndcY, dist)
+      if (pause) {
+        const rect = button.getBoundingClientRect()
+        const fov = (this.camera.fov * Math.PI) / 180
+        const viewH = 2 * dist * Math.tan(fov / 2)
+        const worldPerPx = viewH / Math.max(1, window.innerHeight)
+        kid.group.scale.setScalar(Math.max(0.35, (rect.height * 0.5 * worldPerPx) / 1.55))
+      }
       const turn = Math.sin((now / 1000) * ((Math.PI * 2) / 8)) * ((3 * Math.PI) / 180)
       kid.group.rotateY(turn)
       kid.setChosen(id === this.kidId)

@@ -64,6 +64,7 @@ export class Atmosphere {
     this.sun.shadow.bias = -0.0002
     this.sun.shadow.normalBias = 0.03
     this.sun.shadow.radius = 4
+    this.sun.shadow.intensity = 0.22
     scene.add(this.sun, this.sun.target)
     this.moon = new THREE.DirectionalLight(0xb9c7e6, 0)
     scene.add(this.moon, this.moon.target)
@@ -210,6 +211,7 @@ export class Atmosphere {
     this.sun.shadow.bias = -0.0002
     this.sun.shadow.normalBias = 0.03
     this.sun.shadow.radius = 4
+    this.sun.shadow.intensity = 0.22
 
     this.sky.mesh.position.copy(focus)
     this.sky.uSun.value.copy(this.sunDir)

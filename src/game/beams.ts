@@ -39,15 +39,16 @@ export class Activities {
     this.book = stand(world, plaza.x + 8, plaza.z + 6)
     this.huntStart = stand(world, 508, -360)
     for (let i = 0; i < 2; i++) {
-      const column = makeBeam(0xf2c14e, 56)
+      const column = makeBeam(0xf2c14e, 8)
       column.visible = false
       scene.add(column)
       this.gold.push(column)
     }
-    this.huntBeam = makeBeam(0x3ec8c0, 64)
-    this.boardBeam = makeBeam(0xf08a6a, 64)
-    this.bookBeam = makeBeam(0xf08a6a, 48)
-    this.tourBeam = makeBeam(0xfff6df, 52)
+    this.huntBeam = makeBeam(0x3ec8c0, 8)
+    this.huntBeam.visible = false
+    this.boardBeam = makeBeam(0xf08a6a, 8)
+    this.bookBeam = makeBeam(0xf08a6a, 8)
+    this.tourBeam = makeBeam(0xfff6df, 8)
     this.light = new THREE.PointLight(0xfff1c4, 0, 22, 1.6)
     this.light.position.y = 6
     scene.add(this.huntBeam, this.boardBeam, this.bookBeam, this.tourBeam, this.light)
@@ -74,39 +75,31 @@ export class Activities {
     let note: ActivityNote | null = null
     const open = discover.openPlaces().filter((spot) => !spot.found)
     open.sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))
-    for (let i = 0; i < this.gold.length; i++) {
-      const spot = open[i]
-      const column = this.gold[i]
-      if (!spot) {
-        column.visible = false
-        continue
-      }
-      column.visible = true
-      this.place(column, world, spot)
-      column.scale.set(1, bob, 1)
-    }
+    for (const column of this.gold) column.visible = false
     if (this.hunt) {
       this.hunt.left -= dt
+      this.huntBeam.visible = true
       this.place(this.huntBeam, world, this.hunt)
       if (this.hunt.left <= 0) {
         this.hunt = null
         this.huntReady = true
-        this.place(this.huntBeam, world, this.huntStart)
+        this.huntBeam.visible = false
         note = { text: 'The hunt can wait.', gems: 0 }
       } else if (close(world, x, y, z, this.hunt)) {
         this.hunt = null
         this.huntReady = true
-        this.place(this.huntBeam, world, this.huntStart)
+        this.huntBeam.visible = false
         note = { text: '+4 gems', gems: 4 }
       }
     } else if (this.huntReady && close(world, x, y, z, this.huntStart)) {
       const next = this.nextHunt(x, z, world, open)
       this.hunt = { x: next.x, z: next.z, left: HUNT_SECONDS }
       this.huntReady = false
+      this.huntBeam.visible = true
       this.place(this.huntBeam, world, next)
       note = { text: 'Find the next beam.', gems: 0 }
     } else {
-      this.place(this.huntBeam, world, this.huntStart)
+      this.huntBeam.visible = false
     }
     this.huntBeam.scale.set(1, bob, 1)
 

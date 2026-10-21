@@ -85,9 +85,79 @@ button { cursor: pointer; }
   background: #c4894a;
   mix-blend-mode: multiply;
   opacity: 0;
-  transition: opacity 0.45s ease;
+  transition: opacity 800ms ease;
 }
 #era-grade.on { opacity: 0.24; }
+#era-dial { display: flex; justify-content: center; margin: 0.2rem 0 0.35rem; }
+.dial-face {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: #f7f3ea;
+  border: 8px solid #b8924a;
+  box-shadow: inset 0 0 0 2px #e6d3a4, 0 8px 18px rgba(28, 36, 48, 0.12);
+}
+.dial-hand {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 52px;
+  margin: 0;
+  background: #1c2430;
+  border-radius: 2px;
+  transform-origin: 50% 100%;
+  transform: translate(-50%, -100%) rotate(var(--hand, 0deg));
+  transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+.dial-cap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #b8924a;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.era-tick {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  min-height: 36px;
+  padding: 0;
+  background: transparent;
+  color: #1c2430;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.05;
+  transform: translate(-50%, -50%) rotate(var(--ang)) translateY(-62px) rotate(calc(var(--ang) * -1));
+}
+.era-tick.locked { opacity: 0.5; }
+.era-tick .lock {
+  display: block;
+  width: 8px;
+  height: 6px;
+  margin: 0 auto 1px;
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+  position: relative;
+}
+.era-tick .lock::before {
+  content: '';
+  position: absolute;
+  left: 0.5px;
+  top: -5px;
+  width: 5px;
+  height: 4px;
+  border: 1.5px solid currentColor;
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+}
 #speedlines {
   position: fixed; inset: -10%; pointer-events: none; opacity: 0;
   background: repeating-conic-gradient(from 0deg, transparent 0 12deg, rgba(255, 248, 236, 0.22) 12deg 12.35deg);
@@ -163,6 +233,7 @@ button, .row button {
   padding: 0.7rem 1.15rem; font-weight: 600;
 }
 button:hover { background: #244a29; }
+.era-tick:hover { background: transparent; color: #1c2430; }
 button:disabled { opacity: 0.45; cursor: default; }
 .credit, .osm { color: rgba(28, 36, 48, 0.72); font-size: 0.75rem; }
 #title .credit {
@@ -268,8 +339,30 @@ button:disabled { opacity: 0.45; cursor: default; }
   background: radial-gradient(ellipse at center, rgba(28, 36, 48, 0.38), rgba(28, 36, 48, 0) 70%);
 }
 #cast[hidden] { display: none !important; }
-#cast.is-pause { top: 8vh; }
-.cast-picks { display: flex; gap: clamp(0.7rem, 3vw, 1.6rem); width: 100%; justify-content: center; }
+#cast.is-pause {
+  top: auto;
+  bottom: 0;
+  width: min(560px, 100%);
+  max-height: min(92vh, 780px);
+  overflow: auto;
+  background: #f7f3ea;
+  color: #1c2430;
+  border-radius: 20px 20px 0 0;
+  padding: 24px;
+  gap: 12px;
+  pointer-events: auto;
+  box-shadow: 0 -16px 40px rgba(28, 36, 48, 0.18);
+}
+#cast.is-pause .cast-ground { display: none; }
+#cast.is-pause #era,
+#cast.is-pause #travel-panel {
+  width: 100%;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+}
+.cast-picks { display: flex; gap: 12px; width: 100%; justify-content: center; }
 .kid {
   pointer-events: auto;
   width: 160px;
@@ -295,18 +388,78 @@ button:disabled { opacity: 0.45; cursor: default; }
 .kid-name { font-family: Fraunces, Georgia, serif; font-size: 1.15rem; line-height: 1; }
 .kid-line { font-size: 0.72rem; color: #243044; font-weight: 500; }
 #cast.is-pause .kid {
-  width: min(250px, 44vw);
-  height: min(220px, 28vh);
-  border-radius: 22px;
-  padding: 0.8rem 0.9rem;
+  width: 160px;
+  height: 200px;
+  border-radius: 16px;
+  padding: 0.7rem 0.75rem;
+  background: linear-gradient(to bottom, rgba(247, 243, 234, 0) 0 108px, #fff 108px);
+  border: 1px solid rgba(28, 36, 48, 0.14);
+  box-shadow: none;
+  transform: none;
 }
-#cast.is-pause .kid-name { font-size: 1.6rem; }
-#cast.is-pause .kid-line { font-size: 0.88rem; }
-#cast.is-pause { top: 8vh; bottom: auto; width: min(640px, 94vw); }
+#cast.is-pause .kid.on { transform: none; border-color: #2f5d34; }
+#cast.is-pause .kid-name { font-size: 1.05rem; }
+#cast.is-pause .kid-line { font-size: 0.72rem; }
+.travel-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.compass {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #2f5d34;
+  border-radius: 50%;
+  position: relative;
+}
+.compass::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 9px solid #9e2430;
+}
 #cast-go { pointer-events: auto; }
 #cast-kicker {
   background: rgba(244, 239, 228, 0.88);
   padding: 0.28rem 0.6rem; border-radius: 999px;
+}
+#map-progress { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+#street-stamp {
+  position: fixed;
+  left: 50%;
+  bottom: 22%;
+  z-index: 8;
+  width: 84px;
+  height: 84px;
+  margin: 0;
+  border-radius: 50%;
+  border: 2px dashed #2a3340;
+  background: #f7f3ea;
+  color: #1c2430;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.15;
+  padding: 8px;
+  pointer-events: none;
+  opacity: 0;
+}
+#street-stamp.show { animation: stampin 900ms ease-out forwards; }
+#street-stamp[hidden] { display: none; }
+@keyframes stampin {
+  0% { opacity: 0; transform: translateX(-50%) scale(1.35) rotate(-8deg); }
+  28% { opacity: 1; transform: translateX(-50%) scale(1) rotate(3deg); }
+  70% { opacity: 1; transform: translateX(-50%) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translateX(-50%) scale(0.96); }
 }
 #toast.show { opacity: 1; }
 #toast.hold { opacity: 1; pointer-events: auto; cursor: pointer; z-index: 40; }
@@ -390,7 +543,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .map-side button { width: 100%; }
 
 #debug {
-  position: fixed; top: 0; right: 0; bottom: 0; width: min(320px, 100%);
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 100%);
   background: rgba(244, 239, 228, 0.96); padding: 1rem 1rem 1.4rem; overflow: auto; z-index: 5;
   box-shadow: -12px 0 40px rgba(28, 36, 48, 0.12);
 }
@@ -398,10 +551,40 @@ button:disabled { opacity: 0.45; cursor: default; }
 #debug h2 { margin-bottom: 0.8rem; }
 #debug label { display: flex; justify-content: space-between; gap: 0.6rem; align-items: center; margin: 0.45rem 0; }
 #debug input[type="range"] { width: 60%; }
-.row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0; }
-.row button { background: #1c2430; padding: 0.4rem 0.7rem; font-size: 0.85rem; }
+.seg { border: 0; margin: 0 0 12px; padding: 0; }
+.seg legend {
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: #2f5d34;
+  margin-bottom: 6px;
+}
+.seg-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.seg-row button {
+  flex: 1 1 0;
+  min-height: 44px;
+  background: #f7f3ea;
+  color: #1c2430;
+  border-radius: 12px;
+  border: 1px solid rgba(28, 36, 48, 0.12);
+  padding: 0.4rem 0.55rem;
+}
+.seg-row button.on,
+.seg-row button.on:hover { background: #2f5d34; color: #fff; outline: none; }
+#season { min-height: 44px; margin-bottom: 12px; }
+#place-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+#place-rows button {
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  background: #f7f3ea;
+  color: #1c2430;
+  border-radius: 12px;
+  border: 1px solid rgba(28, 36, 48, 0.12);
+}
+#dev-tools[hidden] { display: none; }
 .check { justify-content: flex-start !important; }
-#fps { font-variant-numeric: tabular-nums; color: #526070; }
+#fps { font-variant-numeric: tabular-nums; color: #526070; margin: 0.4rem 0 0; }
 
 #touch { position: fixed; inset: 0; pointer-events: none; z-index: 3; touch-action: none; }
 /* Menus own the screen. The stick stays hidden until a ramble is actually underway. */
@@ -482,12 +665,14 @@ body:has(#cast:not([hidden])) #touch { display: none !important; }
   .cast-ground { gap: 2.2rem; top: 62%; }
   .cast-ground span { width: 110px; }
   #cast.is-pause {
-    top: 0.4rem;
-    bottom: auto;
-    max-height: calc(100vh - 0.8rem);
-    overflow: auto;
+    top: auto;
+    bottom: 0;
+    width: min(560px, 100%);
+    max-height: min(92vh, 780px);
+    padding: 24px;
+    border-radius: 20px 20px 0 0;
   }
-  .cast-picks { gap: 0.45rem; }
+  .cast-picks { gap: 12px; }
   .kid {
     width: 160px;
     height: 88px;
@@ -495,8 +680,8 @@ body:has(#cast:not([hidden])) #touch { display: none !important; }
     border-radius: 16px;
   }
   #cast.is-pause .kid {
-    height: auto;
-    width: min(46vw, 180px);
+    width: 160px;
+    height: 200px;
   }
   #place { font-size: 1rem; }
   #place-card { padding: 0.32rem 0.55rem; max-width: 62vw; }
@@ -519,6 +704,5 @@ body:has(#cast:not([hidden])) #touch { display: none !important; }
 }
 /* Pause cards stay on screen when the window is short. The title and the picker are separate stages. */
 @media (max-height: 1040px) and (min-width: 801px) {
-  #cast.is-pause { top: 2vh; }
-  #cast.is-pause .kid { height: min(180px, 26vh); }
+  #cast.is-pause { top: auto; bottom: 0; }
 }
