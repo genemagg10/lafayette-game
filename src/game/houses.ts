@@ -147,6 +147,25 @@ class Bucket {
   }
 }
 
+/** Unit front direction: perpendicular to the street, door toward the pavement. */
+function roadFacing(x: number, z: number, road: Approach | null, fallbackX: number, fallbackZ: number): { x: number; z: number } {
+  const fallback = Math.hypot(fallbackX, fallbackZ) || 1
+  if (!road) return { x: fallbackX / fallback, z: fallbackZ / fallback }
+  const len = Math.hypot(road.dx ?? 0, road.dz ?? 0)
+  if (len > 0.5) {
+    const tx = (road.dx ?? 0) / len
+    const tz = (road.dz ?? 0) / len
+    const nx = -tz
+    const nz = tx
+    const toward = nx * (road.x - x) + nz * (road.z - z)
+    const side = toward >= 0 ? 1 : -1
+    return { x: nx * side, z: nz * side }
+  }
+  const fl = Math.hypot(road.x - x, road.z - z)
+  if (fl > 0.4) return { x: (road.x - x) / fl, z: (road.z - z) / fl }
+  return { x: fallbackX / fallback, z: fallbackZ / fallback }
+}
+
 function orient(poly: number[], road: Approach | null): { cx: number; cz: number; ax: number; az: number; fx: number; fz: number; minA: number; maxA: number; minF: number; maxF: number } | null {
   const n = poly.length / 2
   if (n < 3) return null
@@ -161,8 +180,9 @@ function orient(poly: number[], road: Approach | null): { cx: number; cz: number
   let fx = 0
   let fz = 1
   if (road) {
-    fx = road.x - cx
-    fz = road.z - cz
+    const face = roadFacing(cx, cz, road, 0, 1)
+    fx = face.x
+    fz = face.z
   } else {
     let best = 0
     for (let i = 0; i < n; i++) {
@@ -223,9 +243,27 @@ function plan(poly: number[], road: Approach | null, sample: (x: number, z: numb
     const f = frame.maxF - setback - depth / 2
     let x = frame.cx + frame.ax * a + frame.fx * f
     let z = frame.cz + frame.az * a + frame.fz * f
-    const yaw = Math.atan2(frame.fx, frame.fz)
-    const cos = Math.cos(yaw)
-    const sin = Math.sin(yaw)
+    const facing = () => {
+      const near = roadAt(x, z)
+      let chosen = near ?? road
+      if (road && near) {
+        const len = Math.hypot(road.dx ?? 0, road.dz ?? 0)
+        let dRoad = Math.hypot(road.x - x, road.z - z)
+        if (len > 0.5) {
+          const tx = (road.dx ?? 0) / len
+          const tz = (road.dz ?? 0) / len
+          const along = (x - road.x) * tx + (z - road.z) * tz
+          dRoad = Math.hypot(x - (road.x + tx * along), z - (road.z + tz * along))
+        }
+        const dNear = Math.hypot(near.x - x, near.z - z)
+        if (dRoad <= dNear + 6) chosen = road
+      }
+      const face = roadFacing(x, z, chosen, frame.fx, frame.fz)
+      return Math.atan2(face.x, face.z)
+    }
+    let yaw = facing()
+    let cos = Math.cos(yaw)
+    let sin = Math.sin(yaw)
     let clear = true
     const faceLen = road ? Math.hypot(road.dx ?? 0, road.dz ?? 0) : 0
     const faceVx = road && faceLen > 0.5 ? (road.dx ?? 0) / faceLen : 0
@@ -272,9 +310,13 @@ function plan(poly: number[], road: Approach | null, sample: (x: number, z: numb
       }
       x = nx
       z = nz
+      yaw = facing()
+      cos = Math.cos(yaw)
+      sin = Math.sin(yaw)
       clear = true
     }
     if (!clear || !pointInPoly(x, z, poly)) continue
+    yaw = facing()
     const salt = (x * 10 + z * 3) | 0
     const n = hash01(salt)
     const two = n > 0.62
@@ -438,7 +480,9 @@ export function addHouseLots(
     }
 
     const yard = Math.max(1.6, house.setback)
-    put(lawns, house, 0, 0, house.d / 2 + yard / 2, house.lot * 0.94, 1, yard, lawnTint(hash01((house.x * 3 + house.z) | 0)))
+    const padW = house.lot * 0.94
+    const padD = house.d + yard * 2
+    put(lawns, house, 0, 0, 0, padW, 1, padD, lawnTint(hash01((house.x * 3 + house.z) | 0)))
     if (garageW) {
       const driveLen = Math.min(12, yard + 1.4)
       const driveW = Math.min(3.15, garageW + 0.35)

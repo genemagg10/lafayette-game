@@ -1921,7 +1921,7 @@ export class World {
   private addStreetName(group: THREE.Group, name: string, x: number, z: number, bx: number, bz: number, y: number): THREE.Mesh {
     const dx = bx - x
     const dz = bz - z
-    const h = 8.6
+    const h = 4.3
     const geo = new THREE.PlaneGeometry(h * (1024 / 160), h)
     const mat = new MeshBasicNodeMaterial({
       map: streetNameTexture(name),
@@ -1953,7 +1953,12 @@ export class World {
   orientStreetNames(camera: THREE.Camera): void {
     const ground = this.height.sample(camera.position.x, camera.position.z)
     const agl = camera.position.y - ground
-    const fade = THREE.MathUtils.smoothstep(agl, 25, 60)
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion)
+    const down = Math.max(0, -forward.y)
+    // Half-size names stay for the overhead view and drop out once the camera is down at the street.
+    const aloft = THREE.MathUtils.smoothstep(agl, 34, 72)
+    const overview = THREE.MathUtils.smoothstep(down, 0.4, 0.66)
+    const fade = aloft * overview
     this.streetFade.value = fade
     const hidden = fade <= 0.001
     const screenRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion)
