@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f4efe4" />
     <title>Lafayette Days</title>
-    <script type="module" crossorigin src="./assets/index-BEqoW_px.js"></script>
+    <script type="module" crossorigin src="./assets/index-a0k-39RZ.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/BufferGeometry-A3t-3UhE.js">
     <link rel="modulepreload" crossorigin href="./assets/Color-B5hqIcKC.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-ScF1f5S7.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-Bx8TqEvV.css">
   </head>
   <body>
     <canvas id="view"></canvas>
@@ -40,14 +40,18 @@
     </div>
 
     <div id="cast" hidden>
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <p id="scroll-cue" class="scroll-cue" hidden>Scroll for the town clock</p>
       <div class="cast-ground" aria-hidden="true"><span></span><span></span></div>
       <p id="cast-kicker" class="eyebrow">Pick a rambler</p>
       <div class="cast-picks">
         <button type="button" class="kid" data-kid="milo" aria-pressed="true">
+          <canvas class="kid-face" width="160" height="108" aria-hidden="true"></canvas>
           <span class="kid-name">Milo</span>
           <span class="kid-line">Nine. Bounces when he runs.</span>
         </button>
         <button type="button" class="kid" data-kid="juniper" aria-pressed="false">
+          <canvas class="kid-face" width="160" height="108" aria-hidden="true"></canvas>
           <span class="kid-name">Juniper</span>
           <span class="kid-line">Eleven. Light on the pedals.</span>
         </button>
@@ -65,6 +69,7 @@
         <div id="era-list" class="era-row"></div>
         <p id="era-note">Wind it. The boulevard rebuilds around you. 1955 is the pre-freeway street. The 1860s, the orchard years, and the 1970s are in the record and not a walkable town yet.</p>
       </div>
+      <div class="sheet-fade" aria-hidden="true"></div>
     </div>
 
     <div id="hud" hidden>
@@ -121,6 +126,10 @@
 
     <div id="map" hidden>
       <canvas id="mapc"></canvas>
+      <div id="map-zoom">
+        <button id="map-in" type="button" aria-label="Zoom in">+</button>
+        <button id="map-out" type="button" aria-label="Zoom out">−</button>
+      </div>
       <div class="map-side">
         <p class="eyebrow">Street map</p>
         <h2>Lafayette</h2>
@@ -146,7 +155,10 @@
     </div>
 
     <aside id="debug" hidden>
-      <h2>Daybook</h2>
+      <div class="daybook-head">
+        <h2>Daybook</h2>
+        <button id="daybook-close" type="button" aria-label="Close">✕</button>
+      </div>
       <div id="dev-tools" hidden>
         <label>Hour <input id="time" type="range" min="0" max="24" step="0.01" value="14.67" /></label>
         <label>Time speed <input id="tscale" type="range" min="0" max="8" step="0.05" value="0.55" /></label>
@@ -179,7 +191,14 @@
           <button type="button" data-weather="auto" class="on">Auto</button>
         </div>
       </fieldset>
-      <button id="season" type="button">Winter hills</button>
+      <fieldset class="seg">
+        <legend>Season</legend>
+        <div class="seg-row" role="group" aria-label="Season">
+          <button id="season" type="button">Winter hills</button>
+        </div>
+      </fieldset>
+      <p id="ease-note" hidden>Easing the detail so the town stays smooth.</p>
+      <p class="jump-label">Jump to</p>
       <ul id="place-rows">
         <li><button type="button" data-tp="downtown">Downtown</button></li>
         <li><button type="button" data-tp="plaza">Plaza</button></li>
@@ -188,7 +207,7 @@
         <li><button type="button" data-tp="overlook">Overlook</button></li>
         <li><button type="button" data-tp="rim">Rim trail</button></li>
       </ul>
-      <p class="credit">F3 closes this. Weather drifts back on its own unless you pin it.</p>
+      <p class="credit key-hint">F3 closes this. Weather drifts back on its own unless you pin it.</p>
     </aside>
 
     <div id="wheel" hidden>
