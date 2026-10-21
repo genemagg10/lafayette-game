@@ -98,6 +98,51 @@ function paintBark(geo: THREE.BufferGeometry): void {
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 }
 
+/** Low grey-olive mounds for the open hills. The bottom sits on y=0. */
+export function chaparralClump(): THREE.BufferGeometry {
+  const blobs: THREE.BufferGeometry[] = []
+  const lobes: [number, number, number, number][] = [
+    [0, 0.12, 0, 1.15],
+    [0.95, 0.04, 0.28, 0.72],
+    [-0.78, 0.02, -0.42, 0.64],
+    [0.18, 0, -0.95, 0.55],
+    [-0.22, 0.06, 0.88, 0.5],
+  ]
+  for (const [ox, oy, oz, r] of lobes) {
+    const geo = new THREE.IcosahedronGeometry(r, 0)
+    geo.scale(1.05, 0.42, 1.05)
+    geo.translate(ox, oy, oz)
+    blobs.push(geo)
+  }
+  const merged = mergeGeometries(blobs) ?? blobs[0]
+  const pos = merged.getAttribute('position')
+  let minY = Infinity
+  for (let i = 0; i < pos.count; i++) minY = Math.min(minY, pos.getY(i))
+  merged.translate(0, -minY + 0.02, 0)
+  const colors = new Float32Array(pos.count * 3)
+  const lo = [0x55 / 255, 0x66 / 255, 0x38 / 255]
+  const hi = [0x7a / 255, 0x8a / 255, 0x48 / 255]
+  const painted = merged.getAttribute('position')
+  let maxY = -Infinity
+  minY = Infinity
+  for (let i = 0; i < painted.count; i++) {
+    const y = painted.getY(i)
+    if (y < minY) minY = y
+    if (y > maxY) maxY = y
+  }
+  for (let i = 0; i < painted.count; i++) {
+    const n = hash01(i * 13 + Math.round(painted.getY(i) * 30))
+    const t = (painted.getY(i) - minY) / (maxY - minY || 1)
+    const mix = Math.min(1, Math.max(0, n * 0.6 + t * 0.4))
+    colors[i * 3] = lo[0] + (hi[0] - lo[0]) * mix
+    colors[i * 3 + 1] = lo[1] + (hi[1] - lo[1]) * mix
+    colors[i * 3 + 2] = lo[2] + (hi[2] - lo[2]) * mix
+  }
+  merged.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  merged.setAttribute('phase', new THREE.BufferAttribute(new Float32Array(painted.count), 1))
+  return merged
+}
+
 function paintFoliage(geo: THREE.BufferGeometry): void {
   const pos = geo.getAttribute('position')
   const colors = new Float32Array(pos.count * 3)

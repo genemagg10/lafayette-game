@@ -17,6 +17,7 @@ import {
 import { pointInPoly } from './geom.ts'
 import { assignPhase, crownLift } from './downtown.ts'
 import { hash01 } from './math.ts'
+import { lawnMaterial } from './materials.ts'
 
 export interface HouseBlock {
   poly: number[]
@@ -80,10 +81,7 @@ const doorMat = new MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 })
 const garageMat = new MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.62 })
 const porchMat = new MeshStandardMaterial({ color: 0xe4dccb, roughness: 0.82 })
 const driveMat = new MeshStandardMaterial({ color: 0xcfc6b6, roughness: 0.9 })
-const lawnMat = new MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 })
-lawnMat.polygonOffset = true
-lawnMat.polygonOffsetFactor = -2
-lawnMat.polygonOffsetUnits = -2
+const lawnMat = lawnMaterial()
 
 const boxGeo = new BoxGeometry(1, 1, 1)
 boxGeo.translate(0, 0.5, 0)

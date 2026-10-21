@@ -10,7 +10,7 @@ import {
   SRGBColorSpace,
   Vector2,
 } from 'three/webgpu'
-import { attribute, frameGroup, mix, normalWorld, positionLocal, smoothstep, uniform, vec3, vertexColor } from 'three/tsl'
+import { attribute, float, frameGroup, instanceColor, mix, normalWorld, positionLocal, positionWorld, smoothstep, texture, uniform, vec2, vertexColor } from 'three/tsl'
 import { canopySway, sunDirShade, swayFromHeight, swayFromTip } from './wind.ts'
 
 /** Matte crowns. `fade` is per tree so a crown in the lens can disappear. */
@@ -233,13 +233,85 @@ export function foliageMaterial(hex: number, roughness = 0.86, flex = 0.2): Mesh
   return material
 }
 
-/** Hills keep real lighting. A little of the vertex color stays lit so a shaded slope reads golden, not rust. */
+/** 1 in summer, so dry-grass flecks show. Winter stays green. */
+export const hillDry = uniform(1)
+
+let hillTex: CanvasTexture | null = null
+
+/** Golden tan with olive clumps and straw, repeating every few dozen metres. Not pale sand. */
+function hillCoverTexture(): CanvasTexture {
+  if (hillTex) return hillTex
+  let seed = 19
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647
+    return seed / 2147483647
+  }
+  hillTex = canvasTex((g, size) => {
+    g.fillStyle = '#d2bc78'
+    g.fillRect(0, 0, size, size)
+    for (let i = 0; i < 46; i++) {
+      const x = rnd() * size
+      const y = rnd() * size
+      g.fillStyle = rnd() > 0.5 ? '#6e8a46' : '#7d9a52'
+      g.globalAlpha = 0.72 + rnd() * 0.28
+      g.beginPath()
+      g.ellipse(x, y, 16 + rnd() * 42, 12 + rnd() * 34, rnd() * Math.PI, 0, Math.PI * 2)
+      g.fill()
+    }
+    for (let i = 0; i < 700; i++) {
+      const x = rnd() * size
+      const y = rnd() * size
+      g.strokeStyle = rnd() > 0.5 ? '#b89650' : '#8a7340'
+      g.globalAlpha = 0.45 + rnd() * 0.4
+      g.lineWidth = 1
+      g.beginPath()
+      g.moveTo(x, y)
+      g.lineTo(x + (rnd() - 0.5) * 10, y + 5 + rnd() * 14)
+      g.stroke()
+    }
+    g.globalAlpha = 1
+  }, 256)
+  hillTex.wrapS = RepeatWrapping
+  hillTex.wrapT = RepeatWrapping
+  hillTex.anisotropy = 8
+  return hillTex
+}
+
+/**
+ * Open hills (ground=1) get dry-grass grain, olive patches, and a little slope shading.
+ * Lawns (ground=2) keep their green in shadow instead of falling to black.
+ */
 export function hillMaterial(): MeshStandardNodeMaterial {
-  const material = new MeshStandardNodeMaterial({ roughness: 0.94, metalness: 0, vertexColors: true })
-  const wrap = mix(vec3(0.94, 0.96, 0.92), vec3(1, 1, 1), smoothstep(-0.25, 0.8, normalWorld.dot(sunDirShade)))
-  const albedo = vertexColor().mul(wrap)
+  const material = new MeshStandardNodeMaterial({ roughness: 0.96, metalness: 0, vertexColors: true })
+  const cover = attribute('ground', 'float')
+  const hill = smoothstep(0.45, 0.8, cover).mul(float(1).sub(smoothstep(1.35, 1.7, cover)))
+  const lawn = smoothstep(1.35, 1.7, cover)
+  const xz = vec2(positionWorld.x, positionWorld.z)
+  const coverTex = texture(hillCoverTexture())
+  const broad = coverTex.sample(xz.mul(0.022)).rgb
+  const fine = coverTex.sample(xz.mul(0.09).add(vec2(4.2, 1.7))).rgb
+  const dry = hillDry
+  const tex = mix(broad, fine, 0.38)
+  let albedo = mix(vertexColor(), tex, hill.mul(mix(float(0.1), float(0.9), dry)))
+  const ndotl = normalWorld.dot(sunDirShade)
+  const sunWrap = mix(float(0.9), float(1), smoothstep(-0.2, 0.65, ndotl))
+  const slope = mix(float(1), float(0.88), smoothstep(0.18, 0.62, float(1).sub(normalWorld.y)))
+  albedo = albedo.mul(mix(float(1), sunWrap.mul(slope), hill))
   material.colorNode = albedo as never
-  material.emissiveNode = vertexColor().mul(0.4) as never
+  const emit = mix(mix(float(0.16), float(0.5), hill), float(1), lawn)
+  material.emissiveNode = albedo.mul(emit) as never
+  return material
+}
+
+/** Yard grass. Shadowed lawns stay near their instance color instead of going black. */
+export function lawnMaterial(): MeshStandardNodeMaterial {
+  const material = new MeshStandardNodeMaterial({ color: 0xffffff, roughness: 0.94, metalness: 0 })
+  const tint = instanceColor
+  material.colorNode = tint.mul(0.38) as never
+  material.emissiveNode = tint.mul(0.98) as never
+  material.polygonOffset = true
+  material.polygonOffsetFactor = -2
+  material.polygonOffsetUnits = -2
   return material
 }
 

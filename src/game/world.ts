@@ -5,7 +5,7 @@ import { WaterMesh } from 'three/addons/objects/WaterMesh.js'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { Blockers, MeshBuilder, appendRibbon, drapePath, pointInPoly, tint } from './geom.ts'
 import { Heightfield, F_BUILDING, F_PARK, F_PARKING, F_ROAD, F_URBAN, F_WATER, F_WOOD } from './height.ts'
-import { badgeTexture, battenMaterial, facadeMaterial, foliageMaterial, hillMaterial, impostorMaterial, makeSignTexture, pillTexture, poiAccent, shared, streetNameTexture, townLeafMaterial, trunkMaterial, type Textures } from './materials.ts'
+import { badgeTexture, battenMaterial, facadeMaterial, foliageMaterial, hillDry, hillMaterial, impostorMaterial, makeSignTexture, pillTexture, poiAccent, shared, streetNameTexture, townLeafMaterial, trunkMaterial, type Textures } from './materials.ts'
 import { dressTown } from './dress.ts'
 import { addClassroomRows, dressDistricts, footprintSize, schoolDress } from './districts.ts'
 import { spanVisible } from './eras.ts'
@@ -13,7 +13,7 @@ import { dressFifties } from './period.ts'
 import { forwardFromHeading, hash01, headingFromForward, wrapAngle } from './math.ts'
 import { addHouseLots } from './houses.ts'
 import { parseOsmColor, town } from './palette.ts'
-import { BATTEN_HEX, addHeroAccent, assignPhase, clusterCanopy, coreBoulevard, crownLift, facadeFor, greyIntersection, inDowntown, noteHero, plantBoulevard, punchFacade, shopSignTexture, storyHeight, treeTrunk, type BlvdTree, type Facade, type HeroId } from './downtown.ts'
+import { BATTEN_HEX, addHeroAccent, assignPhase, chaparralClump, clusterCanopy, coreBoulevard, crownLift, facadeFor, greyIntersection, inDowntown, noteHero, plantBoulevard, punchFacade, shopSignTexture, storyHeight, treeTrunk, type BlvdTree, type Facade, type HeroId } from './downtown.ts'
 import { tileKey, tileOf, type TileSet, type VectorTile } from './tiles.ts'
 import type { Meta, Road, Season, WaterFile } from './types.ts'
 
@@ -75,6 +75,7 @@ export class World {
   private readonly signalColor: THREE.InstancedMesh | null = null
   private readonly signalPos: { x: number; z: number }[] = []
   private terrainColors: Float32Array | null = null
+  private groundCover: Float32Array | null = null
   private season: Season = 'summer'
   private readonly canopies: THREE.InstancedMesh[] = []
   private readonly occluders: TreeOccluder[] = []
@@ -180,6 +181,7 @@ export class World {
 
     this.indexRoads()
     this.root.add(this.buildTerrain())
+    this.addHillCover()
     this.root.add(this.buildWater(water))
     this.addLamps()
     this.signalColor = this.addSignals()
@@ -677,6 +679,9 @@ export class World {
     if (!attr || !this.terrainColors) return
     this.paint(this.terrainColors, season)
     attr.needsUpdate = true
+    const ground = mesh?.geometry.getAttribute('ground') as THREE.BufferAttribute | undefined
+    if (ground) ground.needsUpdate = true
+    hillDry.value = season === 'summer' ? 1 : season === 'spring' ? 0.45 : 0
     for (const canopy of this.canopies) this.paintCanopy(canopy)
     const tintHex = season === 'summer' ? 0xc6b15a : season === 'spring' ? 0x9ed07a : 0x6aaa78
     ;(this.impostorMat as THREE.MeshStandardMaterial).color.setHex(tintHex)
@@ -978,6 +983,7 @@ export class World {
     const positions = new Float32Array(cols * rows * 3)
     const colors = new Float32Array(cols * rows * 3)
     this.terrainColors = colors
+    this.groundCover = new Float32Array(cols * rows)
     let k = 0
     for (let j = 0; j < rows; j++) {
       const jj = Math.min(h.rows - 1, j * step)
@@ -1004,6 +1010,7 @@ export class World {
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    geo.setAttribute('ground', new THREE.BufferAttribute(this.groundCover ?? new Float32Array(cols * rows), 1))
     geo.setIndex(indices)
     geo.computeVertexNormals()
     const normals = geo.getAttribute('normal')
@@ -1024,7 +1031,6 @@ export class World {
     const cols = Math.floor((h.cols - 1) / step) + 1
     const rows = Math.floor((h.rows - 1) / step) + 1
     const c = new THREE.Color()
-    const hillShadow = new THREE.Color(0x9c7f4c)
     const lawn = (n: number, winter: number, spring: number) => {
       if (season === 'winter') return n > 0.86 ? 0xc4b07a : winter
       if (season === 'spring') return n > 0.86 ? 0xc4b07a : spring
@@ -1042,30 +1048,50 @@ export class World {
         const n = hash01(ii * 13 + jj * 9)
         const x = h.originX + (ii / (h.cols - 1)) * h.sizeX
         const z = h.originZ + (jj / (h.rows - 1)) * h.sizeZ
-        let hex = season === 'winter' ? 0x7f9a5a : season === 'spring' ? 0x8aa35c : 0xc9a86a
-        let vary = 0.97 + n * 0.06
+        const hillHex = season === 'winter' ? 0x7f9a5a : season === 'spring' ? 0x8aa35c : 0xc6b070
+        let hex = hillHex
+        let vary = 0.94 + n * 0.1
+        // 0 town, 1 open hill, 2 lawn. The shader varies hills and lifts lawn shade.
+        let cover = 1
         if (inDowntown(x, z) && (f & F_WATER) === 0) {
           // One flat fill. Road and lot meshes carry the asphalt, so a building
           // cell does not pick up a lawn-green or road-black neighbour.
           const nearBuilding = this.buildingNear(ii, jj)
-          hex = (f & F_PARK) && (f & F_BUILDING) === 0 && !nearBuilding ? 0x7d9a52 : 0xd9d0c2
+          const park = (f & F_PARK) !== 0 && (f & F_BUILDING) === 0 && !nearBuilding
+          hex = park ? 0x7d9a52 : 0xd9d0c2
           vary = 1
-        } else if (f & F_WATER) hex = 0x8a7a58
-        else if (f & F_ROAD) hex = 0x454c58
-        else if (f & F_PARK) hex = lawn(n, 0x6d8a48, 0x6f9a48)
-        else if (f & F_WOOD) hex = season === 'summer' ? 0x6a8a3c : 0x2f6a38
-        else if (f & F_URBAN) {
+          cover = park ? 2 : 0
+        } else if (f & F_WATER) {
+          hex = 0x8a7a58
+          cover = 0
+        } else if (f & F_ROAD) {
+          hex = 0x454c58
+          cover = 0
+        } else if (f & F_PARK) {
+          hex = lawn(n, 0x6d8a48, 0x6f9a48)
+          cover = 2
+        } else if (f & F_WOOD) {
+          hex = season === 'summer' ? 0x6a8a3c : 0x4f7a48
+          cover = 1
+        } else if (f & F_URBAN) {
           const n2 = hash01(ii * 3 + jj * 17)
-          hex = n2 > 0.9 ? 0x6e8a46 : n2 > 0.78 ? 0x7d9a52 : n2 > 0.46 ? 0xd4c8a4 : 0xe4dcc8
+          const green = n2 > 0.78
+          hex = n2 > 0.9 ? 0x6e8a46 : green ? 0x7d9a52 : n2 > 0.46 ? 0xd4c8a4 : 0xe4dcc8
+          cover = green ? 2 : 0
+        } else if (elev < h.waterLevel + 18) {
+          hex = lawn(n, 0x6d8a48, 0x6f9a48)
+          cover = 2
+        } else if (season !== 'winter' && n > 0.74) {
+          hex = n > 0.9 ? 0x5f7a38 : 0x7d9a52
+        } else if (season === 'summer' && n < 0.12) {
+          hex = 0xb89a58
+        } else if (season === 'winter' && n > 0.72) {
+          hex = 0x6d8a48
         }
-        else if (elev < h.waterLevel + 18) hex = lawn(n, 0x6d8a48, 0x6f9a48)
-        if (!inDowntown(x, z) && season === 'spring' && n > 0.86 && (f & (F_ROAD | F_URBAN | F_WATER)) === 0) hex = n > 0.93 ? 0xe7a0b8 : 0xf2d36b
+        if (!inDowntown(x, z) && season === 'spring' && n > 0.86 && (f & (F_ROAD | F_URBAN | F_WATER)) === 0 && cover === 1) hex = n > 0.93 ? 0xe7a0b8 : 0xf2d36b
         c.setHex(hex)
-        let shade = this.vertexShade(ii, jj, f)
-        if ((hex === 0xc9a86a || hex === 0x7f9a5a || hex === 0x8aa35c) && shade < 0.86) {
-          c.lerp(hillShadow, 0.28)
-          shade = 1
-        }
+        let shade = cover === 0 ? this.vertexShade(ii, jj, f) : 1
+        if (this.groundCover) this.groundCover[j * cols + i] = cover
         colors[k++] = c.r * vary * shade
         colors[k++] = c.g * vary * shade
         colors[k++] = c.b * vary * shade
@@ -2254,6 +2280,125 @@ export class World {
         roofs.tri(x2, y1, z2, bx, peakY, bz, ax, peakY, az, shade)
       }
     }
+  }
+
+  /** Valley oaks and chaparral on the golden hills, above the valley lawns and off the pavement. */
+  private addHillCover(): void {
+    const h = this.height
+    const oaks: { x: number; z: number; n: number }[] = []
+    const shrubs: { x: number; z: number; n: number }[] = []
+    const step = 3
+    for (let j = step; j < h.rows - step; j += step) {
+      for (let i = step; i < h.cols - step; i += step) {
+        const idx = j * h.cols + i
+        if (h.heights[idx] < h.waterLevel + 36) continue
+        const f = h.flags[idx]
+        if (f & (F_ROAD | F_WATER | F_BUILDING | F_PARKING | F_URBAN)) continue
+        const x = h.originX + (i / (h.cols - 1)) * h.sizeX
+        const z = h.originZ + (j / (h.rows - 1)) * h.sizeZ
+        if (inDowntown(x, z)) continue
+        const n = hash01(i * 19 + j * 7)
+        if (n >= 0.82) continue
+        const jx = x + (hash01(i * 3 + j) - 0.5) * 22
+        const jz = z + (hash01(i + j * 11) - 0.5) * 22
+        if (!h.inBounds(jx, jz, 4)) continue
+        const jf = h.flag(jx, jz)
+        if (jf & (F_ROAD | F_WATER | F_BUILDING | F_PARKING | F_URBAN)) continue
+        if (h.sample(jx, jz) < h.waterLevel + 34) continue
+        const road = this.nearestRoad(jx, jz, 16)
+        if (road && Math.hypot(road.x - jx, road.z - jz) < road.w * 0.5 + 2.4) continue
+        if (n < 0.28 && oaks.length < 1600) oaks.push({ x: jx, z: jz, n })
+        else if (shrubs.length < 3200) {
+          shrubs.push({ x: jx, z: jz, n })
+          if (n > 0.4 && n < 0.62 && shrubs.length < 3200) {
+            shrubs.push({
+              x: jx + (hash01(i * 5 + 2) - 0.5) * 5,
+              z: jz + (hash01(j * 5 + 3) - 0.5) * 5,
+              n: n + 0.17,
+            })
+          }
+        }
+      }
+    }
+    const group = new THREE.Group()
+    group.name = 'hill-cover'
+    if (oaks.length) this.plantOaks(group, oaks)
+    if (shrubs.length) this.plantChaparral(group, shrubs)
+    if (group.children.length) this.root.add(group)
+  }
+
+  private plantOaks(group: THREE.Group, spots: { x: number; z: number; n: number }[]): void {
+    const count = spots.length
+    const trunkGeo = this.trunkGeo.clone()
+    const canopyGeo = this.canopyGeo.clone()
+    const trunkFade = this.fadeBuffer(trunkGeo, count)
+    const canopyFade = this.fadeBuffer(canopyGeo, count)
+    assignPhase(canopyGeo, count, 61)
+    const trunks = new THREE.InstancedMesh(trunkGeo, this.trunkMat, count)
+    const canopy = new THREE.InstancedMesh(canopyGeo, this.canopyMat, count)
+    canopy.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
+    trunks.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
+    const dummy = new THREE.Object3D()
+    const color = new THREE.Color()
+    for (let i = 0; i < count; i++) {
+      const spot = spots[i]
+      const y = this.height.sample(spot.x, spot.z)
+      const trunkSY = 1.05 + hash01(i * 5) * 0.45
+      dummy.position.set(spot.x, y, spot.z)
+      dummy.rotation.set(0, spot.n * Math.PI * 2, 0)
+      dummy.scale.set(0.85 + spot.n, trunkSY, 0.85 + spot.n * 0.6)
+      dummy.updateMatrix()
+      trunks.setMatrixAt(i, dummy.matrix)
+      color.setRGB(0.96, 0.94, 0.9)
+      trunks.setColorAt(i, color)
+      const crown = 1.35 + hash01(i * 9) * 0.7
+      const canopySY = crown * 0.62
+      const lift = crownLift(trunkSY, canopySY)
+      dummy.position.set(spot.x, y + lift, spot.z)
+      dummy.scale.set(crown * 1.15, canopySY, crown * 1.15)
+      dummy.updateMatrix()
+      canopy.setMatrixAt(i, dummy.matrix)
+      const warm = hash01(i * 13)
+      color.setRGB(0.82 + warm * 0.2, 0.92 + warm * 0.1, 0.62 + warm * 0.12)
+      canopy.setColorAt(i, color)
+      this.noteTree(group, spot.x, spot.z, y, 0.22, crown * 1.2, y + lift, i, trunkFade, canopyFade)
+    }
+    trunks.castShadow = true
+    canopy.castShadow = false
+    canopy.receiveShadow = false
+    canopy.userData.canopy = true
+    this.canopies.push(canopy)
+    group.add(trunks, canopy)
+  }
+
+  private plantChaparral(group: THREE.Group, spots: { x: number; z: number; n: number }[]): void {
+    const count = spots.length
+    const geo = chaparralClump()
+    const fade = this.fadeBuffer(geo, count)
+    assignPhase(geo, count, 83)
+    const mesh = new THREE.InstancedMesh(geo, this.canopyMat, count)
+    mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3)
+    const dummy = new THREE.Object3D()
+    const color = new THREE.Color()
+    for (let i = 0; i < count; i++) {
+      const spot = spots[i]
+      const y = this.height.sample(spot.x, spot.z)
+      const wide = 1.35 + hash01(i * 7) * 1.15
+      dummy.position.set(spot.x, y, spot.z)
+      dummy.rotation.set(0, spot.n * Math.PI * 2, 0)
+      dummy.scale.set(wide, 0.75 + hash01(i * 3) * 0.55, wide)
+      dummy.updateMatrix()
+      mesh.setMatrixAt(i, dummy.matrix)
+      const n = hash01(i * 11)
+      color.setRGB(0.78 + n * 0.22, 0.9 + n * 0.12, 0.58 + n * 0.1)
+      mesh.setColorAt(i, color)
+      fade.setX(i, 1)
+    }
+    mesh.castShadow = false
+    mesh.receiveShadow = false
+    mesh.userData.canopy = true
+    this.canopies.push(mesh)
+    group.add(mesh)
   }
 
   private addTrees(group: THREE.Group, flat: number[]): void {
