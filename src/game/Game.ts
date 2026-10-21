@@ -1512,9 +1512,10 @@ export class Game {
         const worldPerPx = viewH / Math.max(1, window.innerHeight)
         kid.group.scale.setScalar(Math.max(0.35, (rect.height * 0.5 * worldPerPx) / 1.55))
         const sheet = document.getElementById('cast')?.getBoundingClientRect()
-        const modelTop = rect.top + rect.height * 0.07
+        // The head sits above the card. Hide it once it would cross a 12px inset under the sheet top.
+        const headTop = rect.top - rect.height * 0.22
         const modelBottom = rect.top + rect.height * 0.62
-        show = !!sheet && rect.height > 24 && modelTop >= sheet.top + 2 && modelBottom <= sheet.bottom + 4
+        show = !!sheet && rect.height > 24 && headTop >= sheet.top + 12 && modelBottom <= sheet.bottom - 8
       }
       kid.group.visible = show
       if (show) shown += 1

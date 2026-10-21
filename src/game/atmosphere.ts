@@ -57,14 +57,14 @@ export class Atmosphere {
     this.sun.shadow.mapSize.set(1024, 1024)
     this.sun.shadow.camera.near = 1
     this.sun.shadow.camera.far = 320
-    this.sun.shadow.camera.left = -40
-    this.sun.shadow.camera.right = 40
-    this.sun.shadow.camera.top = 40
-    this.sun.shadow.camera.bottom = -40
+    this.sun.shadow.camera.left = -72
+    this.sun.shadow.camera.right = 72
+    this.sun.shadow.camera.top = 72
+    this.sun.shadow.camera.bottom = -72
     this.sun.shadow.bias = -0.0002
     this.sun.shadow.normalBias = 0.045
-    this.sun.shadow.radius = 6
-    this.sun.shadow.intensity = 0.35
+    this.sun.shadow.radius = 14
+    this.sun.shadow.intensity = 0.22
     scene.add(this.sun, this.sun.target)
     this.moon = new THREE.DirectionalLight(0xb9c7e6, 0)
     scene.add(this.moon, this.moon.target)
@@ -200,7 +200,7 @@ export class Atmosphere {
     this.fill.target.position.copy(focus)
     this.rim.intensity = 0
     this.sun.castShadow = this.shadows
-    const span = 40
+    const span = 72
     const shadowCam = this.sun.shadow.camera as THREE.OrthographicCamera
     shadowCam.left = -span
     shadowCam.right = span
@@ -210,8 +210,8 @@ export class Atmosphere {
     shadowCam.updateProjectionMatrix()
     this.sun.shadow.bias = -0.0002
     this.sun.shadow.normalBias = 0.045
-    this.sun.shadow.radius = 6
-    this.sun.shadow.intensity = 0.35
+    this.sun.shadow.radius = 14
+    this.sun.shadow.intensity = 0.22
 
     this.sky.mesh.position.copy(focus)
     this.sky.uSun.value.copy(this.sunDir)

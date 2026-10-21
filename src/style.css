@@ -146,12 +146,13 @@ button { cursor: pointer; }
 #quail-run[hidden] { display: none; }
 .quail-pos { position: absolute; left: 0; top: 0; width: 0; height: 0; }
 .quail-face { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+.quail-flip { position: absolute; left: 0; top: 0; width: 0; height: 0; }
 #quail {
   position: absolute;
-  left: -21px;
-  top: -16px;
-  width: 42px;
-  height: 32px;
+  left: -31px;
+  top: -24px;
+  width: 63px;
+  height: 48px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   pointer-events: none;
@@ -163,8 +164,8 @@ button { cursor: pointer; }
 }
 .quail-say {
   position: absolute;
-  left: 8px;
-  bottom: 18px;
+  left: 16px;
+  bottom: 30px;
   margin: 0;
   padding: 2px 6px 3px;
   border-radius: 8px;
@@ -178,6 +179,8 @@ button { cursor: pointer; }
   line-height: 1.2;
 }
 .quail-say[hidden] { display: none; }
+.quail-say.face-left { left: auto; right: 16px; }
+.quail-say.face-left::after { left: auto; right: 10px; }
 .quail-say::after {
   content: '';
   position: absolute;

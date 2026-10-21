@@ -213,10 +213,10 @@ export class Picture {
     if (!vivid) this.clearCascades()
     const size = low ? 256 : 1024
     this.sun.shadow.mapSize.set(size, size)
-    this.sun.shadow.radius = 6
+    this.sun.shadow.radius = 14
     this.sun.shadow.bias = -0.0002
     this.sun.shadow.normalBias = 0.045
-    this.sun.shadow.intensity = 0.35
+    this.sun.shadow.intensity = 0.22
     this.renderer.shadowMap.enabled = !low
     this.renderer.shadowMap.type = PCFSoftShadowMap
     if (vivid && !this.csm) {

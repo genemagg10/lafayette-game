@@ -250,36 +250,56 @@ function hillCoverTexture(): CanvasTexture {
     // Cooler than the painted straw. The grade warms it back toward #cdb07a.
     g.fillStyle = '#c8c090'
     g.fillRect(0, 0, size, size)
+    // Stamp across the tile edges so a repeat does not show a straight seam.
+    const wrap = (x: number, y: number, draw: (px: number, py: number) => void) => {
+      for (const ox of [0, -size, size]) {
+        for (const oy of [0, -size, size]) draw(x + ox, y + oy)
+      }
+    }
     const blotches = ['#ddd6aa', '#c4bc8e', '#e4dcb6', '#b7ae78', '#d0c89a', '#efe8c4']
     for (let i = 0; i < 40; i++) {
       const x = rnd() * size
       const y = rnd() * size
+      const rx = 36 + rnd() * 64
+      const ry = 22 + rnd() * 42
+      const rot = rnd() * Math.PI
       g.fillStyle = blotches[(rnd() * blotches.length) | 0]
       g.globalAlpha = 0.46 + rnd() * 0.28
-      g.beginPath()
-      g.ellipse(x, y, 36 + rnd() * 64, 22 + rnd() * 42, rnd() * Math.PI, 0, Math.PI * 2)
-      g.fill()
+      wrap(x, y, (px, py) => {
+        g.beginPath()
+        g.ellipse(px, py, rx, ry, rot, 0, Math.PI * 2)
+        g.fill()
+      })
     }
     const flecks = ['#bfb888', '#d0c89a', '#b4aa78', '#cfc6a4', '#c2ba86', '#8f8a58']
     for (let i = 0; i < 140; i++) {
       const x = rnd() * size
       const y = rnd() * size
+      const rx = 5 + rnd() * 18
+      const ry = 4 + rnd() * 14
+      const rot = rnd() * Math.PI
       g.fillStyle = flecks[(rnd() * flecks.length) | 0]
       g.globalAlpha = 0.35 + rnd() * 0.35
-      g.beginPath()
-      g.ellipse(x, y, 5 + rnd() * 18, 4 + rnd() * 14, rnd() * Math.PI, 0, Math.PI * 2)
-      g.fill()
+      wrap(x, y, (px, py) => {
+        g.beginPath()
+        g.ellipse(px, py, rx, ry, rot, 0, Math.PI * 2)
+        g.fill()
+      })
     }
     for (let i = 0; i < 520; i++) {
       const x = rnd() * size
       const y = rnd() * size
+      const dx = (rnd() - 0.5) * 8
+      const dy = 4 + rnd() * 10
       g.strokeStyle = rnd() > 0.5 ? '#c4bc90' : '#aea674'
       g.globalAlpha = 0.28 + rnd() * 0.3
       g.lineWidth = 1
-      g.beginPath()
-      g.moveTo(x, y)
-      g.lineTo(x + (rnd() - 0.5) * 8, y + 4 + rnd() * 10)
-      g.stroke()
+      wrap(x, y, (px, py) => {
+        g.beginPath()
+        g.moveTo(px, py)
+        g.lineTo(px + dx, py + dy)
+        g.stroke()
+      })
     }
     g.globalAlpha = 1
   }, 256)
@@ -300,7 +320,10 @@ export function hillMaterial(): MeshStandardNodeMaterial {
   const lawn = smoothstep(1.35, 1.7, cover)
   const xz = vec2(positionWorld.x, positionWorld.z)
   const coverTex = texture(hillCoverTexture())
-  const broad = coverTex.sample(xz.mul(0.011)).rgb
+  const uv = xz.mul(0.011)
+  // A second sample, rotated and scaled, breaks the straight grid of the first.
+  const turned = vec2(uv.x.mul(0.82).add(uv.y.mul(0.57)), uv.y.mul(0.82).sub(uv.x.mul(0.57))).mul(1.13)
+  const broad = mix(coverTex.sample(uv).rgb, coverTex.sample(turned).rgb, 0.48)
   const fine = coverTex.sample(xz.mul(0.09).add(vec2(4.2, 1.7))).rgb
   const dry = hillDry
   const tex = mix(broad, fine, 0.38)

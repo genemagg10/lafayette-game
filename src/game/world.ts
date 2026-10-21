@@ -2574,7 +2574,7 @@ export class World {
       canopy.setColorAt(i, color)
       this.noteTree(group, spot.x, spot.z, y, 0.22, crown * 1.3, y + lift, i, trunkFade, canopyFade)
     }
-    trunks.castShadow = true
+    trunks.castShadow = false
     canopy.castShadow = false
     canopy.receiveShadow = false
     canopy.userData.canopy = true
@@ -2582,7 +2582,24 @@ export class World {
   }
 
   private addTrees(group: THREE.Group, flat: number[]): void {
-    const count = flat.length / 3
+    // Narrow crowns on open slopes read as cone pines. Keep a few and make them round live oaks.
+    const kept: number[] = []
+    for (let i = 0; i < flat.length; i += 3) {
+      const x = flat[i]
+      const z = flat[i + 1]
+      const variant = flat[i + 2]
+      const y = this.height.sample(x, z)
+      const openHill =
+        variant !== 1 &&
+        !inDowntown(x, z) &&
+        y > this.waterLevel + 18 &&
+        (this.height.flag(x, z) & (F_URBAN | F_BUILDING | F_ROAD | F_PARKING | F_WATER)) === 0
+      if (openHill) {
+        if (hash01(i * 5 + 11) > 0.1) continue
+        kept.push(x, z, 2)
+      } else kept.push(x, z, variant)
+    }
+    const count = kept.length / 3
     if (!count) return
     const trunkGeo = this.trunkGeo.clone()
     const canopyGeo = this.canopyGeo.clone()
@@ -2597,10 +2614,11 @@ export class World {
     const color = new THREE.Color()
     const bark = new THREE.Color(0x5a4a3a)
     for (let i = 0; i < count; i++) {
-      const x = flat[i * 3]
-      const z = flat[i * 3 + 1]
-      const variant = flat[i * 3 + 2]
-      const wide = variant === 1
+      const x = kept[i * 3]
+      const z = kept[i * 3 + 1]
+      const variant = kept[i * 3 + 2]
+      const oak = variant === 2
+      const wide = variant === 1 || oak
       const y = this.height.sample(x, z)
       const bulk = 0.68 + hash01(i * 17 + 1) * 0.92
       const trunkSY = 0.9 + hash01(i) * 0.2
@@ -2613,15 +2631,16 @@ export class World {
       bark.multiplyScalar(0.94 + hash01(i * 3) * 0.1)
       trunks.setColorAt(i, bark)
       const crown = (wide ? 1.45 : 1.15) * bulk
-      const canopySY = wide ? crown * 0.72 : crown * 1.2
+      const canopySY = oak ? crown * 0.55 : wide ? crown * 0.72 : crown * 1.2
       const lift = crownLift(trunkSY, canopySY)
       dummy.position.set(x, y + lift, z)
       dummy.rotation.set(0, hash01(i * 13) * Math.PI, 0)
-      if (wide) dummy.scale.set(canopySY * 1.6, canopySY, canopySY * 1.6)
+      if (oak) dummy.scale.set(crown * 1.7, canopySY, crown * 1.7)
+      else if (wide) dummy.scale.set(canopySY * 1.6, canopySY, canopySY * 1.6)
       else dummy.scale.set(crown * 0.9, canopySY, crown * 0.9)
       dummy.updateMatrix()
       canopy.setMatrixAt(i, dummy.matrix)
-      color.setRGB(1, 1, 1)
+      color.setRGB(oak ? 0.42 : 1, oak ? 0.5 : 1, oak ? 0.3 : 1)
       canopy.setColorAt(i, color)
       this.noteTree(group, x, z, y, 0.28, crown * 1.45, y + lift, i, trunkFade, canopyFade)
     }
@@ -2636,8 +2655,8 @@ export class World {
     this.cardMats.push(cardMat)
     const cards = new THREE.InstancedMesh(this.impostorGeo, cardMat, count)
     for (let i = 0; i < count; i++) {
-      const x = flat[i * 3]
-      const z = flat[i * 3 + 1]
+      const x = kept[i * 3]
+      const z = kept[i * 3 + 1]
       const y = this.height.sample(x, z)
       dummy.position.set(x, y, z)
       dummy.rotation.set(0, hash01(i * 3) * Math.PI, 0)

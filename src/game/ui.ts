@@ -183,16 +183,19 @@ export class Hud {
       pos.className = 'quail-pos'
       const quailFace = document.createElement('div')
       quailFace.className = 'quail-face'
+      const flip = document.createElement('div')
+      flip.className = 'quail-flip'
       const quail = document.createElement('canvas')
       quail.id = 'quail'
       quail.width = 42
       quail.height = 32
       paintQuail(quail)
+      flip.append(quail)
       const say = document.createElement('p')
       say.className = 'quail-say'
       say.textContent = 'chi-ca-go'
       say.hidden = true
-      quailFace.append(quail, say)
+      quailFace.append(flip, say)
       pos.append(quailFace)
       const prints = document.createElement('div')
       prints.id = 'quail-prints'
@@ -664,6 +667,7 @@ export class Hud {
     const run = document.getElementById('quail-run')
     const pos = run?.querySelector('.quail-pos') as HTMLElement | null
     const quailFace = run?.querySelector('.quail-face') as HTMLElement | null
+    const flip = run?.querySelector('.quail-flip') as HTMLElement | null
     const say = run?.querySelector('.quail-say') as HTMLElement | null
     const prints = document.getElementById('quail-prints')
     const hand = document.getElementById('era-hand')
@@ -672,7 +676,7 @@ export class Hud {
       void hand.offsetWidth
       hand.classList.add('spin')
     }
-    if (!quail || !run || !pos || !quailFace || !prints) return
+    if (!quail || !run || !pos || !quailFace || !flip || !prints) return
     if (quailFrame) cancelAnimationFrame(quailFrame)
     quailFrame = 0
     prints.replaceChildren()
@@ -683,7 +687,9 @@ export class Hud {
     const place = (ang: number) => {
       pos.style.transform = `rotate(${ang}deg) translateY(-78px) rotate(${-ang}deg)`
       const faceRight = Math.cos((ang * Math.PI) / 180) >= 0
-      quailFace.style.transform = faceRight ? 'scaleX(1)' : 'scaleX(-1)'
+      // Flip the bird only. The call bubble stays in the parent so the words do not mirror.
+      flip.style.transform = faceRight ? 'scaleX(1)' : 'scaleX(-1)'
+      if (say) say.classList.toggle('face-left', !faceRight)
     }
     const drop = (ang: number, opacity: number) => {
       const dot = document.createElement('span')
