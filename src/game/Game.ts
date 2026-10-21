@@ -34,6 +34,8 @@ import type { CamKind, CamMode, Meta, RideKind, Road, WaterFile } from './types.
 
 type Mount = Bike | Car | Wagon | Helicopter
 
+let softenedNoted = false
+
 export class Game {
   private picture!: Picture
   private meadow!: Meadow
@@ -152,14 +154,13 @@ export class Game {
     this.hud.onTeleport = (id) => {
       const stand = this.portals?.stand(id)
       if (stand) {
+        this.pendingFace = { x: stand.lookX, z: stand.lookZ }
         this.travel(stand.x, stand.z)
-        this.face(stand.lookX, stand.lookZ)
         return
       }
       const place = this.meta?.places.find((p) => p.id === id)
       if (!place) return
       const spot = id === 'reservoir' ? { x: this.heli.x, z: this.heli.z } : place
-      this.travel(spot.x, spot.z)
       const look: Record<string, { x: number; z: number }> = {
         downtown: { x: place.x - 180, z: place.z + 10 },
         reservoir: { x: place.x - 400, z: place.z },
@@ -168,7 +169,8 @@ export class Game {
         bart: { x: 420, z: -430 },
       }
       const at = look[id]
-      if (at) this.face(at.x, at.z)
+      if (at) this.pendingFace = { x: at.x, z: at.z }
+      this.travel(spot.x, spot.z)
     }
     this.hud.onBloom = (on) => this.picture?.setBloom(on)
     this.hud.onQuality = (quality) => {
@@ -179,6 +181,7 @@ export class Game {
     this.hud.onPhoto = () => this.togglePhoto()
     this.hud.onTravelKind = (kind) => this.input.pickTravel(kind)
     this.hud.onEra = (id) => this.beginEra(id)
+    this.hud.onTrain = () => this.toyTrain()
     this.hud.onTour = () => {
       if (!this.activities) return
       this.hud.setTour(this.activities.toggleTour())
@@ -348,7 +351,7 @@ export class Game {
     return {
       x,
       z,
-      heading: -Math.PI / 2,
+      heading: this.world.streetHeading(x, z, -Math.PI / 2),
       bikeX: x + 5,
       bikeZ: z + 2,
       clockX: x - 10,
@@ -604,6 +607,7 @@ export class Game {
     }
     this.picture.syncBloom(gradeGolden.value)
     this.world.orientStreetNames(this.camera)
+    this.tickTrain()
     this.picture.render()
     this.input.endFrame()
     document.body.dataset.mode = this.mode
@@ -974,15 +978,6 @@ export class Game {
     }
   }
 
-  private face(x: number, z: number): void {
-    const px = this.active ? this.active.x : this.walker.x
-    const pz = this.active ? this.active.z : this.walker.z
-    const heading = Math.atan2(x - px, -(z - pz))
-    if (this.active) this.active.heading = heading
-    this.walker.heading = heading
-    this.cam.snap(heading)
-  }
-
   private parkOnShore(vehicle: { x: number; z: number; heading: number; place: (x: number, z: number, h: number, world: World) => void }): void {
     if (!this.world.isDeep(vehicle.x, vehicle.z)) return
     for (let i = 1; i <= 36; i++) {
@@ -998,6 +993,7 @@ export class Game {
     if (this.portals?.inside || this.portals?.locked) this.portals.forceExit()
     if (this.ride !== 'foot') this.dismount()
     if (this.world.isDeep(x, z)) {
+      this.pendingFace = null
       this.hud.toast('That’s open water. Pick a spot on the shore.')
       return
     }
@@ -1015,13 +1011,20 @@ export class Game {
         this.hud.loading(null)
       }
     }
-    const y = this.world.surface(x, z, null)
-    this.walker.place(x, y, z, this.walker.heading)
-    if (this.pendingFace) {
-      const look = this.pendingFace
-      this.pendingFace = null
-      this.face(look.x, look.z)
-    } else this.cam.cut(this.walker.heading)
+    const face = this.world.frontage(x, z)
+    const faceDist = face ? Math.hypot(face.x - x, face.z - z) : 99
+    const onStreet = !!(face && faceDist < 36)
+    const road = onStreet ? face : this.world.nearestRoad(x, z, 16)
+    const limit = onStreet ? 36 : 14
+    const sx = road && Math.hypot(road.x - x, road.z - z) < limit ? road.x : x
+    const sz = road && Math.hypot(road.x - x, road.z - z) < limit ? road.z : z
+    const y = this.world.surface(sx, sz, null)
+    const prefer = this.pendingFace ? Math.atan2(this.pendingFace.x - sx, -(this.pendingFace.z - sz)) : this.walker.heading
+    this.pendingFace = null
+    const heading = this.world.streetHeading(sx, sz, prefer)
+    this.walker.place(sx, y, sz, heading)
+    this.walker.heading = heading
+    this.cam.cut(heading)
     this.meadow?.bump()
     this.hud.toggleMap(false)
     if (this.mode === 'title') this.play()
@@ -1094,12 +1097,25 @@ export class Game {
     const viewHere = this.discover.viewHere(pos.x, pos.z)
     this.hud.setPhotoOffer(viewHere ? 'Keep this view' : null)
     if (this.streets && pos.agl < 25) {
-      for (const name of this.streets.walk(pos.x, pos.z, performance.now())) {
+      const step = this.streets.walk(pos.x, pos.z, performance.now())
+      if (step.inked.length > 0) {
         this.audio.scratch()
-        this.hud.stamp(name)
+        const nib = step.inked[step.inked.length - 1]
+        this.hud.noteInk(nib.ax, nib.az, nib.bx, nib.bz)
       }
+      for (const name of step.done) this.hud.stamp(name)
     }
-    if (this.streets) this.hud.setStreetProgress(this.streets.share())
+    if (this.streets) {
+      const share = this.streets.share()
+      const mark = Math.floor(share * 20)
+      if (this.mile < 0) this.mile = mark
+      else if (mark > this.mile) {
+        this.mile = mark
+        this.hud.stamp(`${mark * 5}%`)
+        this.audio.thump()
+      }
+      this.hud.setStreetProgress(share)
+    }
     this.hud.setRoam((x, z) => this.discover.revealed(x, z), this.discover.foundPlaces(), this.discover.hall(), this.discover.openPlaces())
     const weather = this.atmo.rain > 0.45 ? 'Rain' : this.atmo.fog > 0.45 ? 'Fog on the hills' : this.atmo.overcast > 0.45 ? 'Overcast' : 'Clear'
     const where = this.portals?.label || this.world.placeName(pos.x, pos.z)
@@ -1162,17 +1178,23 @@ export class Game {
   }
 
   private toldSoft = false
+  private mile = -1
+  private train: THREE.Group | null = null
+  private trainUntil = 0
 
   private noteSoftened(): void {
-    if (this.toldSoft) return
-    this.toldSoft = true
+    if (this.toldSoft || softenedNoted) return
+    let seen = false
     try {
-      if (sessionStorage.getItem('ld-soft') === '1') return
+      seen = sessionStorage.getItem('ld-soft') === '1'
       sessionStorage.setItem('ld-soft', '1')
     } catch {
       /* still once this run */
     }
-    this.hud.toast('Softened the picture so the town stays smooth.', 3)
+    this.toldSoft = true
+    softenedNoted = true
+    this.hud.showEase()
+    if (!seen) this.hud.toast('Softened the picture so the town stays smooth.', 2.4)
   }
 
   private chooseKid(id: KidId): void {
@@ -1237,19 +1259,27 @@ export class Game {
   }
 
   private beginEra(id: EraId): void {
+    if (this.mode === 'boot' || this.mode === 'title') return
+    this.audio.ensure()
+    if (id === 'settlement') {
+      this.hud.waddleQuail()
+      this.audio.tick()
+      return
+    }
     const spec = ERA_BY_ID[id]
     if (!spec.playable) {
+      this.audio.tick()
       this.hud.toast('That year is in the record, and the walkable town is still ahead. The clock can reach today and 1955.')
       return
     }
     if (id === this.eraId || this.eraAnim) return
-    if (this.mode === 'boot' || this.mode === 'title') return
     if (this.portals?.inside || this.portals?.locked) {
       this.hud.toast('Step back outside before you change the year.')
       return
     }
     if (this.mode === 'pause') this.resume()
-    this.audio.ensure()
+    this.audio.tick()
+    if (id === 'fifties') this.audio.bellSoft()
     this.audio.eraShift()
     this.hud.setEraVeil(spec.year)
     this.eraAnim = { t: 0, phase: 'in', next: id, told: false }
@@ -1374,6 +1404,46 @@ export class Game {
     this.castLight.position.copy(this.milo.group.position).lerp(this.juniper.group.position, 0.5)
     this.castLight.position.y += 0.6
     this.castLight.visible = true
+  }
+
+  private toyTrain(): void {
+    if (!this.train) {
+      const group = new THREE.Group()
+      const shell = new THREE.MeshStandardMaterial({ color: 0xd8dde6, roughness: 0.45, metalness: 0.25 })
+      const blue = new THREE.MeshStandardMaterial({ color: 0x1d4e89, roughness: 0.5 })
+      const glass = new THREE.MeshStandardMaterial({ color: 0xc5d4e4, roughness: 0.25, metalness: 0.1 })
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.72, 0.78), shell)
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.62, 0.16, 0.8), blue)
+      stripe.position.y = 0.08
+      const cab = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.42, 0.66), glass)
+      cab.position.set(0.7, 0.5, 0)
+      const nose = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.36, 0.7), blue)
+      nose.position.set(1.28, 0.02, 0)
+      group.add(body, stripe, cab, nose)
+      group.visible = false
+      this.scene.add(group)
+      this.train = group
+    }
+    this.train.visible = true
+    this.trainUntil = performance.now() + 2800
+    this.audio.ensure()
+    this.audio.toot()
+  }
+
+  private tickTrain(): void {
+    const train = this.train
+    if (!train || !train.visible) return
+    const left = this.trainUntil - performance.now()
+    if (left <= 0) {
+      train.visible = false
+      return
+    }
+    const u = 1 - left / 2800
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion)
+    const ahead = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion)
+    train.position.copy(this.camera.position).addScaledVector(ahead, 9).addScaledVector(right, -8 + u * 16)
+    train.position.y -= 1.15
+    train.quaternion.copy(this.camera.quaternion)
   }
 
   private fly(t: number): void {

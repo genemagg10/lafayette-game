@@ -10,7 +10,8 @@ import { dressTown } from './dress.ts'
 import { addClassroomRows, dressDistricts, footprintSize, schoolDress } from './districts.ts'
 import { spanVisible } from './eras.ts'
 import { dressFifties } from './period.ts'
-import { hash01 } from './math.ts'
+import { forwardFromHeading, hash01, headingFromForward, wrapAngle } from './math.ts'
+import { addHouseLots } from './houses.ts'
 import { parseOsmColor, town } from './palette.ts'
 import { BATTEN_HEX, addHeroAccent, assignPhase, clusterCanopy, coreBoulevard, crownLift, facadeFor, greyIntersection, inDowntown, noteHero, plantBoulevard, punchFacade, shopSignTexture, storyHeight, treeTrunk, type BlvdTree, type Facade, type HeroId } from './downtown.ts'
 import { tileKey, tileOf, type TileSet, type VectorTile } from './tiles.ts'
@@ -40,6 +41,7 @@ interface Seg {
   trail: boolean
   paved: boolean
   name: string
+  cls: string
 }
 
 export class World {
@@ -78,6 +80,7 @@ export class World {
   private readonly occluders: TreeOccluder[] = []
   private readonly cardMats: THREE.MeshStandardMaterial[] = []
   private segCell = 40
+  private readonly poles: { x: number; z: number; r: number }[] = []
   private readonly tmpColor = new THREE.Color()
   private trunkGeo = treeTrunk()
   private canopyGeo = clusterCanopy(1)
@@ -180,6 +183,7 @@ export class World {
     this.signalColor = this.addSignals()
     this.addMemorial()
     dressDistricts(this.root, this.height, water, this.roads)
+    this.poles.push({ x: 1124, z: 130, r: 1.15 }, { x: 1140, z: 118, r: 1.15 })
     dressTown(this.root, this.roads, this.height, meta.spawn)
     dressFifties(this)
   }
@@ -260,6 +264,7 @@ export class World {
           trail: road.d === 1,
           paved: road.d === 0 && road.t !== 'track' && road.t !== 'path',
           name: road.n,
+          cls: road.t,
         }
         this.insertSeg(seg)
       }
@@ -289,13 +294,23 @@ export class World {
   }
 
   private segsAt(x: number, z: number): Seg[] {
+    return this.segsAround(x, z, 1)
+  }
+
+  private segsAround(x: number, z: number, radius: number): Seg[] {
     const i = Math.floor(x / this.segCell)
     const j = Math.floor(z / this.segCell)
     const out: Seg[] = []
-    for (let dz = -1; dz <= 1; dz++) {
-      for (let dx = -1; dx <= 1; dx++) {
+    const seen = new Set<Seg>()
+    for (let dz = -radius; dz <= radius; dz++) {
+      for (let dx = -radius; dx <= radius; dx++) {
         const list = this.segGrid.get(`${i + dx},${j + dz}`)
-        if (list) out.push(...list)
+        if (!list) continue
+        for (const seg of list) {
+          if (seen.has(seg)) continue
+          seen.add(seg)
+          out.push(seg)
+        }
       }
     }
     return out
@@ -343,6 +358,104 @@ export class World {
       if (Math.abs(sy - y) < 2.2) return true
     }
     return false
+  }
+
+  /** Closest paved approach, used to keep a house off the asphalt. */
+  nearestRoad(x: number, z: number, max = 72): { x: number; z: number; dx: number; dz: number; w: number } | null {
+    return this.closestRoad(x, z, max, 2, () => true)
+  }
+
+  /**
+   * The named residential street a house should face, when the closest
+   * pavement is only a driveway. Null when the closest road is already that street.
+   */
+  frontage(x: number, z: number): { x: number; z: number; dx: number; dz: number; w: number } | null {
+    const street = /^(residential|living_street|unclassified|tertiary|secondary)$/
+    let any = Infinity
+    let anyNamed = false
+    let best = 74
+    let hit: { x: number; z: number; dx: number; dz: number; w: number } | null = null
+    for (const seg of this.segsAround(x, z, 3)) {
+      if (seg.trail || seg.w < 2.2) continue
+      const d = this.segDistance(x, z, seg)
+      if (d == null) continue
+      if (d.dist < any) {
+        any = d.dist
+        anyNamed = seg.name.length > 0 && street.test(seg.cls)
+      }
+      if (!seg.name || !street.test(seg.cls) || seg.w < 4.8) continue
+      if (d.dist < best) {
+        best = d.dist
+        hit = d.hit
+      }
+    }
+    if (!hit || best > 70) return null
+    if (anyNamed && any <= best + 6) return null
+    return hit
+  }
+
+  private segDistance(
+    x: number,
+    z: number,
+    seg: Seg,
+  ): { dist: number; hit: { x: number; z: number; dx: number; dz: number; w: number } } | null {
+    const abx = seg.bx - seg.ax
+    const abz = seg.bz - seg.az
+    const ab2 = abx * abx + abz * abz || 1
+    let t = ((x - seg.ax) * abx + (z - seg.az) * abz) / ab2
+    t = Math.max(0, Math.min(1, t))
+    const sx = seg.ax + abx * t
+    const sz = seg.az + abz * t
+    return { dist: Math.hypot(x - sx, z - sz), hit: { x: sx, z: sz, dx: abx, dz: abz, w: seg.w } }
+  }
+
+  private closestRoad(
+    x: number,
+    z: number,
+    max: number,
+    radius: number,
+    accept: (seg: Seg) => boolean,
+  ): { x: number; z: number; dx: number; dz: number; w: number } | null {
+    let best = max
+    let hit: { x: number; z: number; dx: number; dz: number; w: number } | null = null
+    for (const seg of this.segsAround(x, z, radius)) {
+      if (seg.trail || seg.w < 2.2 || !accept(seg)) continue
+      const d = this.segDistance(x, z, seg)
+      if (!d || d.dist >= best) continue
+      best = d.dist
+      hit = d.hit
+    }
+    return hit
+  }
+
+  /**
+   * A heading along the nearest street. Prefers the way whose chase camera
+   * stays out of a building, then the caller's preferred direction.
+   */
+  streetHeading(x: number, z: number, prefer = 0): number {
+    const road = this.nearestRoad(x, z, 40)
+    if (!road) return prefer
+    const len = Math.hypot(road.dx, road.dz) || 1
+    const h1 = headingFromForward(road.dx / len, road.dz / len)
+    const h2 = headingFromForward(-road.dx / len, -road.dz / len)
+    const score = (h: number) => {
+      const f = forwardFromHeading(h)
+      let s = 0
+      for (const dist of [3, 7, 12, 18]) {
+        const blocked = this.blockers.roofAt(x + f.x * dist, z + f.z * dist) != null
+        if (!blocked) s += dist < 8 ? 5 : 1
+        else if (dist <= 7) s -= 8
+      }
+      if (this.blockers.roofAt(x - f.x * 11, z - f.z * 11) == null) s += 3
+      else s -= 4
+      return s
+    }
+    const s1 = score(h1)
+    const s2 = score(h2)
+    if (Math.abs(s1 - s2) <= 2) {
+      return Math.abs(wrapAngle(h1 - prefer)) <= Math.abs(wrapAngle(h2 - prefer)) ? h1 : h2
+    }
+    return s1 > s2 ? h1 : h2
   }
 
   roadName(x: number, z: number): string {
@@ -463,6 +576,60 @@ export class World {
     }
   }
 
+  /** Pull the chase rig in before a lamp or signal fills the lens. */
+  clipPoles(fromX: number, fromZ: number, toX: number, toZ: number): number {
+    let best = 1
+    const dx = toX - fromX
+    const dz = toZ - fromZ
+    const len2 = dx * dx + dz * dz
+    if (len2 < 0.25) return 1
+    for (const pole of this.poles) {
+      if (Math.abs(pole.x - fromX) > 20 && Math.abs(pole.x - toX) > 20) continue
+      if (Math.abs(pole.z - fromZ) > 20 && Math.abs(pole.z - toZ) > 20) continue
+      const u = ((pole.x - fromX) * dx + (pole.z - fromZ) * dz) / len2
+      if (u < 0.05 || u > 1.02) continue
+      const d = Math.hypot(pole.x - (fromX + dx * u), pole.z - (fromZ + dz * u))
+      if (d < pole.r && u < best) best = Math.max(0.18, u - 0.16)
+    }
+    return best
+  }
+
+  /** Last step of the rig: never render from inside a wall or a pole. */
+  escapeRig(x: number, y: number, z: number): { x: number; y: number; z: number } {
+    let px = x
+    let pz = z
+    const out = this.blockers.resolve(px, pz, 0.65, y)
+    px = out.x
+    pz = out.z
+    const keep = (cx: number, cz: number, rad: number) => {
+      const dx = px - cx
+      const dz = pz - cz
+      const d = Math.hypot(dx, dz)
+      if (d >= rad) return
+      if (d < 1e-4) {
+        px += rad
+        return
+      }
+      px = cx + (dx / d) * rad
+      pz = cz + (dz / d) * rad
+    }
+    for (let n = 0; n < 2; n++) {
+      for (const pole of this.poles) {
+        if (Math.abs(pole.x - px) > pole.r + 2 || Math.abs(pole.z - pz) > pole.r + 2) continue
+        keep(pole.x, pole.z, pole.r)
+      }
+      if (y < this.height.sample(px, pz) + 8) {
+        for (const tree of this.occluders) {
+          if (Math.abs(tree.x - px) > 4 || Math.abs(tree.z - pz) > 4) continue
+          if (y > tree.y + 4.8) continue
+          keep(tree.x, tree.z, tree.trunkR + 0.9)
+        }
+      }
+    }
+    const floor = this.height.sample(px, pz) + 0.55
+    return { x: px, y: y < floor ? floor : y, z: pz }
+  }
+
   /** Pull the chase rig in before a trunk crosses the line to the player. */
   clipTrees(fromX: number, fromZ: number, toX: number, toZ: number): number {
     let best = 1
@@ -567,15 +734,15 @@ export class World {
     for (const item of ranked) {
       const kind = item.kind === 'poi' || item.kind === 'street' || item.kind === 'pin' || item.kind === 'place' ? item.kind : 'poi'
       const far = kind === 'place' ? 1400 : kind === 'street' ? 520 : kind === 'pin' ? 280 : 260
-      const near = kind === 'place' ? 28 : kind === 'pin' ? 6 : 8
+      const near = kind === 'place' ? 28 : kind === 'pin' ? 18 : 8
       let visible = item.dist > near && item.dist < far
       if (visible && shown[kind] >= cap[kind]) visible = false
       if (visible) shown[kind] += 1
       item.sprite.visible = visible
       const base = item.sprite.userData.base as number | undefined
       if (base && visible) {
-        const pop = item.kind === 'place' || item.sprite.userData.landmark ? THREE.MathUtils.smoothstep(item.dist, 110, 16) : THREE.MathUtils.smoothstep(item.dist, 48, 10)
-        const s = base * (1 + pop * (item.sprite.userData.landmark || item.kind === 'place' ? 1.15 : 0.35))
+        const pop = item.kind === 'place' || item.sprite.userData.landmark ? THREE.MathUtils.smoothstep(item.dist, 90, 22) : THREE.MathUtils.smoothstep(item.dist, 40, 18)
+        const s = base * (1 + pop * 0.22)
         item.sprite.scale.set(s, s, 1)
       }
     }
@@ -757,13 +924,13 @@ export class World {
           vary = 1
         } else if (f & F_WATER) hex = 0x8a7a58
         else if (f & F_ROAD) hex = 0x454c58
-        else if (f & F_PARK) hex = season === 'winter' ? 0x3f8a48 : season === 'spring' ? 0x67b34a : 0x8aaa3a
-        else if (f & F_WOOD) hex = season === 'summer' ? 0x4a6230 : 0x2f6a38
+        else if (f & F_PARK) hex = season === 'winter' ? 0x3f8a48 : season === 'spring' ? 0x67b34a : 0xc6ee78
+        else if (f & F_WOOD) hex = season === 'summer' ? 0x6a8a3c : 0x2f6a38
         else if (f & F_URBAN) {
           const n2 = hash01(ii * 3 + jj * 17)
-          hex = n2 > 0.78 ? 0xb7c48a : n2 > 0.46 ? 0xc9b89a : 0xd8cbb6
+          hex = n2 > 0.78 ? 0xb6e270 : n2 > 0.46 ? 0xd4c8a4 : 0xe4dcc8
         }
-        else if (elev < h.waterLevel + 18) hex = season === 'winter' ? 0x2f7a38 : season === 'spring' ? 0x4e9a40 : 0x8aaa3a
+        else if (elev < h.waterLevel + 18) hex = season === 'winter' ? 0x2f7a38 : season === 'spring' ? 0x4e9a40 : 0xc6ee78
         else if (elev < h.waterLevel + 36) hex = season === 'winter' ? 0x3d8a42 : season === 'spring' ? 0x62b04e : 0xc4a04a
         if (!inDowntown(x, z) && season === 'spring' && n > 0.86 && (f & (F_ROAD | F_URBAN | F_WATER)) === 0) hex = n > 0.93 ? 0xe7a0b8 : 0xf2d36b
         c.setHex(hex)
@@ -886,7 +1053,10 @@ export class World {
           const x = ax + dx * d
           const z = az + dz * d
           const side = hash01((x * 10) | 0) > 0.5 ? 1 : -1
-          poles.push(x - dz * off * side, z + dx * off * side)
+          const px = x - dz * off * side
+          const pz = z + dx * off * side
+          poles.push(px, pz)
+          this.poles.push({ x: px, z: pz, r: 1.15 })
           d += 32
         }
         carry = d - len
@@ -938,6 +1108,7 @@ export class World {
       dummy.scale.set(1, 1, 1)
       dummy.updateMatrix()
       poles.setMatrixAt(i, dummy.matrix)
+      this.poles.push({ x: s.x, z: s.z, r: 1.2 })
       dummy.position.set(s.x, y + 4.3, s.z)
       dummy.updateMatrix()
       heads.setMatrixAt(i, dummy.matrix)
@@ -1015,6 +1186,7 @@ export class World {
     const awnings = new MeshBuilder()
     const blvdTrees: BlvdTree[] = []
     const bart = this.bartAt()
+    const homes: number[][] = []
     const heroBest = new Map<HeroId, number>()
     for (const raw of data.building ?? []) {
       const spot = this.buildingSpot(raw)
@@ -1069,10 +1241,16 @@ export class World {
         wallPaint = dress.wall
         roofPaint = dress.roof
       }
+      // Neighbourhood footprints become house lots. A 60 m OSM shell is a row of homes, not one wall.
+      const home = !inDowntown(sx, sz) && !later && !dress
+      if (home) {
+        homes.push(poly)
+        continue
+      }
       const roofWanted = facade?.hero === 'pioneer' || (facade && !facade.hero && hash01((sx * 4) | 0) > 0.78) ? roofShape || 'gabled' : roofShape
       this.blockers.add(key, poly, this.roofOf(poly, builtHeight), later ? 1973 : null)
       const shop = kind === 'c' || kind === 's' || (name.length > 2 && height > 4)
-      let target = dress ? paper : facade ? (later ? bartPaper : paper) : later ? (rich ? (shop ? bartShops : bartWalls) : bartPaper) : rich ? (shop ? shops : walls) : paper
+      let target = home || dress ? paper : facade ? (later ? bartPaper : paper) : later ? (rich ? (shop ? bartShops : bartWalls) : bartPaper) : rich ? (shop ? shops : walls) : paper
       if (wallPaint === BATTEN_HEX) target = later ? bartBattens : battens
       this.extrude(poly, builtHeight, kind, target, later ? bartRoofs : roofs, rich, roofWanted, wallPaint, roofPaint, facade)
       let minY = Infinity
@@ -1084,6 +1262,28 @@ export class World {
       if (facade?.hero && !this.heroesPlaced.has(facade.hero)) {
         this.heroesPlaced.add(facade.hero)
         addHeroAccent(group, facade.hero, sx, sz, this.height.sample(sx, sz))
+      }
+    }
+    if (homes.length) {
+      const placed = addHouseLots(
+        group,
+        homes,
+        (x, z) => this.height.sample(x, z),
+        (x, z) => this.nearestRoad(x, z),
+        {
+          trunkGeo: this.trunkGeo,
+          canopyGeo: this.canopyGeo,
+          trunkMat: this.trunkMat,
+          canopyMat: this.canopyMat,
+        },
+        (x, z) => this.frontage(x, z) ?? this.nearestRoad(x, z),
+      )
+      if (placed) {
+        for (const block of placed.blocks) this.blockers.add(key, block.poly, block.roof, null)
+        for (const tree of placed.trees) {
+          this.noteTree(group, tree.x, tree.z, tree.y, tree.trunkR, tree.canopyR, tree.canopyY, tree.index, placed.trunkFade, placed.canopyFade)
+        }
+        if (placed.canopy) this.canopies.push(placed.canopy)
       }
     }
     this.addMesh(group, walls, this.windowMat, true)
@@ -1201,8 +1401,8 @@ export class World {
       if (shorePath) appendRibbon(asphalt, pts, 3.6, asphaltColor, 0.08)
       else if (dirt) appendRibbon(trail, pts, trailWidth, trailColor, 0.05)
       else if (boulevard) {
-        const paver = new THREE.Color(0xb08972)
-        const band = new THREE.Color(0xcbbba8)
+        const paver = new THREE.Color(0xcfc6b6)
+        const band = new THREE.Color(0xcfc6b6)
         const median = new THREE.Color(0x7d9a52)
         const half = 6.4
         appendRibbon(walk, pts, half * 2 + 7.2, paver, 0.04)
@@ -1649,12 +1849,12 @@ export class World {
       map: badgeTexture(accent, landmark),
       transparent: true,
       depthWrite: false,
-      depthTest: false,
+      depthTest: true,
       toneMapped: false,
     })
     const sprite = new THREE.Sprite(mat)
-    const size = landmark ? 7.2 : 3.1
-    sprite.position.set(x, this.height.sample(x, z) + (landmark ? 8.5 : 4.2), z)
+    const size = landmark ? 2.15 : 1.2
+    sprite.position.set(x, this.height.sample(x, z) + (landmark ? 3.1 : 2.3), z)
     sprite.scale.set(size, size, 1)
     sprite.center.set(0.5, 0)
     sprite.renderOrder = 18
@@ -1886,26 +2086,36 @@ export class World {
       if (z > maxZ) maxZ = z
     }
     const span = Math.min(maxX - minX, maxZ - minZ)
-    const rise = Math.min(4.4, Math.max(1.5, span * 0.38))
+    const rise = Math.min(3.2, Math.max(1.2, span * 0.32))
     const peakY = y1 + rise
     const alongX = maxX - minX >= maxZ - minZ
     const peaked = shape === 'pyramidal' || shape === 'dome' || shape === 'round'
-    const ax = peaked ? cx : alongX ? minX + (maxX - minX) * 0.22 : cx
-    const az = peaked ? cz : alongX ? cz : minZ + (maxZ - minZ) * 0.22
-    const bx = peaked ? cx : alongX ? maxX - (maxX - minX) * 0.22 : cx
-    const bz = peaked ? cz : alongX ? cz : maxZ - (maxZ - minZ) * 0.22
-    const shade = color.clone().multiplyScalar(0.82)
+    const hip = shape === 'hip'
+    const inset = peaked ? 0 : hip ? 0.34 : 0.08
+    const ax = peaked ? cx : alongX ? minX + (maxX - minX) * inset : cx
+    const az = peaked ? cz : alongX ? cz : minZ + (maxZ - minZ) * inset
+    const bx = peaked ? cx : alongX ? maxX - (maxX - minX) * inset : cx
+    const bz = peaked ? cz : alongX ? cz : maxZ - (maxZ - minZ) * inset
+    const shade = color.clone().multiplyScalar(0.78)
     for (let i = 0; i < n; i++) {
       const x1 = poly[i * 2]
       const z1 = poly[i * 2 + 1]
       const x2 = poly[((i + 1) % n) * 2]
       const z2 = poly[((i + 1) % n) * 2 + 1]
       const face = i % 2 === 0 ? color : shade
+      const ex = Math.abs(x2 - x1)
+      const ez = Math.abs(z2 - z1)
+      const end = !peaked && !hip && (alongX ? ez > ex : ex > ez)
       if (peaked || shape === 'skillion') {
         const py = shape === 'skillion' ? y1 + rise * 0.65 : peakY
         const px = shape === 'skillion' ? cx + (maxX - minX) * 0.15 : cx
         const pz = shape === 'skillion' ? cz : cz
         roofs.tri(x1, y1, z1, x2, y1, z2, px, py, pz, face)
+      } else if (end) {
+        const midX = (x1 + x2) / 2
+        const midZ = (z1 + z2) / 2
+        const useB = Math.hypot(midX - bx, midZ - bz) < Math.hypot(midX - ax, midZ - az)
+        roofs.tri(x1, y1, z1, x2, y1, z2, useB ? bx : ax, peakY, useB ? bz : az, shade)
       } else {
         roofs.tri(x1, y1, z1, x2, y1, z2, ax, peakY, az, face)
         roofs.tri(x2, y1, z2, bx, peakY, bz, ax, peakY, az, shade)
@@ -2122,7 +2332,7 @@ export class World {
   /** Contact darkening in the vertex color. Lower ground under an eave, and slopes facing away from the afternoon sun. */
   private vertexShade(i: number, j: number, flag: number): number {
     let shade = 1
-    if ((flag & F_BUILDING) !== 0 || this.buildingNear(i, j)) shade = 0.78
+    if ((flag & F_BUILDING) !== 0 || this.buildingNear(i, j)) shade = 0.94
     const h = this.height
     const spanX = h.sizeX / Math.max(1, h.cols - 1)
     const spanZ = h.sizeZ / Math.max(1, h.rows - 1)

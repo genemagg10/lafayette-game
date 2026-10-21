@@ -6,8 +6,8 @@
 export const town = {
   asphalt: 0x5b5a57,
   asphaltAlt: 0x66645f,
-  curb: 0xbdb4a4,
-  sidewalk: 0xd9cfbd,
+  curb: 0xcfc6b6,
+  sidewalk: 0xcfc6b6,
   laneWhite: 0xece7dc,
   laneYellow: 0xd9b54a,
   crosswalk: 0xece7dc,

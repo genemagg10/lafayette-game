@@ -11,7 +11,7 @@ import type { Road, WaterFile } from './types.ts'
  * Facade colours and street-tree species are not in the spec.
  * Assumptions, used only where the spec is silent:
  * - Visitor Center: cedar walls, pale roof.
- * - Stanley: cream stucco, one story, gray roof.
+ * - Stanley's streets are ordinary house lots, not one campus slab.
  * - Springhill: warm-gray stucco; the largest wing is the brick multipurpose room kept from 1955.
  * - Acalanes rows: off-white stucco, dark window band, shallow roof.
  * - Moraga Rd and Deer Hill oaks: valley oak #6f7d4a, wide and low, planted sparsely.
@@ -20,7 +20,6 @@ import type { Road, WaterFile } from './types.ts'
  * - The fish-cleaning roof sits beside the larger east pier.
  */
 
-const CREAM = 0xe7d7c0
 const WARM_GRAY = 0xd5cfc3
 const BRICK = 0x8c4e3b
 const CEDAR = 0x8d5e3c
@@ -63,9 +62,6 @@ export function schoolDress(name: string, sx: number, sz: number, box: Footprint
   if (/visitor center/i.test(name)) return { height, wall: CEDAR, roof: 0xd9d3c6, rows: false }
   const thin = Math.min(box.w, box.d)
   const thick = Math.max(box.w, box.d)
-  if (sx > 880 && sx < 1040 && sz > 60 && sz < 260) {
-    return { height: thin < 22 && thick > 36 ? 4.3 : Math.min(height, 5.2), wall: CREAM, roof: ROOF, rows: false }
-  }
   if (sx > 2140 && sx < 2340 && sz < -1980 && sz > -2220) {
     const hall = thick > 26
     return { height: hall ? 6.4 : 4.5, wall: hall ? BRICK : WARM_GRAY, roof: hall ? 0x6e6258 : ROOF, rows: false }
@@ -329,7 +325,7 @@ function nudgeLand(height: Heightfield, x: number, z: number): { x: number; z: n
 }
 
 function plantOaks(group: THREE.Group, height: Heightfield, roads: Road[]): void {
-  const trunk = new THREE.MeshStandardMaterial({ color: 0x8d5a38, roughness: 0.95, metalness: 0 })
+  const trunk = new THREE.MeshStandardMaterial({ color: 0x7a5c46, roughness: 0.95, metalness: 0 })
   const leaf = solidCanopyMaterial()
   const stemGeo = treeTrunk()
   const crownGeo = clusterCanopy(1)

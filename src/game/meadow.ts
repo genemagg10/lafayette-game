@@ -37,7 +37,7 @@ function crossGeo(height: number, width: number, painted: boolean): BufferGeomet
     tips.push(0, 0, 1)
     normals.push(-s, 0, c, -s, 0, c, 0, 1, 0)
     if (painted) {
-      colors.push(0.72, 0.78, 0.62, 0.72, 0.78, 0.62, 1, 1, 0.9)
+      colors.push(0.98, 1, 0.9, 0.98, 1, 0.9, 1, 1, 0.96)
     }
   }
   const geo = new BufferGeometry()
@@ -51,15 +51,15 @@ function crossGeo(height: number, width: number, painted: boolean): BufferGeomet
 }
 
 function palette(season: Season, kind: 'blade' | 'flower', n: number): number {
+  const lawn = [0xb6e86c, 0xd4f59a]
   if (kind === 'flower') {
-    const spring = [0xf4f1ea, 0xf2d36b, 0xe07aa8, 0xf08a3a, 0xcfe7ff]
-    const summer = [0xf2d36b, 0xf08a3a, 0xf4f1ea]
-    const list = season === 'spring' ? spring : summer
-    return list[n % list.length]
+    if (season !== 'spring') return lawn[n % 2]
+    const spring = [0xf4f1ea, 0xf2d36b, 0xe07aa8, 0xcfe7ff]
+    return spring[n % spring.length]
   }
   if (season === 'winter') return [0x2f7a3c, 0x3d8f48, 0x4aa05a, 0x26703a][n % 4]
   if (season === 'spring') return [0x5cb648, 0x7ec85a, 0x3f9a40, 0x8ed36a][n % 4]
-  return [0xc4a24a, 0x8aaa3a, 0x6e9430, 0xd2b15a][n % 4]
+  return lawn[n % 2]
 }
 
 /**
@@ -94,9 +94,9 @@ export class Meadow {
     const flowerMat = leafMaterial('blade')
     const carpetMat = leafMaterial('blade')
     flowerMat.polygonOffsetFactor = -2
-    const blades = new InstancedMesh(crossGeo(0.92, 0.09, true), bladeMat, BLADE_MAX)
-    const flowers = new InstancedMesh(crossGeo(0.42, 0.16, true), flowerMat, FLOWER_MAX)
-    const carpet = new InstancedMesh(crossGeo(1.15, 0.55, true), carpetMat, CARPET_MAX)
+    const blades = new InstancedMesh(crossGeo(0.23, 0.07, true), bladeMat, BLADE_MAX)
+    const flowers = new InstancedMesh(crossGeo(0.16, 0.1, true), flowerMat, FLOWER_MAX)
+    const carpet = new InstancedMesh(crossGeo(0.29, 0.28, true), carpetMat, CARPET_MAX)
     for (const mesh of [blades, flowers, carpet]) {
       mesh.frustumCulled = false
       mesh.castShadow = false
@@ -108,8 +108,8 @@ export class Meadow {
     this.blades = blades
     this.flowers = flowers
     this.carpet = carpet
-    const tuftGeo = new PlaneGeometry(0.52, 0.74)
-    tuftGeo.translate(0, 0.37, 0)
+    const tuftGeo = new PlaneGeometry(0.36, 0.22)
+    tuftGeo.translate(0, 0.11, 0)
     const tufts = new InstancedMesh(
       tuftGeo,
       new MeshStandardMaterial({ roughness: 0.92, vertexColors: true, side: DoubleSide }),
@@ -142,7 +142,7 @@ export class Meadow {
     this.cull = null
     this.cullCount = -1
     const mat = this.blades.material as { positionNode?: unknown }
-    mat.positionNode = undefined
+    mat.positionNode = null
     this.dirty = true
   }
 
@@ -257,6 +257,7 @@ export class Meadow {
       const n = Math.ceil(radius / step)
       for (let j = -n; j <= n; j++) {
         for (let i = -n; i <= n; i++) {
+          if (kind === 'blade' && hash01(Math.floor(i / 3) * 9 + Math.floor(j / 3) * 4) < 0.42) continue
           const px = x + i * step + (hash01(i * 19 + j * 7) - 0.5) * step
           const pz = z + j * step + (hash01(i * 3 + j * 23) - 0.5) * step
           const d = Math.hypot(px - x, pz - z)
@@ -271,24 +272,31 @@ export class Meadow {
     // Carpet crosses were the flat squares at low quality. Blades stay at every tier.
 
     let tufts = 0
-    const tuftR = Math.min(bladeR, 34)
-    const tuftN = Math.ceil(tuftR / 1.7)
+    const tuftR = Math.min(bladeR, 30)
+    const step = 2.8
+    const tuftN = Math.ceil(tuftR / step)
     for (let j = -tuftN; j <= tuftN && tufts < TUFT_MAX; j++) {
       for (let i = -tuftN; i <= tuftN && tufts < TUFT_MAX; i++) {
-        const px = x + i * 1.7 + (hash01(i * 11 + j) - 0.5) * 1.4
-        const pz = z + j * 1.7 + (hash01(j * 17 + i) - 0.5) * 1.4
+        const seed = hash01(i * 19 + j * 7)
+        if (seed < 0.72) continue
+        const px = x + i * step
+        const pz = z + j * step
         if (Math.hypot(px - x, pz - z) > tuftR) continue
-        if (!this.open(px, pz)) continue
-        const n = hash01((px * 5) | 0 ^ (pz * 9) | 0)
-        const flower = this.season !== 'winter' && n > (this.season === 'spring' ? 0.62 : 0.84)
-        this.dummy.position.set(px, this.height.sample(px, pz), pz)
-        this.dummy.rotation.set(0, 0, 0)
-        this.dummy.scale.set(0.7 + n * 0.7, 0.75 + n * 0.8, 1)
-        this.dummy.updateMatrix()
-        this.tufts.setMatrixAt(tufts, this.dummy.matrix)
-        this.color.setHex(flower ? palette(this.season, 'flower', (n * 5) | 0) : palette(this.season, 'blade', (n * 4) | 0))
-        this.tufts.setColorAt(tufts, this.color)
-        tufts += 1
+        const clump = 3 + ((seed * 5) | 0) % 2
+        for (let k = 0; k < clump && tufts < TUFT_MAX; k++) {
+          const qx = px + (hash01(i * 3 + j * 11 + k * 5) - 0.5) * 0.55
+          const qz = pz + (hash01(i * 13 + j + k) - 0.5) * 0.55
+          if (!this.open(qx, qz)) continue
+          const n = hash01(((qx * 5) | 0) ^ ((qz * 9) | 0) ^ k)
+          this.dummy.position.set(qx, this.height.sample(qx, qz), qz)
+          this.dummy.rotation.set(0, n * Math.PI, 0)
+          this.dummy.scale.set(0.55 + n * 0.45, 0.65 + n * 0.4, 1)
+          this.dummy.updateMatrix()
+          this.tufts.setMatrixAt(tufts, this.dummy.matrix)
+          this.color.setHex(palette(this.season, 'blade', (n * 4) | 0))
+          this.tufts.setColorAt(tufts, this.color)
+          tufts += 1
+        }
       }
     }
     this.tufts.count = tufts

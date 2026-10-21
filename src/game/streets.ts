@@ -122,11 +122,16 @@ export class StreetAtlas {
     return { ax: this.ax[index], az: this.az[index], bx: this.bx[index], bz: this.bz[index] }
   }
 
-  /** Names of streets whose last segment was just walked. */
-  walk(x: number, z: number, now: number): string[] {
+  nameOf(index: number): string {
+    return this.names[this.roadOf[index]] ?? ''
+  }
+
+  /** Newly inked segments, plus the name when that street's last segment is walked. */
+  walk(x: number, z: number, now: number): { done: string[]; inked: { ax: number; az: number; bx: number; bz: number }[] } {
     const ix = Math.floor((x - this.originX) / CELL)
     const iz = Math.floor((z - this.originZ) / CELL)
     const done: string[] = []
+    const inked: { ax: number; az: number; bx: number; bz: number }[] = []
     let dirty = false
     for (let jz = iz - 1; jz <= iz + 1; jz++) {
       for (let jx = ix - 1; jx <= ix + 1; jx++) {
@@ -138,6 +143,7 @@ export class StreetAtlas {
           this.walked[i] = 1
           this.inkAt[i] = now
           this.walkedLen += this.len[i]
+          inked.push({ ax: this.ax[i], az: this.az[i], bx: this.bx[i], bz: this.bz[i] })
           const road = this.roadOf[i]
           this.roadWalked[road] += 1
           dirty = true
@@ -150,7 +156,7 @@ export class StreetAtlas {
       }
     }
     if (dirty) this.persist()
-    return done
+    return { done, inked }
   }
 
   private bin(index: number): void {

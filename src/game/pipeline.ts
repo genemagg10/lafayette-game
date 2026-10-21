@@ -216,7 +216,7 @@ export class Picture {
     this.sun.shadow.radius = 4
     this.sun.shadow.bias = -0.0002
     this.sun.shadow.normalBias = 0.03
-    this.sun.shadow.intensity = 0.22
+    this.sun.shadow.intensity = 0.35
     this.renderer.shadowMap.enabled = !low
     this.renderer.shadowMap.type = PCFSoftShadowMap
     if (vivid && !this.csm) {

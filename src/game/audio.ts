@@ -151,6 +151,37 @@ export class AudioBus {
     osc.stop(t + dur + 0.02)
   }
 
+  /** Soft click when the town-clock hand snaps. */
+  tick(): void {
+    this.ensure()
+    this.tone(1800, 0.03, 'square', 0.018)
+  }
+
+  /** A small bell, used when the hand lands on 1955. */
+  bellSoft(): void {
+    this.ensure()
+    this.tone(1318, 0.26, 'sine', 0.045)
+    window.setTimeout(() => this.tone(1760, 0.2, 'sine', 0.028), 90)
+  }
+
+  /** Two short blasts for the toy BART train. */
+  toot(): void {
+    this.ensure()
+    this.tone(440, 0.16, 'sawtooth', 0.05)
+    this.tone(330, 0.2, 'triangle', 0.04)
+    window.setTimeout(() => {
+      this.tone(392, 0.26, 'sawtooth', 0.045)
+      this.tone(294, 0.28, 'triangle', 0.035)
+    }, 220)
+  }
+
+  /** Rubber-stamp thump for a walking milestone. */
+  thump(): void {
+    this.ensure()
+    this.tone(140, 0.06, 'sine', 0.07)
+    this.tone(90, 0.08, 'triangle', 0.04)
+  }
+
   /** A short pencil scratch when a street finishes inking. */
   scratch(): void {
     this.ensure()

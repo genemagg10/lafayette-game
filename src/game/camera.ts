@@ -109,6 +109,7 @@ export class ChaseCamera {
       const clip = Math.min(
         world.blockers.clipCamera(target.x, target.z, tx, tz, target.y + 1.3, ty),
         world.clipTrees(target.x, target.z, tx, tz),
+        world.clipPoles(target.x, target.z, tx, tz),
       )
       if (clip < 1) {
         const t = Math.max(0.12, clip - 0.04)
@@ -128,6 +129,8 @@ export class ChaseCamera {
     this.pos.x = damp(this.pos.x, tx, lambda, dt)
     this.pos.y = damp(this.pos.y, ty, lambda, dt)
     this.pos.z = damp(this.pos.z, tz, lambda, dt)
+    const parked = world.escapeRig(this.pos.x, this.pos.y, this.pos.z)
+    this.pos.set(parked.x, parked.y, parked.z)
     camera.position.copy(this.pos)
     const tip = kind === 'fly' ? Math.sin(roll) * 0.62 : 0
     camera.up.set(Math.sin(tip), Math.cos(tip), 0)
@@ -156,6 +159,8 @@ export class ChaseCamera {
     this.pos.x = damp(this.pos.x, tx, 2.4, dt)
     this.pos.y = damp(this.pos.y, ty, 2.2, dt)
     this.pos.z = damp(this.pos.z, tz, 2.4, dt)
+    const parked = world.escapeRig(this.pos.x, this.pos.y, this.pos.z)
+    this.pos.set(parked.x, parked.y, parked.z)
     camera.position.copy(this.pos)
     camera.up.set(0, 1, 0)
     camera.lookAt(target.x, target.y + 1.2, target.z)

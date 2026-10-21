@@ -4,12 +4,12 @@ import { MeshBuilder } from './geom.ts'
 import type { Heightfield } from './height.ts'
 import { hash01 } from './math.ts'
 
-const LEAF_LO = [0x5e / 255, 0x6b / 255, 0x3f / 255]
-const LEAF_HI = [0x7c / 255, 0x8a / 255, 0x55 / 255]
+const LEAF_LO = [0x62 / 255, 0x78 / 255, 0x3e / 255]
+const LEAF_HI = [0x8a / 255, 0xaa / 255, 0x62 / 255]
 
 /**
  * Five lobes, each offset by up to 0.4 of the crown radius.
- * Vertex color sits between #5e6b3f and #7c8a55, then ±6%.
+ * Body sits near #6e8a4a. The top facet is the lighter mix.
  */
 export function clusterCanopy(radius = 1): THREE.BufferGeometry {
   const blobs: THREE.BufferGeometry[] = []
@@ -50,12 +50,12 @@ export function crownLift(trunkScaleY: number, canopyScaleY: number, tuck = 0.45
   return TRUNK_TOP * trunkScaleY - tuck - CANOPY_BOTTOM * canopyScaleY
 }
 
-const BARK_LO = [0x6b / 255, 0x3e / 255, 0x28 / 255]
-const BARK_HI = [0xa6 / 255, 0x6a / 255, 0x42 / 255]
+const BARK_LO = [0x6a / 255, 0x4e / 255, 0x3c / 255]
+const BARK_HI = [0x8a / 255, 0x6a / 255, 0x50 / 255]
 
-/** Bole from radius 0.18 to 0.32. Short limbs stay inside the crown. */
+/** Bole about 40% thinner than the salmon poles. Short limbs stay inside the crown. */
 export function treeTrunk(): THREE.BufferGeometry {
-  const bole = new THREE.CylinderGeometry(0.22, 0.34, 3.15, 7)
+  const bole = new THREE.CylinderGeometry(0.132, 0.204, 3.15, 7)
   bole.translate(0, 1.58, 0)
   const parts: THREE.BufferGeometry[] = [bole]
   const limbs: [number, number, number][] = [
@@ -64,7 +64,7 @@ export function treeTrunk(): THREE.BufferGeometry {
     [4.4, 0.36, 2.88],
   ]
   for (const [yaw, pitch, y] of limbs) {
-    const limb = new THREE.CylinderGeometry(0.05, 0.09, 0.62, 4)
+    const limb = new THREE.CylinderGeometry(0.03, 0.054, 0.62, 4)
     limb.translate(0, 0.31, 0)
     limb.rotateZ(pitch)
     limb.rotateY(yaw)
